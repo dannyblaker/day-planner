@@ -1,36 +1,80 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# DayFlow
 
-## Getting Started
+A keyboard-driven day planner built for one thing: **plan your day in 15 minutes, then let the schedule take care of itself.**
 
-First, run the development server:
+The core idea is that the timeline is *derived state*. You maintain a simple ordered queue of tasks; DayFlow continuously computes the schedule from the queue, the current time, your meetings, and your dependencies. Add a spontaneous task, run late, get blocked — everything downstream reflows automatically. There is no save button; every change autosaves.
+
+## Features
+
+- **Auto-reflowing schedule** — flexible tasks pack around fixed-time meetings, from *now* onward. If you fall behind, the plan shifts with you.
+- **Spontaneous tasks** — add a task with `^` and it jumps to the front of the queue; the rest of the day shifts to make room.
+- **Dependencies** — task B can require task A to finish first (`>taskname` in quick-add, or checkboxes in the editor). Cycles are prevented.
+- **Concurrency** — mark a task parallel (`~`) and it moves to a background lane that overlaps focus work (CI runs, laundry, waiting on someone).
+- **Blockers** — mark a task blocked with a reason; it leaves the timeline and parks in a Blocked list. Dependents get flagged.
+- **Timers** — start/pause a per-task timer; actual time is tracked against planned, with an overrun alarm. The tab title shows the countdown.
+- **Notifications** — desktop notifications when fixed-time tasks start and when a timer overruns.
+- **Prioritisation** — P1–P4 with one-key assignment, plus one-key auto-sort of the queue by priority.
+- **Goals** — map tasks to goals (`#goal`); a panel shows how today's time is allocated per goal, planned vs. done.
+- **Capacity meter** — planned vs. available time with slack/overrun, always visible. Tasks that won't fit before day end are flagged red.
+- **Live share** — send your manager a read-only link (`Share live`) that polls the plan every 5 seconds.
+- **Export** — one click to PNG or PDF of the timeline.
+- **Multi-day** — navigate days with `[` / `]`, defer a task to tomorrow with `o`.
+
+## Getting started
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open http://localhost:3000. Your plan is stored in `data/plan.json` (with a localStorage fallback), so the live-share view works for anyone who can reach your machine — for manager sharing, run it on a host/LAN address they can reach (note: serverless platforms without a persistent filesystem won't persist the JSON file).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## The 15-minute morning flow
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
+2. Add tokens as you type: `Write report 45m !1 #deep-work`, `Standup 15m @10am`, `CI run 45m ~`.
+3. Press `s` to sort by priority, then `Shift+J/K` to fine-tune order.
+4. Check the capacity meter — over capacity? Defer something with `o`.
+5. Press `Space` on the first task and go.
 
-## Learn More
+## Keyboard shortcuts
 
-To learn more about Next.js, take a look at the following resources:
+| Key | Action |
+|---|---|
+| `n` / `c` / `⌘K` | quick-add task |
+| `j` / `k` | select next / previous |
+| `Shift+J` / `Shift+K` | move task down / up the queue |
+| `Enter` / `e` | edit selected |
+| `Space` | start / pause timer |
+| `d` | toggle done |
+| `b` | toggle blocked |
+| `1`–`4` | set priority |
+| `p` | toggle parallel lane |
+| `+` / `-` | duration ±15m |
+| `s` | auto-sort by priority |
+| `o` | defer to tomorrow |
+| `x` / `Del` | delete |
+| `[` / `]` | previous / next day |
+| `t` | today |
+| `?` | help |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Quick-add syntax
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+```
+Fix login bug 1h !1 #deep-work >deploy @2pm ~ *waiting-on-bob ^
+```
 
-## Deploy on Vercel
+| Token | Meaning |
+|---|---|
+| `45m` `1h` `1h30` | duration |
+| `!1`…`!4` | priority |
+| `#goal` | goal (created if new) |
+| `@2pm` `@14:30` | fixed start time (meeting) |
+| `>title` | depends on task whose title starts with… |
+| `~` | parallel / background |
+| `*reason` | blocked |
+| `^` | do next — everything else shifts |
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Stack
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON file behind an API route; the scheduler (`lib/scheduler.ts`) is a pure function from queue + time → timeline.

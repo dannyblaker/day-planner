@@ -1,0 +1,385 @@
+"use client";
+
+import { create } from "zustand";
+import { immer } from "zustand/middleware/immer";
+import { parseQuickAdd } from "./parse";
+import { dependentsOf } from "./scheduler";
+import { nowMinutes, todayISO, addDaysISO } from "./time";
+import {
+  DayPlan,
+  GOAL_COLORS,
+  Goal,
+  Plan,
+  Priority,
+  Task,
+  emptyDay,
+} from "./types";
+
+const uid = () => crypto.randomUUID().slice(0, 8);
+
+function defaultPlan(): Plan {
+  const goals: Goal[] = [
+    { id: uid(), name: "deep-work", color: GOAL_COLORS[0] },
+    { id: uid(), name: "admin", color: GOAL_COLORS[1] },
+  ];
+  const date = todayISO();
+  const day = emptyDay(date);
+  const mk = (partial: Partial<Task>, order: number): Task => ({
+    id: uid(),
+    title: "",
+    duration: 30,
+    priority: 3,
+    dependsOn: [],
+    status: "todo",
+    order,
+    actualMinutes: 0,
+    createdAt: Date.now(),
+    ...partial,
+  });
+  const draft = mk(
+    { title: "Draft project proposal", duration: 60, priority: 1, goalId: goals[0].id },
+    1
+  );
+  day.tasks = [
+    draft,
+    mk(
+      {
+        title: "Review proposal with fresh eyes",
+        duration: 20,
+        priority: 2,
+        goalId: goals[0].id,
+        dependsOn: [draft.id],
+      },
+      2
+    ),
+    mk(
+      { title: "Team stand-up", duration: 15, priority: 2, fixedStart: 10 * 60 },
+      3
+    ),
+    mk(
+      { title: "CI pipeline run (background)", duration: 45, parallel: true, priority: 3 },
+      4
+    ),
+    mk(
+      { title: "Press ? for shortcuts — try adding a task with N", duration: 15, priority: 4, goalId: goals[1].id },
+      5
+    ),
+  ];
+  return { goals, days: { [date]: day }, shareToken: uid() + uid() };
+}
+
+interface AppState {
+  plan: Plan;
+  date: string;
+  selectedId: string | null;
+  editorOpen: boolean;
+  helpOpen: boolean;
+  loaded: boolean;
+  saving: boolean;
+
+  load: (plan: Plan | null) => void;
+  setSaving: (v: boolean) => void;
+  setDate: (date: string) => void;
+  shiftDate: (delta: number) => void;
+  select: (id: string | null) => void;
+  setEditorOpen: (v: boolean) => void;
+  setHelpOpen: (v: boolean) => void;
+
+  quickAdd: (input: string) => string | null;
+  updateTask: (id: string, patch: Partial<Task>) => void;
+  deleteTask: (id: string) => void;
+  moveTask: (id: string, dir: -1 | 1) => void;
+  startTask: (id: string) => void;
+  pauseTask: (id: string) => void;
+  completeTask: (id: string) => void;
+  reopenTask: (id: string) => void;
+  toggleBlocked: (id: string, reason?: string) => void;
+  setPriority: (id: string, p: Priority) => void;
+  adjustDuration: (id: string, delta: number) => void;
+  autoSort: () => void;
+  deferToNextDay: (id: string) => void;
+  setDayBounds: (start: number, end: number) => void;
+  addGoal: (name: string) => void;
+  deleteGoal: (id: string) => void;
+  toggleDependency: (taskId: string, depId: string) => void;
+}
+
+function day(state: { plan: Plan; date: string }): DayPlan {
+  let d = state.plan.days[state.date];
+  if (!d) {
+    d = emptyDay(state.date);
+    state.plan.days[state.date] = d;
+  }
+  return d;
+}
+
+function accumulate(t: Task) {
+  if (t.actualStart != null) {
+    t.actualMinutes =
+      Math.round(
+        ((t.actualMinutes || 0) + Math.max(nowMinutes() - t.actualStart, 0)) * 10
+      ) / 10;
+  }
+}
+
+export const useApp = create<AppState>()(
+  immer((set, get) => ({
+    plan: defaultPlan(),
+    date: todayISO(),
+    selectedId: null,
+    editorOpen: false,
+    helpOpen: false,
+    loaded: false,
+    saving: false,
+
+    load: (plan) =>
+      set((s) => {
+        if (plan && plan.days) s.plan = plan;
+        s.loaded = true;
+        day(s);
+      }),
+    setSaving: (v) => set((s) => void (s.saving = v)),
+    setDate: (date) =>
+      set((s) => {
+        s.date = date;
+        s.selectedId = null;
+        s.editorOpen = false;
+        day(s);
+      }),
+    shiftDate: (delta) => get().setDate(addDaysISO(get().date, delta)),
+    select: (id) => set((s) => void (s.selectedId = id)),
+    setEditorOpen: (v) => set((s) => void (s.editorOpen = v)),
+    setHelpOpen: (v) => set((s) => void (s.helpOpen = v)),
+
+    quickAdd: (input) => {
+      const parsed = parseQuickAdd(
+        input,
+        day(get()).tasks,
+        get().plan.goals
+      );
+      if (!parsed.title) return null;
+      const id = uid();
+      set((s) => {
+        const d = day(s);
+        let goalId: string | null = null;
+        if (parsed.goalName) {
+          let g = s.plan.goals.find(
+            (g) => g.name.toLowerCase() === parsed.goalName!.toLowerCase()
+          );
+          if (!g) {
+            g = {
+              id: uid(),
+              name: parsed.goalName,
+              color: GOAL_COLORS[s.plan.goals.length % GOAL_COLORS.length],
+            };
+            s.plan.goals.push(g);
+          }
+          goalId = g.id;
+        }
+        const orders = d.tasks.map((t) => t.order);
+        const order = parsed.urgent
+          ? (orders.length ? Math.min(...orders) : 0) - 1
+          : (orders.length ? Math.max(...orders) : 0) + 1;
+        d.tasks.push({
+          id,
+          title: parsed.title,
+          duration: parsed.duration,
+          priority: parsed.priority,
+          goalId,
+          dependsOn: parsed.dependsOn,
+          blocked: parsed.blocked,
+          status: "todo",
+          fixedStart: parsed.fixedStart ?? null,
+          parallel: parsed.parallel,
+          order,
+          actualStart: null,
+          actualMinutes: 0,
+          createdAt: Date.now(),
+        });
+        s.selectedId = id;
+      });
+      return id;
+    },
+
+    updateTask: (id, patch) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (t) Object.assign(t, patch);
+      }),
+
+    deleteTask: (id) =>
+      set((s) => {
+        const d = day(s);
+        d.tasks = d.tasks.filter((t) => t.id !== id);
+        for (const t of d.tasks)
+          t.dependsOn = t.dependsOn.filter((dep) => dep !== id);
+        if (s.selectedId === id) {
+          s.selectedId = null;
+          s.editorOpen = false;
+        }
+      }),
+
+    moveTask: (id, dir) =>
+      set((s) => {
+        const queue = day(s)
+          .tasks.filter((t) => t.status === "todo" && !t.blocked)
+          .sort((a, b) => a.order - b.order);
+        const i = queue.findIndex((t) => t.id === id);
+        const j = i + dir;
+        if (i < 0 || j < 0 || j >= queue.length) return;
+        const a = queue[i].order;
+        queue[i].order = queue[j].order;
+        queue[j].order = a;
+      }),
+
+    startTask: (id) =>
+      set((s) => {
+        for (const t of day(s).tasks) {
+          if (t.status === "active" && t.id !== id) {
+            accumulate(t);
+            t.status = "todo";
+            t.actualStart = null;
+          }
+        }
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (!t) return;
+        t.status = "active";
+        t.blocked = null;
+        t.actualStart = nowMinutes();
+      }),
+
+    pauseTask: (id) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (!t || t.status !== "active") return;
+        accumulate(t);
+        t.status = "todo";
+        t.actualStart = null;
+      }),
+
+    completeTask: (id) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (!t) return;
+        if (t.status === "active") accumulate(t);
+        t.status = "done";
+      }),
+
+    reopenTask: (id) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (!t) return;
+        t.status = "todo";
+        t.actualStart = null;
+      }),
+
+    toggleBlocked: (id, reason) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (!t) return;
+        if (t.blocked) t.blocked = null;
+        else {
+          if (t.status === "active") {
+            accumulate(t);
+            t.actualStart = null;
+          }
+          t.status = "todo";
+          t.blocked = reason || "Blocked";
+        }
+      }),
+
+    setPriority: (id, p) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (t) t.priority = p;
+      }),
+
+    adjustDuration: (id, delta) =>
+      set((s) => {
+        const t = day(s).tasks.find((t) => t.id === id);
+        if (t) t.duration = Math.max(5, t.duration + delta);
+      }),
+
+    autoSort: () =>
+      set((s) => {
+        const queue = day(s)
+          .tasks.filter((t) => t.status === "todo" && !t.blocked)
+          .sort((a, b) => a.order - b.order);
+        const orders = queue.map((t) => t.order).sort((a, b) => a - b);
+        const sorted = [...queue].sort(
+          (a, b) => a.priority - b.priority || a.order - b.order
+        );
+        sorted.forEach((t, i) => (t.order = orders[i]));
+      }),
+
+    deferToNextDay: (id) =>
+      set((s) => {
+        const d = day(s);
+        const t = d.tasks.find((t) => t.id === id);
+        if (!t) return;
+        d.tasks = d.tasks.filter((x) => x.id !== id);
+        for (const x of d.tasks)
+          x.dependsOn = x.dependsOn.filter((dep) => dep !== id);
+        const nextDate = addDaysISO(s.date, 1);
+        let next = s.plan.days[nextDate];
+        if (!next) {
+          next = emptyDay(nextDate);
+          s.plan.days[nextDate] = next;
+        }
+        const orders = next.tasks.map((x) => x.order);
+        next.tasks.push({
+          ...t,
+          status: "todo",
+          actualStart: null,
+          fixedStart: null,
+          dependsOn: [],
+          order: (orders.length ? Math.max(...orders) : 0) + 1,
+        });
+        if (s.selectedId === id) s.selectedId = null;
+      }),
+
+    setDayBounds: (start, end) =>
+      set((s) => {
+        const d = day(s);
+        d.dayStart = start;
+        d.dayEnd = Math.max(end, start + 60);
+      }),
+
+    addGoal: (name) =>
+      set((s) => {
+        if (!name.trim()) return;
+        if (
+          s.plan.goals.some(
+            (g) => g.name.toLowerCase() === name.trim().toLowerCase()
+          )
+        )
+          return;
+        s.plan.goals.push({
+          id: uid(),
+          name: name.trim(),
+          color: GOAL_COLORS[s.plan.goals.length % GOAL_COLORS.length],
+        });
+      }),
+
+    deleteGoal: (id) =>
+      set((s) => {
+        s.plan.goals = s.plan.goals.filter((g) => g.id !== id);
+        for (const d of Object.values(s.plan.days))
+          for (const t of d.tasks) if (t.goalId === id) t.goalId = null;
+      }),
+
+    toggleDependency: (taskId, depId) =>
+      set((s) => {
+        const d = day(s);
+        const t = d.tasks.find((t) => t.id === taskId);
+        if (!t || taskId === depId) return;
+        if (t.dependsOn.includes(depId)) {
+          t.dependsOn = t.dependsOn.filter((x) => x !== depId);
+        } else {
+          // prevent cycles: depId must not depend on taskId
+          if (dependentsOf(d.tasks, taskId).has(depId)) return;
+          t.dependsOn.push(depId);
+        }
+      }),
+  }))
+);
