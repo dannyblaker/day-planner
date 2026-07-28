@@ -243,8 +243,10 @@ export default function Home() {
           <GoalsPanel />
         </aside>
 
+        {/* min-w-0: the flow canvas is fixed-width, and without this `main`
+            refuses to shrink below it and shoves the editor off-screen */}
         <main
-          className={`flex-1 p-4 ${
+          className={`flex-1 min-w-0 p-4 ${
             view === "flow" ? "min-h-0 flex flex-col" : "overflow-y-auto"
           }`}
         >

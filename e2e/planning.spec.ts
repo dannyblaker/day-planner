@@ -187,6 +187,17 @@ test.describe("the flowchart", () => {
     expect(planServer.tasks().find((t) => t.title === "Second job")!.dependsOn).toEqual([]);
   });
 
+  test("opens the editor beside the canvas, not off-screen", async ({ page }) => {
+    await quickAdd(page, "Write the report 30m", "Write the report");
+    await page.locator("body").click();
+    await page.keyboard.press("v");
+
+    await flowNode(page, "Write the report").dblclick();
+    const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
+    await expect(editor).toBeInViewport();
+    await expect(editor.getByRole("textbox").first()).toHaveValue("Write the report");
+  });
+
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {
     await page.keyboard.press("v");
     await page.locator(".cursor-grab").first().dblclick({ position: { x: 400, y: 300 } });
