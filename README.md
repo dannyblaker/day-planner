@@ -24,12 +24,24 @@ The core idea is that the timeline is *derived state*. You maintain a simple ord
 
 ## Getting started
 
+### Docker (recommended for daily use)
+
+```bash
+docker compose up -d
+```
+
+Open http://localhost:3000. This runs the app plus a Postgres database; your plan lives in the `pgdata` named volume, so it survives restarts, rebuilds, and `docker compose down`. (`docker compose down -v` is the only thing that deletes it.) After pulling changes, rebuild with `docker compose up -d --build`.
+
+The live-share view works for anyone who can reach your machine — for manager sharing, give them your LAN address (`http://<your-ip>:3000/share/<token>`).
+
+### Dev mode (no database needed)
+
 ```bash
 npm install
 npm run dev
 ```
 
-Open http://localhost:3000. Your plan is stored in `data/plan.json` (with a localStorage fallback), so the live-share view works for anyone who can reach your machine — for manager sharing, run it on a host/LAN address they can reach (note: serverless platforms without a persistent filesystem won't persist the JSON file).
+Without `DATABASE_URL` set, the plan is stored in `data/plan.json` (with a localStorage fallback) — same app, file-backed instead of Postgres.
 
 ## The 15-minute morning flow
 
