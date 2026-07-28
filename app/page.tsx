@@ -9,6 +9,7 @@ import QuickAdd from "@/components/QuickAdd";
 import TaskList from "@/components/TaskList";
 import Timeline from "@/components/Timeline";
 import TopBar from "@/components/TopBar";
+import UndoBar from "@/components/UndoBar";
 import { notify } from "@/lib/notify";
 import { scheduleDay } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
@@ -91,6 +92,11 @@ export default function Home() {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "k") {
         e.preventDefault();
         quickAddRef.current?.focus();
+        return;
+      }
+      if (!inField && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
+        e.preventDefault();
+        s.undoClear();
         return;
       }
       if (e.key === "Escape") {
@@ -204,6 +210,9 @@ export default function Home() {
         case "m":
           toggleTheme();
           break;
+        case "u":
+          s.undoClear();
+          break;
         case "?":
           s.setHelpOpen(true);
           break;
@@ -274,6 +283,7 @@ export default function Home() {
         <Editor />
       </div>
       <HelpOverlay />
+      <UndoBar />
     </div>
   );
 }

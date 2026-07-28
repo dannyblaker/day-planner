@@ -69,6 +69,14 @@ function defaultPlan(): Plan {
   return { goals, days: { [date]: day }, shareToken: uid() + uid() };
 }
 
+/** Snapshot of a bulk clear, kept only long enough to offer an undo. */
+interface ClearedBatch {
+  date: string;
+  tasks: Task[];
+  /** dependsOn links that pointed at the cleared tasks: dependent id → dep ids */
+  deps: Record<string, string[]>;
+}
+
 interface AppState {
   plan: Plan;
   date: string;
@@ -77,6 +85,7 @@ interface AppState {
   helpOpen: boolean;
   loaded: boolean;
   saving: boolean;
+  lastCleared: ClearedBatch | null;
   view: "timeline" | "flow";
   setView: (v: "timeline" | "flow") => void;
   /** assign flowchart positions to tasks that don't have one yet */
@@ -108,6 +117,10 @@ interface AppState {
   setPriority: (id: string, p: Priority) => void;
   adjustDuration: (id: string, delta: number) => void;
   autoSort: () => void;
+  /** remove this day's finished tasks; recoverable until the undo bar goes */
+  clearDone: () => void;
+  undoClear: () => void;
+  dismissUndo: () => void;
   deferToNextDay: (id: string) => void;
   setDayBounds: (start: number, end: number) => void;
   addGoal: (name: string) => void;
@@ -142,6 +155,7 @@ export const useApp = create<AppState>()(
     helpOpen: false,
     loaded: false,
     saving: false,
+    lastCleared: null,
     view: "timeline",
 
     setView: (v) => set((s) => void (s.view = v)),
@@ -395,6 +409,56 @@ export const useApp = create<AppState>()(
         );
         sorted.forEach((t, i) => (t.order = orders[i]));
       }),
+
+    clearDone: () =>
+      set((s) => {
+        const d = day(s);
+        // plain copies, so the snapshot outlives the drafts they came from
+        const removed = d.tasks
+          .filter((t) => t.status === "done")
+          .map((t) => ({ ...t, dependsOn: [...t.dependsOn] }));
+        if (!removed.length) return;
+
+        const ids = new Set(removed.map((t) => t.id));
+        const deps: Record<string, string[]> = {};
+        d.tasks = d.tasks.filter((t) => !ids.has(t.id));
+        for (const t of d.tasks) {
+          const lost = t.dependsOn.filter((id) => ids.has(id));
+          if (lost.length) {
+            deps[t.id] = lost;
+            t.dependsOn = t.dependsOn.filter((id) => !ids.has(id));
+          }
+        }
+        if (s.selectedId && ids.has(s.selectedId)) {
+          s.selectedId = null;
+          s.editorOpen = false;
+        }
+        s.lastCleared = { date: s.date, tasks: removed, deps };
+      }),
+
+    /** Puts the batch back where it came from, whatever day is on screen now.
+     *  Only the cleared tasks and their links are touched, so edits made in
+     *  the meantime survive. */
+    undoClear: () =>
+      set((s) => {
+        const batch = s.lastCleared;
+        if (!batch) return;
+        let d = s.plan.days[batch.date];
+        if (!d) {
+          d = emptyDay(batch.date);
+          s.plan.days[batch.date] = d;
+        }
+        const present = new Set(d.tasks.map((t) => t.id));
+        for (const t of batch.tasks) if (!present.has(t.id)) d.tasks.push(t);
+        for (const [id, deps] of Object.entries(batch.deps)) {
+          const t = d.tasks.find((x) => x.id === id);
+          if (!t) continue;
+          for (const dep of deps) if (!t.dependsOn.includes(dep)) t.dependsOn.push(dep);
+        }
+        s.lastCleared = null;
+      }),
+
+    dismissUndo: () => set((s) => void (s.lastCleared = null)),
 
     deferToNextDay: (id) =>
       set((s) => {

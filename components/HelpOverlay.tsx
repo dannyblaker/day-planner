@@ -16,6 +16,7 @@ const SHORTCUTS: [string, string][] = [
   ["s", "auto-sort queue by priority"],
   ["o", "defer selected task to tomorrow"],
   ["x / Del", "delete selected task"],
+  ["u / ⌘Z", "undo the last clear"],
   ["[ / ]", "previous / next day"],
   ["t", "jump to today"],
   ["v", "toggle timeline / flowchart view"],

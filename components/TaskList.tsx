@@ -120,6 +120,7 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const placeBefore = useApp((s) => s.placeBefore);
+  const clearDone = useApp((s) => s.clearDone);
   const [showDone, setShowDone] = useState(true);
   // drag & drop: id to insert before; null = end of queue; undefined = not dragging
   const [dropBefore, setDropBefore] = useState<string | null | undefined>(undefined);
@@ -217,12 +218,21 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
 
       {done.length > 0 && (
         <div>
-          <button
-            onClick={() => setShowDone(!showDone)}
-            className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1 hover:text-slate-300"
-          >
-            Done · {done.length} {showDone ? "▾" : "▸"}
-          </button>
+          <div className="flex items-baseline gap-2 px-2 mb-1">
+            <button
+              onClick={() => setShowDone(!showDone)}
+              className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300"
+            >
+              Done · {done.length} {showDone ? "▾" : "▸"}
+            </button>
+            <button
+              onClick={clearDone}
+              className="text-[10px] text-slate-600 hover:text-red-400"
+              title="remove finished tasks from this day (undoable)"
+            >
+              clear
+            </button>
+          </div>
           {showDone && (
             <div className="space-y-0.5">
               {done.map((t) => (
