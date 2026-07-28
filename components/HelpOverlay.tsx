@@ -18,12 +18,17 @@ const SHORTCUTS: [string, string][] = [
   ["x / Del", "delete selected task"],
   ["[ / ]", "previous / next day"],
   ["t", "jump to today"],
+  ["v", "toggle timeline / flowchart view"],
   ["?", "this help"],
   ["Esc", "close panels / deselect"],
   ["drag task (timeline)", "reorder the queue"],
   ["drag 📌 task (timeline)", "move its fixed time (Shift = 5-min snap)"],
   ["Alt+drag (timeline)", "pin task at the dropped time"],
   ["drag row (list)", "reorder the queue"],
+  ["dbl-click canvas (flow)", "create task at that spot"],
+  ["drag ○ → node (flow)", "draw a dependency arrow"],
+  ["click arrow (flow)", "remove that dependency"],
+  ["drop node in ∥ band (flow)", "make it concurrent"],
 ];
 
 const SYNTAX: [string, string][] = [

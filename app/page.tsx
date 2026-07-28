@@ -2,6 +2,7 @@
 
 import CurrentTask from "@/components/CurrentTask";
 import Editor from "@/components/Editor";
+import FlowView from "@/components/FlowView";
 import GoalsPanel from "@/components/GoalsPanel";
 import HelpOverlay from "@/components/HelpOverlay";
 import QuickAdd from "@/components/QuickAdd";
@@ -23,6 +24,7 @@ export default function Home() {
   const date = useApp((s) => s.date);
   const selectedId = useApp((s) => s.selectedId);
   const loaded = useApp((s) => s.loaded);
+  const view = useApp((s) => s.view);
 
   const [tick, setTick] = useState(0);
   const quickAddRef = useRef<HTMLInputElement>(null);
@@ -202,6 +204,9 @@ export default function Home() {
         case "t":
           s.setDate(todayISO());
           break;
+        case "v":
+          s.setView(s.view === "timeline" ? "flow" : "timeline");
+          break;
         case "?":
           s.setHelpOpen(true);
           break;
@@ -232,32 +237,40 @@ export default function Home() {
           <GoalsPanel />
         </aside>
 
-        <main className="flex-1 overflow-y-auto p-4">
-          <div ref={exportRef} className="bg-[#0a0e16] p-2">
-            <div className="flex items-baseline justify-between mb-3 px-1">
-              <h2 className="text-sm font-medium text-slate-300">
-                {fmtDateHuman(date)}
-              </h2>
-              <span className="text-[10px] text-slate-600">
-                DayFlow · {date}
-              </span>
+        <main
+          className={`flex-1 p-4 ${
+            view === "flow" ? "min-h-0 flex flex-col" : "overflow-y-auto"
+          }`}
+        >
+          {view === "timeline" ? (
+            <div ref={exportRef} className="bg-[#0a0e16] p-2">
+              <div className="flex items-baseline justify-between mb-3 px-1">
+                <h2 className="text-sm font-medium text-slate-300">
+                  {fmtDateHuman(date)}
+                </h2>
+                <span className="text-[10px] text-slate-600">
+                  DayFlow · {date}
+                </span>
+              </div>
+              <Timeline
+                day={day}
+                slots={slots}
+                now={now}
+                goals={goals}
+                selectedId={selectedId}
+                onSelect={(id) => useApp.getState().select(id)}
+                isToday={isToday}
+                onReorder={(id, beforeId) =>
+                  useApp.getState().placeBefore(id, beforeId)
+                }
+                onSetFixedStart={(id, start) =>
+                  useApp.getState().updateTask(id, { fixedStart: start })
+                }
+              />
             </div>
-            <Timeline
-              day={day}
-              slots={slots}
-              now={now}
-              goals={goals}
-              selectedId={selectedId}
-              onSelect={(id) => useApp.getState().select(id)}
-              isToday={isToday}
-              onReorder={(id, beforeId) =>
-                useApp.getState().placeBefore(id, beforeId)
-              }
-              onSetFixedStart={(id, start) =>
-                useApp.getState().updateTask(id, { fixedStart: start })
-              }
-            />
-          </div>
+          ) : (
+            <FlowView slots={slots} exportRef={exportRef} />
+          )}
         </main>
 
         <Editor />

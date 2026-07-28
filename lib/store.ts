@@ -3,10 +3,11 @@
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
 import { parseQuickAdd } from "./parse";
-import { dependentsOf } from "./scheduler";
+import { dependentsOf, flowDepths } from "./scheduler";
 import { nowMinutes, todayISO, addDaysISO } from "./time";
 import {
   DayPlan,
+  FLOW,
   GOAL_COLORS,
   Goal,
   Plan,
@@ -76,6 +77,12 @@ interface AppState {
   helpOpen: boolean;
   loaded: boolean;
   saving: boolean;
+  view: "timeline" | "flow";
+  setView: (v: "timeline" | "flow") => void;
+  /** assign flowchart positions to tasks that don't have one yet */
+  ensureFlowPositions: () => void;
+  /** re-layout the whole flowchart by dependency depth */
+  autoArrangeFlow: () => void;
 
   load: (plan: Plan | null) => void;
   setSaving: (v: boolean) => void;
@@ -133,6 +140,56 @@ export const useApp = create<AppState>()(
     helpOpen: false,
     loaded: false,
     saving: false,
+    view: "timeline",
+
+    setView: (v) => set((s) => void (s.view = v)),
+
+    ensureFlowPositions: () =>
+      set((s) => {
+        const d = day(s);
+        const missing = d.tasks.filter((t) => t.flowX == null || t.flowY == null);
+        if (!missing.length) return;
+        const depths = flowDepths(d.tasks);
+        for (const t of missing) {
+          const x = 40 + (depths.get(t.id) || 0) * 250;
+          const bandTop = t.parallel ? FLOW.PAR_Y + 50 : 60;
+          const bandMax = t.parallel
+            ? FLOW.H - FLOW.NODE_H - 20
+            : FLOW.PAR_Y - FLOW.NODE_H - 20;
+          const taken = d.tasks
+            .filter(
+              (o) =>
+                o.id !== t.id &&
+                o.flowX != null &&
+                Math.abs(o.flowX - x) < FLOW.NODE_W
+            )
+            .map((o) => o.flowY ?? 0);
+          let y = bandTop;
+          while (taken.some((ty) => Math.abs(ty - y) < 90) && y < bandMax)
+            y += 100;
+          t.flowX = x;
+          t.flowY = Math.min(y, bandMax);
+        }
+      }),
+
+    autoArrangeFlow: () =>
+      set((s) => {
+        const d = day(s);
+        const depths = flowDepths(d.tasks);
+        const counters: Record<string, number> = {};
+        const sorted = [...d.tasks].sort(
+          (a, b) =>
+            (depths.get(a.id) || 0) - (depths.get(b.id) || 0) ||
+            a.order - b.order
+        );
+        for (const t of sorted) {
+          const dep = depths.get(t.id) || 0;
+          const key = (t.parallel ? "p" : "f") + dep;
+          const i = (counters[key] = (counters[key] ?? -1) + 1);
+          t.flowX = 40 + dep * 250;
+          t.flowY = t.parallel ? FLOW.PAR_Y + 50 + i * 100 : 60 + i * 100;
+        }
+      }),
 
     load: (plan) =>
       set((s) => {

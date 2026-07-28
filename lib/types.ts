@@ -23,7 +23,20 @@ export interface Task {
   /** accumulated worked minutes across timer segments */
   actualMinutes: number;
   createdAt: number;
+  /** position on the flowchart canvas */
+  flowX?: number | null;
+  flowY?: number | null;
 }
+
+/** Flowchart canvas geometry (shared by view + auto-layout). */
+export const FLOW = {
+  W: 2400,
+  H: 1500,
+  /** y where the parallel/background swimlane begins */
+  PAR_Y: 1060,
+  NODE_W: 192,
+  NODE_H: 78,
+};
 
 export interface Goal {
   id: string;

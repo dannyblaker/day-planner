@@ -20,6 +20,7 @@ The core idea is that the timeline is *derived state*. You maintain a simple ord
 - **Export** — one click to PNG or PDF of the timeline.
 - **Multi-day** — navigate days with `[` / `]`, defer a task to tomorrow with `o`.
 - **Drag & drop** — drag tasks on the timeline (or rows in the list) to reorder the queue; drag a 📌 pinned task to move its time (Shift = 5-min snap); Alt+drag any task to pin it at a specific time.
+- **Flowchart view** (`v`) — plan visually on a canvas: tasks are nodes, dependencies are arrows you draw by dragging from a node's ○ port. Double-click the canvas to create a task in place (quick-add syntax works), click an arrow to remove it, and drop a node into the ∥ swimlane to make it concurrent. Auto-arrange lays the graph out by dependency depth. Both views edit the same plan, so the timeline reflows as you sketch.
 
 ## Getting started
 
@@ -57,8 +58,10 @@ Open http://localhost:3000. Your plan is stored in `data/plan.json` (with a loca
 | `x` / `Del` | delete |
 | `[` / `]` | previous / next day |
 | `t` | today |
+| `v` | toggle timeline / flowchart view |
 | `?` | help |
 | drag on timeline | reorder · move pinned task · Alt+drag to pin |
+| flow view | dbl-click: new task · drag ○→node: dependency · click arrow: remove · drop in ∥ band: concurrent |
 
 ## Quick-add syntax
 

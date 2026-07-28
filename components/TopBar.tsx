@@ -27,7 +27,8 @@ function TimeInput({
 }
 
 export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLElement | null> }) {
-  const { date, shiftDate, setDate, setDayBounds, setHelpOpen, saving } = useApp();
+  const { date, shiftDate, setDate, setDayBounds, setHelpOpen, saving, view, setView } =
+    useApp();
   const day = useApp((s) => s.plan.days[s.date]);
   const shareToken = useApp((s) => s.plan.shareToken);
   const [copied, setCopied] = useState(false);
@@ -94,6 +95,25 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
         <TimeInput value={day.dayStart} onChange={(v) => setDayBounds(v, day.dayEnd)} />
         –
         <TimeInput value={day.dayEnd} onChange={(v) => setDayBounds(day.dayStart, v)} />
+      </div>
+
+      <div
+        className="flex rounded-md border border-slate-700 overflow-hidden"
+        title="toggle view (v)"
+      >
+        {(["timeline", "flow"] as const).map((v) => (
+          <button
+            key={v}
+            onClick={() => setView(v)}
+            className={`text-[11px] px-2.5 py-1 ${
+              view === v
+                ? "bg-indigo-600/40 text-indigo-200"
+                : "bg-slate-800/60 text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {v === "timeline" ? "🗓 Timeline" : "◇ Flow"}
+          </button>
+        ))}
       </div>
 
       <div
