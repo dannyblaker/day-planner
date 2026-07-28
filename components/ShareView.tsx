@@ -4,6 +4,7 @@ import { scheduleDay } from "@/lib/scheduler";
 import { fmtDateHuman, fmtDur, nowMinutes, todayISO } from "@/lib/time";
 import { Plan } from "@/lib/types";
 import { useEffect, useState } from "react";
+import ThemeToggle from "./ThemeToggle";
 import Timeline from "./Timeline";
 
 /** Read-only live view of today's plan — poll the server every 5 seconds. */
@@ -73,8 +74,8 @@ export default function ShareView({ token }: { token: string }) {
   const blocked = day.tasks.filter((t) => t.blocked && t.status !== "done");
 
   return (
-    <div className="min-h-screen bg-[#0a0e16] text-slate-300">
-      <header className="flex items-center gap-3 px-5 py-3 border-b border-slate-800 sticky top-0 bg-[#0a0e16]/95 backdrop-blur z-20 flex-wrap">
+    <div className="min-h-screen bg-background text-slate-300">
+      <header className="flex items-center gap-3 px-5 py-3 border-b border-slate-800 sticky top-0 bg-background/95 backdrop-blur z-20 flex-wrap">
         <h1 className="text-sm font-semibold text-indigo-300">DayFlow</h1>
         <span className="text-xs text-slate-400">{fmtDateHuman(date)}</span>
         <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
@@ -82,6 +83,7 @@ export default function ShareView({ token }: { token: string }) {
           live · read-only
         </span>
         <div className="flex-1" />
+        <ThemeToggle hint={false} />
         <span className="text-[11px] text-slate-500">
           {done}/{total} done
           {updatedAt &&

@@ -1,6 +1,10 @@
 "use client";
 
-const BG = "#0a0e16";
+/** Match the exported image to whatever theme is on screen. */
+const bg = () =>
+  getComputedStyle(document.documentElement)
+    .getPropertyValue("--background")
+    .trim() || "#0a0e16";
 
 function download(dataUrl: string, filename: string) {
   const a = document.createElement("a");
@@ -11,13 +15,13 @@ function download(dataUrl: string, filename: string) {
 
 export async function exportPNG(node: HTMLElement, name: string) {
   const { toPng } = await import("html-to-image");
-  const url = await toPng(node, { backgroundColor: BG, pixelRatio: 2 });
+  const url = await toPng(node, { backgroundColor: bg(), pixelRatio: 2 });
   download(url, `${name}.png`);
 }
 
 export async function exportPDF(node: HTMLElement, name: string) {
   const { toPng } = await import("html-to-image");
-  const url = await toPng(node, { backgroundColor: BG, pixelRatio: 2 });
+  const url = await toPng(node, { backgroundColor: bg(), pixelRatio: 2 });
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();

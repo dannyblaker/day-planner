@@ -19,6 +19,7 @@ const SHORTCUTS: [string, string][] = [
   ["[ / ]", "previous / next day"],
   ["t", "jump to today"],
   ["v", "toggle timeline / flowchart view"],
+  ["m", "toggle light / dark theme"],
   ["?", "this help"],
   ["Esc", "close panels / deselect"],
   ["drag task (timeline)", "reorder the queue"],
@@ -49,7 +50,7 @@ export default function HelpOverlay() {
 
   return (
     <div
-      className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-6"
+      className="fixed inset-0 z-50 bg-[var(--scrim)] backdrop-blur-sm flex items-center justify-center p-6"
       onClick={() => setHelpOpen(false)}
     >
       <div

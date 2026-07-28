@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { fmtDur, fmtTime } from "@/lib/time";
 import { FLOW, Slot, Task } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
-import { PRIORITY_COLOR } from "./Timeline";
+import { DONE_COLOR, PRIORITY_COLOR } from "./Timeline";
 
 const { W, H, PAR_Y, NODE_W, NODE_H } = FLOW;
 
@@ -227,12 +227,12 @@ export default function FlowView({
           }}
           onPointerDown={onCanvasPointerDown}
           onDoubleClick={onCanvasDoubleClick}
-          className="relative bg-[#0a0e16] cursor-grab"
+          className="relative bg-background cursor-grab"
           style={{
             width: W,
             height: H,
             backgroundImage:
-              "radial-gradient(circle, #1e293b 1px, transparent 1px)",
+              "radial-gradient(circle, var(--flow-dot) 1px, transparent 1px)",
             backgroundSize: "24px 24px",
           }}
         >
@@ -277,12 +277,12 @@ export default function FlowView({
                 selectedId === from.id || selectedId === to.id;
               const stroke =
                 hoverEdge === key
-                  ? "#f87171"
+                  ? "var(--edge-hover)"
                   : involved
-                    ? "#818cf8"
+                    ? "var(--edge-active)"
                     : from.status === "done"
-                      ? "#334155"
-                      : "#64748b";
+                      ? "var(--edge-dim)"
+                      : "var(--edge)";
               return (
                 <g
                   key={key}
@@ -301,9 +301,11 @@ export default function FlowView({
                     fill="none"
                     style={{ pointerEvents: "stroke" }}
                   />
+                  {/* stroke goes through `style`: a var() in the SVG
+                      presentation attribute wouldn't resolve */}
                   <path
                     d={d}
-                    stroke={stroke}
+                    style={{ stroke }}
                     strokeWidth={1.5}
                     fill="none"
                     markerEnd="url(#flow-arrow)"
@@ -354,13 +356,11 @@ export default function FlowView({
                   width: NODE_W,
                   height: NODE_H,
                   borderLeftWidth: 3,
-                  borderLeftColor: done ? "#475569" : PRIORITY_COLOR[t.priority],
+                  borderLeftColor: done ? DONE_COLOR : PRIORITY_COLOR[t.priority],
                   borderLeftStyle: "solid",
                   touchAction: "none",
                   zIndex: dragging ? 30 : 10,
-                  boxShadow: dragging
-                    ? "0 8px 24px rgba(0,0,0,0.5)"
-                    : undefined,
+                  boxShadow: dragging ? "var(--drag-shadow)" : undefined,
                 }}
               >
                 <div
@@ -401,7 +401,7 @@ export default function FlowView({
                 {/* out-port: drag to another node to create a dependency */}
                 <div
                   onPointerDown={(e) => onPortPointerDown(e, t)}
-                  className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-slate-400 bg-[#0a0e16] hover:border-indigo-400 hover:bg-indigo-950 cursor-crosshair"
+                  className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-slate-400 bg-background hover:border-indigo-400 hover:bg-indigo-950 cursor-crosshair"
                   title="drag to another task: it will depend on this one"
                   style={{ touchAction: "none" }}
                 />
@@ -419,7 +419,7 @@ export default function FlowView({
             >
               <path
                 d={edgePath(tempEdge.sx, tempEdge.sy, tempEdge.tx, tempEdge.ty)}
-                stroke="#818cf8"
+                style={{ stroke: "var(--edge-active)" }}
                 strokeWidth={1.5}
                 strokeDasharray="4 3"
                 fill="none"

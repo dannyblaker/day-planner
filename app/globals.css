@@ -1,8 +1,90 @@
 @import "tailwindcss";
 
+/*
+ * Theming works by re-pointing Tailwind's palette variables, not by adding
+ * `dark:` variants everywhere: every `slate-800` / `indigo-300` / … utility
+ * compiles to `var(--color-…)`, so overriding the ramp under
+ * `[data-theme="light"]` flips the whole app at once. The scale is inverted
+ * (50 ↔ 950) with the mid tones nudged for contrast on a light background,
+ * which keeps each shade in the same *role* it already had: 800/900 are
+ * surfaces, 700 is a border, 100–300 is text.
+ */
+
 :root {
+  color-scheme: dark;
+
   --background: #0a0e16;
-  --foreground: #cbd5e1;
+  --foreground: var(--color-slate-300);
+
+  /* chrome that isn't part of a Tailwind ramp */
+  --scrim: rgba(2, 6, 23, 0.6);
+  --drag-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  --flow-dot: #1e293b;
+
+  /* flowchart dependency arrows */
+  --edge: #64748b;
+  --edge-dim: #334155;
+  --edge-active: #818cf8;
+  --edge-hover: #f87171;
+
+  /* priority accents (left border of a task, dot in the list) */
+  --prio-1: #f87171;
+  --prio-2: #fbbf24;
+  --prio-3: #38bdf8;
+  --prio-4: #64748b;
+  --prio-done: #475569;
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --background: #fbfcfe;
+
+  --scrim: rgba(15, 23, 42, 0.35);
+  --drag-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
+  --flow-dot: #d3dae5;
+
+  --edge: #94a3b8;
+  --edge-dim: #cbd5e1;
+  --edge-active: #4f46e5;
+  --edge-hover: #dc2626;
+
+  --prio-1: #dc2626;
+  --prio-2: #d97706;
+  --prio-3: #0284c7;
+  --prio-4: #64748b;
+  --prio-done: #cbd5e1;
+
+  /* structural ramp — inverted */
+  --color-slate-50: oklch(12.9% 0.042 264.695);
+  --color-slate-100: oklch(20.8% 0.042 265.755);
+  --color-slate-200: oklch(27.9% 0.041 260.031);
+  --color-slate-300: oklch(37.2% 0.044 257.287);
+  --color-slate-400: oklch(44.6% 0.043 257.281);
+  --color-slate-500: oklch(48.5% 0.046 257.417);
+  --color-slate-600: oklch(56% 0.042 256.788);
+  --color-slate-700: oklch(86.9% 0.022 252.894);
+  --color-slate-800: oklch(92.9% 0.013 255.508);
+  --color-slate-900: oklch(96.8% 0.007 247.896);
+  --color-slate-950: oklch(98.4% 0.003 247.858);
+
+  /* accents — only the shades used as text or tinted fills move; 500/600 are
+     solid buttons and read the same either way */
+  --color-red-300: oklch(50.5% 0.213 27.518);
+  --color-red-400: oklch(57.7% 0.245 27.325);
+  --color-red-900: oklch(88.5% 0.062 18.334);
+  --color-red-950: oklch(97.1% 0.013 17.38);
+
+  --color-emerald-300: oklch(50.8% 0.118 165.612);
+  --color-emerald-400: oklch(59.6% 0.145 163.225);
+  --color-emerald-950: oklch(97.9% 0.021 166.113);
+
+  --color-indigo-200: oklch(35.9% 0.144 278.697);
+  --color-indigo-300: oklch(45.7% 0.24 277.023);
+  --color-indigo-400: oklch(51.1% 0.262 276.966);
+  --color-indigo-950: oklch(93% 0.034 272.788);
+
+  --color-amber-400: oklch(55.5% 0.163 48.998);
 }
 
 @theme inline {
@@ -22,14 +104,14 @@ body {
   font-size: 11px;
   padding: 4px 8px;
   border-radius: 6px;
-  border: 1px solid #334155;
-  background: rgba(30, 41, 59, 0.6);
-  color: #cbd5e1;
+  border: 1px solid var(--color-slate-700);
+  background: color-mix(in oklab, var(--color-slate-800) 60%, transparent);
+  color: var(--color-slate-300);
   cursor: pointer;
   white-space: nowrap;
 }
 .btn:hover {
-  background: #334155;
+  background: var(--color-slate-700);
 }
 .btn:disabled {
   opacity: 0.5;
@@ -41,11 +123,23 @@ body {
   font-size: 10px;
   padding: 1px 5px;
   border-radius: 4px;
-  border: 1px solid #475569;
+  border: 1px solid var(--color-slate-600);
   border-bottom-width: 2px;
-  background: #1e293b;
-  color: #e2e8f0;
+  background: var(--color-slate-800);
+  color: var(--color-slate-200);
   white-space: nowrap;
+}
+
+/* Theme toggle icon: swapped in CSS so the button renders identically on the
+   server and the client (no hydration mismatch, no flash). */
+.theme-when-light {
+  display: none;
+}
+:root[data-theme="light"] .theme-when-light {
+  display: inline;
+}
+:root[data-theme="light"] .theme-when-dark {
+  display: none;
 }
 
 ::-webkit-scrollbar {
@@ -53,9 +147,9 @@ body {
   height: 8px;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
+  background: var(--color-slate-800);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: var(--color-slate-700);
 }

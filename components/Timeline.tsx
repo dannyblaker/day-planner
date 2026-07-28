@@ -6,12 +6,14 @@ import { useRef, useState } from "react";
 
 const PX_PER_MIN = 1.7;
 
+/** Theme-aware: the actual hues live in globals.css. */
 export const PRIORITY_COLOR: Record<number, string> = {
-  1: "#f87171",
-  2: "#fbbf24",
-  3: "#38bdf8",
-  4: "#64748b",
+  1: "var(--prio-1)",
+  2: "var(--prio-2)",
+  3: "var(--prio-3)",
+  4: "var(--prio-4)",
 };
+export const DONE_COLOR = "var(--prio-done)";
 
 interface Props {
   day: DayPlan;
@@ -228,13 +230,13 @@ export default function Timeline({
           left: `calc(${colInfo.col * widthPct}% + 2px)`,
           width: `calc(${widthPct}% - 4px)`,
           borderLeftWidth: 3,
-          borderLeftColor: done ? "#475569" : PRIORITY_COLOR[t.priority],
+          borderLeftColor: done ? DONE_COLOR : PRIORITY_COLOR[t.priority],
           borderLeftStyle: "solid",
           touchAction: draggable && t.status === "todo" ? "none" : undefined,
           transform: isDragging ? `translateY(${dragDeltaPx}px)` : undefined,
           zIndex: isDragging ? 30 : undefined,
           opacity: isDragging ? 0.85 : undefined,
-          boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : undefined,
+          boxShadow: isDragging ? "var(--drag-shadow)" : undefined,
         }}
         title={`${t.title} · ${fmtTime(s.start)}–${fmtTime(s.end)}`}
       >
@@ -297,7 +299,7 @@ export default function Timeline({
       {hours.map((h) => (
         <div key={h} className="absolute left-0 right-0" style={{ top: y(h) }}>
           <div className="border-t border-slate-800/80" />
-          <span className="absolute -top-2 left-0 text-[10px] text-slate-500 bg-[#0a0e16] pr-1">
+          <span className="absolute -top-2 left-0 text-[10px] text-slate-500 bg-background pr-1">
             {fmtTime(h)}
           </span>
         </div>

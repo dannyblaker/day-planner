@@ -12,6 +12,7 @@ import TopBar from "@/components/TopBar";
 import { notify } from "@/lib/notify";
 import { scheduleDay } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
+import { toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
 import { fmtDateHuman, fmtTime, nowMinutes, todayISO } from "@/lib/time";
 import { Task } from "@/lib/types";
@@ -204,6 +205,9 @@ export default function Home() {
         case "v":
           s.setView(s.view === "timeline" ? "flow" : "timeline");
           break;
+        case "m":
+          toggleTheme();
+          break;
         case "?":
           s.setHelpOpen(true);
           break;
@@ -222,7 +226,7 @@ export default function Home() {
   }
 
   return (
-    <div className="h-screen flex flex-col bg-[#0a0e16] text-slate-300">
+    <div className="h-screen flex flex-col bg-background text-slate-300">
       <TopBar exportRef={exportRef} />
       <div className="flex flex-1 min-h-0">
         <aside className="w-80 shrink-0 border-r border-slate-800 flex flex-col gap-3 p-3 overflow-y-auto">
@@ -240,7 +244,7 @@ export default function Home() {
           }`}
         >
           {view === "timeline" ? (
-            <div ref={exportRef} className="bg-[#0a0e16] p-2">
+            <div ref={exportRef} className="bg-background p-2">
               <div className="flex items-baseline justify-between mb-3 px-1">
                 <h2 className="text-sm font-medium text-slate-300">
                   {fmtDateHuman(date)}

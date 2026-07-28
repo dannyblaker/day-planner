@@ -1,5 +1,6 @@
 "use client";
 
+import ThemeToggle from "@/components/ThemeToggle";
 import { exportPDF, exportPNG } from "@/lib/export";
 import { plannedFocusMinutes } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
@@ -147,6 +148,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
       <button onClick={() => doExport("pdf")} className="btn" disabled={exporting}>
         PDF
       </button>
+      <ThemeToggle />
       <button onClick={() => setHelpOpen(true)} className="btn" title="shortcuts (?)">
         ?
       </button>
