@@ -40,6 +40,9 @@ function Row({
           e.stopPropagation();
           toggleDone(task.id);
         }}
+        role="checkbox"
+        aria-checked={done}
+        aria-label={task.title}
         className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center text-[9px] ${
           done
             ? "bg-emerald-500/80 border-emerald-500 text-slate-950"

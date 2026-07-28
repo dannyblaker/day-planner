@@ -45,6 +45,22 @@ npm run dev
 
 Without `DATABASE_URL` set, the plan is stored in `data/plan.json` (with a localStorage fallback) — same app, file-backed instead of Postgres.
 
+## Tests
+
+```bash
+npm test          # unit + component (Vitest, jsdom) — ~3s
+npm run test:e2e  # end-to-end (Playwright, Chromium) — starts its own dev server
+npm run test:all  # both
+npm run test:watch
+```
+
+Two layers, split by what they can actually prove:
+
+- **`tests/`** — the derived-state core in isolation: the scheduler's packing, anchoring, dependency and lane rules; the quick-add grammar; every store action; the theme boot script; the debounced autosave; and the plan route against a temp directory and a stubbed Postgres.
+- **`e2e/`** — the app in a real browser: quick-add through to a reflowed timeline, the three done buttons, clear/undo, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), and the share link's read-only guarantee.
+
+The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead. The clock is pinned to 08:00 on 2026-07-28, so schedules are deterministic rather than depending on when you run the suite.
+
 ## The 15-minute morning flow
 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
