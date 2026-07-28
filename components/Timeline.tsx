@@ -2,6 +2,7 @@
 
 import { fmtDur, fmtTime } from "@/lib/time";
 import { DayPlan, Goal, Slot } from "@/lib/types";
+import { useRef, useState } from "react";
 
 const PX_PER_MIN = 1.7;
 
@@ -20,7 +21,23 @@ interface Props {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   isToday: boolean;
+  /** drag a flexible slot: re-insert before another queued task (null = end) */
+  onReorder?: (id: string, beforeId: string | null) => void;
+  /** drag a pinned slot (or Alt+drag any slot): anchor at a new start time */
+  onSetFixedStart?: (id: string, start: number) => void;
 }
+
+interface DragState {
+  id: string;
+  fixed: boolean;
+  startY: number;
+  curY: number;
+  rectTop: number;
+  alt: boolean;
+  shift: boolean;
+}
+
+const snap = (v: number, step: number) => Math.round(v / step) * step;
 
 /** Assign overlapping slots to columns within their lane. */
 function layoutColumns(slots: Slot[]): Map<Slot, { col: number; cols: number }> {
@@ -67,7 +84,14 @@ export default function Timeline({
   selectedId,
   onSelect,
   isToday,
+  onReorder,
+  onSetFixedStart,
 }: Props) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const suppressClick = useRef(false);
+  const [drag, setDrag] = useState<DragState | null>(null);
+  const draggable = !!(onReorder || onSetFixedStart);
+
   const starts = slots.map((s) => s.start);
   const ends = slots.map((s) => s.end);
   const rangeStart =
@@ -88,6 +112,71 @@ export default function Timeline({
   const hours: number[] = [];
   for (let h = rangeStart; h <= rangeEnd; h += 60) hours.push(h);
 
+  // Reorder targets: flexible queued tasks in the focus lane.
+  const flexCandidates = focus
+    .filter((s) => !s.fixed && s.task.status === "todo")
+    .sort((a, b) => a.start - b.start);
+
+  const anchorFor = (timeAt: number, excludeId: string): string | null => {
+    const hit = flexCandidates.find(
+      (c) => c.task.id !== excludeId && (c.start + c.end) / 2 > timeAt
+    );
+    return hit ? hit.task.id : null;
+  };
+
+  const anchorLineY = (beforeId: string | null, excludeId: string): number | null => {
+    const cands = flexCandidates.filter((c) => c.task.id !== excludeId);
+    if (!cands.length) return null;
+    if (beforeId) {
+      const c = cands.find((c) => c.task.id === beforeId);
+      return c ? y(c.start) : null;
+    }
+    return y(cands[cands.length - 1].end);
+  };
+
+  const snappedStart = (s: Slot, deltaMin: number, fine: boolean) => {
+    const ns = snap(s.start + deltaMin, fine ? 5 : 15);
+    return Math.max(0, Math.min(24 * 60 - s.task.duration, ns));
+  };
+
+  const onSlotPointerDown = (e: React.PointerEvent, s: Slot) => {
+    if (!draggable || e.button !== 0) return;
+    if (s.task.status !== "todo") return; // active/done positions are facts, not plans
+    const startY = e.clientY;
+    const rectTop = containerRef.current?.getBoundingClientRect().top ?? 0;
+    let started = false;
+
+    const move = (ev: PointerEvent) => {
+      if (!started && Math.abs(ev.clientY - startY) < 5) return;
+      started = true;
+      setDrag({
+        id: s.task.id,
+        fixed: s.fixed,
+        startY,
+        curY: ev.clientY,
+        rectTop,
+        alt: ev.altKey,
+        shift: ev.shiftKey,
+      });
+    };
+    const up = (ev: PointerEvent) => {
+      window.removeEventListener("pointermove", move);
+      if (!started) return;
+      suppressClick.current = true;
+      setTimeout(() => (suppressClick.current = false), 50);
+      const deltaMin = (ev.clientY - startY) / PX_PER_MIN;
+      const timeAt = (ev.clientY - rectTop) / PX_PER_MIN + rangeStart;
+      if ((s.fixed || ev.altKey) && onSetFixedStart) {
+        onSetFixedStart(s.task.id, snappedStart(s, deltaMin, ev.shiftKey));
+      } else if (onReorder) {
+        onReorder(s.task.id, anchorFor(timeAt, s.task.id));
+      }
+      setDrag(null);
+    };
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up, { once: true });
+  };
+
   const renderSlot = (
     s: Slot,
     colInfo: { col: number; cols: number },
@@ -100,12 +189,28 @@ export default function Timeline({
     const h = Math.max((s.end - s.start) * PX_PER_MIN, 20);
     const widthPct = 100 / colInfo.cols;
     const compact = h < 34;
+    const isDragging = drag?.id === t.id;
+    const dragDeltaPx = isDragging ? drag.curY - drag.startY : 0;
+    const pinning = isDragging && (s.fixed || drag.alt);
     return (
       <div
         key={t.id}
-        onClick={onSelect ? () => onSelect(t.id) : undefined}
+        onClick={
+          onSelect
+            ? () => {
+                if (!suppressClick.current) onSelect(t.id);
+              }
+            : undefined
+        }
+        onPointerDown={(e) => onSlotPointerDown(e, s)}
         className={`absolute rounded-md border px-2 py-0.5 overflow-hidden text-left transition-colors ${
-          onSelect ? "cursor-pointer" : ""
+          onSelect
+            ? draggable && t.status === "todo"
+              ? isDragging
+                ? "cursor-grabbing"
+                : "cursor-grab"
+              : "cursor-pointer"
+            : ""
         } ${
           done
             ? "opacity-40 border-slate-700 bg-slate-900"
@@ -125,6 +230,11 @@ export default function Timeline({
           borderLeftWidth: 3,
           borderLeftColor: done ? "#475569" : PRIORITY_COLOR[t.priority],
           borderLeftStyle: "solid",
+          touchAction: draggable && t.status === "todo" ? "none" : undefined,
+          transform: isDragging ? `translateY(${dragDeltaPx}px)` : undefined,
+          zIndex: isDragging ? 30 : undefined,
+          opacity: isDragging ? 0.85 : undefined,
+          boxShadow: isDragging ? "0 8px 24px rgba(0,0,0,0.5)" : undefined,
         }}
         title={`${t.title} · ${fmtTime(s.start)}–${fmtTime(s.end)}`}
       >
@@ -138,7 +248,12 @@ export default function Timeline({
             {active && <span className="text-emerald-400">▶ </span>}
             {t.title}
           </span>
-          {!compact && goal && (
+          {pinning && (
+            <span className="text-[10px] font-mono text-indigo-300 shrink-0">
+              📌 {fmtTime(snappedStart(s, dragDeltaPx / PX_PER_MIN, drag.shift))}
+            </span>
+          )}
+          {!compact && !pinning && goal && (
             <span
               className="text-[9px] px-1 rounded-full shrink-0"
               style={{ backgroundColor: goal.color + "33", color: goal.color }}
@@ -165,8 +280,19 @@ export default function Timeline({
     );
   };
 
+  // Insertion indicator while drag-reordering a flexible slot.
+  let dropLineY: number | null = null;
+  if (drag && !drag.fixed && !drag.alt) {
+    const timeAt = (drag.curY - drag.rectTop) / PX_PER_MIN + rangeStart;
+    dropLineY = anchorLineY(anchorFor(timeAt, drag.id), drag.id);
+  }
+
   return (
-    <div className="relative select-none" style={{ height: height + 24 }}>
+    <div
+      ref={containerRef}
+      className="relative select-none"
+      style={{ height: height + 24 }}
+    >
       {/* hour grid */}
       {hours.map((h) => (
         <div key={h} className="absolute left-0 right-0" style={{ top: y(h) }}>
@@ -205,6 +331,18 @@ export default function Timeline({
           </div>
         )}
       </div>
+
+      {/* drop indicator */}
+      {dropLineY != null && (
+        <div
+          className="absolute left-12 right-0 z-20 pointer-events-none"
+          style={{ top: dropLineY }}
+        >
+          <div className="border-t-2 border-indigo-400 relative">
+            <div className="absolute -left-1 -top-[4px] w-1.5 h-1.5 rounded-full bg-indigo-400" />
+          </div>
+        </div>
+      )}
 
       {/* now line */}
       {isToday && now >= rangeStart && now <= rangeEnd && (

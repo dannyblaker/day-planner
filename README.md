@@ -19,6 +19,7 @@ The core idea is that the timeline is *derived state*. You maintain a simple ord
 - **Live share** — send your manager a read-only link (`Share live`) that polls the plan every 5 seconds.
 - **Export** — one click to PNG or PDF of the timeline.
 - **Multi-day** — navigate days with `[` / `]`, defer a task to tomorrow with `o`.
+- **Drag & drop** — drag tasks on the timeline (or rows in the list) to reorder the queue; drag a 📌 pinned task to move its time (Shift = 5-min snap); Alt+drag any task to pin it at a specific time.
 
 ## Getting started
 
@@ -57,6 +58,7 @@ Open http://localhost:3000. Your plan is stored in `data/plan.json` (with a loca
 | `[` / `]` | previous / next day |
 | `t` | today |
 | `?` | help |
+| drag on timeline | reorder · move pinned task · Alt+drag to pin |
 
 ## Quick-add syntax
 

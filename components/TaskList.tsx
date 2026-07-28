@@ -4,7 +4,7 @@ import { useApp } from "@/lib/store";
 import { fmtDur, fmtTime } from "@/lib/time";
 import { Goal, Slot, Task } from "@/lib/types";
 import { PRIORITY_COLOR } from "./Timeline";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 function Row({
   task,
@@ -113,7 +113,11 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
   const day = useApp((s) => s.plan.days[s.date]);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
+  const placeBefore = useApp((s) => s.placeBefore);
   const [showDone, setShowDone] = useState(true);
+  // drag & drop: id to insert before; null = end of queue; undefined = not dragging
+  const [dropBefore, setDropBefore] = useState<string | null | undefined>(undefined);
+  const dragId = useRef<string | null>(null);
   if (!day) return null;
 
   const slotOf = new Map(slots.map((s) => [s.task.id, s]));
@@ -131,16 +135,54 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
         <h3 className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1">
           Queue · {queue.length}
         </h3>
-        <div className="space-y-0.5">
-          {queue.map((t) => (
-            <Row
+        <div
+          className="space-y-0.5"
+          onDragLeave={(e) => {
+            if (e.currentTarget === e.target) setDropBefore(undefined);
+          }}
+        >
+          {queue.map((t, i) => (
+            <div
               key={t.id}
-              task={t}
-              slot={slotOf.get(t.id)}
-              goal={goalOf(t)}
-              selected={selectedId === t.id}
-            />
+              draggable
+              onDragStart={(e) => {
+                dragId.current = t.id;
+                e.dataTransfer.effectAllowed = "move";
+                e.dataTransfer.setData("text/plain", t.id);
+              }}
+              onDragOver={(e) => {
+                e.preventDefault();
+                e.dataTransfer.dropEffect = "move";
+                const r = e.currentTarget.getBoundingClientRect();
+                const before = e.clientY < r.top + r.height / 2;
+                setDropBefore(before ? t.id : queue[i + 1]?.id ?? null);
+              }}
+              onDrop={(e) => {
+                e.preventDefault();
+                if (dragId.current && dropBefore !== undefined)
+                  placeBefore(dragId.current, dropBefore);
+                dragId.current = null;
+                setDropBefore(undefined);
+              }}
+              onDragEnd={() => {
+                dragId.current = null;
+                setDropBefore(undefined);
+              }}
+            >
+              {dropBefore === t.id && (
+                <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+              )}
+              <Row
+                task={t}
+                slot={slotOf.get(t.id)}
+                goal={goalOf(t)}
+                selected={selectedId === t.id}
+              />
+            </div>
           ))}
+          {dropBefore === null && (
+            <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+          )}
           {queue.length === 0 && (
             <p className="text-xs text-slate-600 px-2">
               Nothing queued — press <kbd className="kbd">n</kbd> to add a task.

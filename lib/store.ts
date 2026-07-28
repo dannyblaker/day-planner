@@ -89,6 +89,8 @@ interface AppState {
   updateTask: (id: string, patch: Partial<Task>) => void;
   deleteTask: (id: string) => void;
   moveTask: (id: string, dir: -1 | 1) => void;
+  /** drag & drop: re-insert task before another task (null = end of queue) */
+  placeBefore: (id: string, beforeId: string | null) => void;
   startTask: (id: string) => void;
   pauseTask: (id: string) => void;
   completeTask: (id: string) => void;
@@ -230,6 +232,22 @@ export const useApp = create<AppState>()(
         const a = queue[i].order;
         queue[i].order = queue[j].order;
         queue[j].order = a;
+      }),
+
+    placeBefore: (id, beforeId) =>
+      set((s) => {
+        if (id === beforeId) return;
+        const d = day(s);
+        const sorted = [...d.tasks].sort((a, b) => a.order - b.order);
+        const from = sorted.findIndex((t) => t.id === id);
+        if (from < 0) return;
+        const [t] = sorted.splice(from, 1);
+        let idx = beforeId
+          ? sorted.findIndex((x) => x.id === beforeId)
+          : sorted.length;
+        if (idx < 0) idx = sorted.length;
+        sorted.splice(idx, 0, t);
+        sorted.forEach((x, i) => (x.order = i));
       }),
 
     startTask: (id) =>

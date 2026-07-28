@@ -250,6 +250,12 @@ export default function Home() {
               selectedId={selectedId}
               onSelect={(id) => useApp.getState().select(id)}
               isToday={isToday}
+              onReorder={(id, beforeId) =>
+                useApp.getState().placeBefore(id, beforeId)
+              }
+              onSetFixedStart={(id, start) =>
+                useApp.getState().updateTask(id, { fixedStart: start })
+              }
             />
           </div>
         </main>
