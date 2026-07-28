@@ -16,14 +16,26 @@
   --background: #0a0e16;
   --foreground: var(--color-slate-300);
 
+  /*
+   * Text shades, lightened against Tailwind's stock ramp. On this near-black
+   * background the defaults measured 2.6:1 (slate-600) and 4.1:1 (slate-500)
+   * — the muted labels that carry most of the small print. These land every
+   * text shade at or above WCAG AA: 600 4.9:1, 500 6.8:1, 400 10:1, 300 14:1.
+   * 700 and up stay put: in dark they're borders and surfaces, not text.
+   */
+  --color-slate-300: oklch(90% 0.02 252.894);
+  --color-slate-400: oklch(79% 0.035 256.788);
+  --color-slate-500: oklch(68.5% 0.038 257.417);
+  --color-slate-600: oklch(60% 0.04 257.281);
+
   /* chrome that isn't part of a Tailwind ramp */
   --scrim: rgba(2, 6, 23, 0.6);
   --drag-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --flow-dot: #1e293b;
+  --flow-dot: #26334a;
 
   /* flowchart dependency arrows */
-  --edge: #64748b;
-  --edge-dim: #334155;
+  --edge: #94a3b8;
+  --edge-dim: #4a5a72;
   --edge-active: #818cf8;
   --edge-hover: #f87171;
 
@@ -31,8 +43,8 @@
   --prio-1: #f87171;
   --prio-2: #fbbf24;
   --prio-3: #38bdf8;
-  --prio-4: #64748b;
-  --prio-done: #475569;
+  --prio-4: #94a3b8;
+  --prio-done: #52627a;
 }
 
 :root[data-theme="light"] {
