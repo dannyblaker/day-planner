@@ -4,6 +4,7 @@ import { useApp } from "@/lib/store";
 import { fmtDur, fmtTime } from "@/lib/time";
 import { FLOW, Slot, Task } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
+import DoneButton from "./DoneButton";
 import { DONE_COLOR, PRIORITY_COLOR } from "./Timeline";
 
 const { W, H, PAR_Y, NODE_W, NODE_H } = FLOW;
@@ -36,6 +37,7 @@ export default function FlowView({
     setEditorOpen,
     updateTask,
     toggleDependency,
+    toggleDone,
     quickAdd,
     ensureFlowPositions,
     autoArrangeFlow,
@@ -337,7 +339,7 @@ export default function FlowView({
                   select(t.id);
                   setEditorOpen(true);
                 }}
-                className={`absolute z-10 rounded-lg border px-2.5 py-1.5 select-none ${
+                className={`group absolute z-10 rounded-lg border px-2.5 py-1.5 select-none ${
                   dragging ? "cursor-grabbing" : "cursor-grab"
                 } ${
                   done
@@ -398,6 +400,11 @@ export default function FlowView({
                     {goal.name}
                   </div>
                 )}
+                <DoneButton
+                  done={done}
+                  onToggle={() => toggleDone(t.id)}
+                  className="right-1.5 bottom-1.5"
+                />
                 {/* out-port: drag to another node to create a dependency */}
                 <div
                   onPointerDown={(e) => onPortPointerDown(e, t)}

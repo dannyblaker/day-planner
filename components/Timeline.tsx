@@ -3,6 +3,7 @@
 import { fmtDur, fmtTime } from "@/lib/time";
 import { DayPlan, Goal, Slot } from "@/lib/types";
 import { useRef, useState } from "react";
+import DoneButton from "./DoneButton";
 
 const PX_PER_MIN = 1.7;
 
@@ -27,6 +28,8 @@ interface Props {
   onReorder?: (id: string, beforeId: string | null) => void;
   /** drag a pinned slot (or Alt+drag any slot): anchor at a new start time */
   onSetFixedStart?: (id: string, start: number) => void;
+  /** omitted by the read-only share view, which draws no done button */
+  onToggleDone?: (id: string) => void;
 }
 
 interface DragState {
@@ -88,6 +91,7 @@ export default function Timeline({
   isToday,
   onReorder,
   onSetFixedStart,
+  onToggleDone,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
@@ -205,7 +209,7 @@ export default function Timeline({
             : undefined
         }
         onPointerDown={(e) => onSlotPointerDown(e, s)}
-        className={`absolute rounded-md border px-2 py-0.5 overflow-hidden text-left transition-colors ${
+        className={`group absolute rounded-md border px-2 py-0.5 overflow-hidden text-left transition-colors ${
           onSelect
             ? draggable && t.status === "todo"
               ? isDragging
@@ -277,6 +281,13 @@ export default function Timeline({
               <span className="text-amber-400">⚠ waiting on blocked dep</span>
             )}
           </div>
+        )}
+        {onToggleDone && (
+          <DoneButton
+            done={done}
+            onToggle={() => onToggleDone(t.id)}
+            className="right-1 top-1/2 -translate-y-1/2"
+          />
         )}
       </div>
     );

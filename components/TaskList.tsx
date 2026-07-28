@@ -17,14 +17,7 @@ function Row({
   goal?: Goal;
   selected: boolean;
 }) {
-  const {
-    select,
-    setEditorOpen,
-    startTask,
-    pauseTask,
-    completeTask,
-    reopenTask,
-  } = useApp();
+  const { select, setEditorOpen, startTask, pauseTask, toggleDone } = useApp();
   const done = task.status === "done";
   const active = task.status === "active";
 
@@ -45,7 +38,7 @@ function Row({
       <button
         onClick={(e) => {
           e.stopPropagation();
-          done ? reopenTask(task.id) : completeTask(task.id);
+          toggleDone(task.id);
         }}
         className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center text-[9px] ${
           done
@@ -94,17 +87,30 @@ function Row({
           )}
         </div>
       </div>
-      {!done && !task.blocked && (
+      <div className="flex items-center gap-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
+        {!done && !task.blocked && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (active) pauseTask(task.id);
+              else startTask(task.id);
+            }}
+            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200"
+          >
+            {active ? "pause" : "start"}
+          </button>
+        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
-            active ? pauseTask(task.id) : startTask(task.id);
+            toggleDone(task.id);
           }}
-          className="opacity-0 group-hover:opacity-100 text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200 shrink-0"
+          title={done ? "reopen (d)" : "mark done (d)"}
+          className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-emerald-600 text-slate-200"
         >
-          {active ? "pause" : "start"}
+          {done ? "↺ reopen" : "✓ done"}
         </button>
-      )}
+      </div>
     </div>
   );
 }

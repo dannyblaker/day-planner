@@ -154,11 +154,7 @@ export default function Home() {
           break;
         }
         case "d":
-          if (sel) {
-            const t = day?.tasks.find((t) => t.id === sel);
-            if (t?.status === "done") s.reopenTask(sel);
-            else s.completeTask(sel);
-          }
+          if (sel) s.toggleDone(sel);
           break;
         case "b":
           if (sel) s.toggleBlocked(sel);
@@ -267,6 +263,7 @@ export default function Home() {
                 onSetFixedStart={(id, start) =>
                   useApp.getState().updateTask(id, { fixedStart: start })
                 }
+                onToggleDone={(id) => useApp.getState().toggleDone(id)}
               />
             </div>
           ) : (

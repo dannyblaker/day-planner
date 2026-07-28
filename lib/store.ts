@@ -102,6 +102,8 @@ interface AppState {
   pauseTask: (id: string) => void;
   completeTask: (id: string) => void;
   reopenTask: (id: string) => void;
+  /** done ⇄ todo, for the `d` key and every done button in the UI */
+  toggleDone: (id: string) => void;
   toggleBlocked: (id: string, reason?: string) => void;
   setPriority: (id: string, p: Priority) => void;
   adjustDuration: (id: string, delta: number) => void;
@@ -347,6 +349,13 @@ export const useApp = create<AppState>()(
         t.status = "todo";
         t.actualStart = null;
       }),
+
+    toggleDone: (id) => {
+      const t = day(get()).tasks.find((t) => t.id === id);
+      if (!t) return;
+      if (t.status === "done") get().reopenTask(id);
+      else get().completeTask(id);
+    },
 
     toggleBlocked: (id, reason) =>
       set((s) => {
