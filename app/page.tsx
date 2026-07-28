@@ -190,10 +190,7 @@ export default function Home() {
           break;
         case "x":
         case "Delete":
-          if (sel) {
-            const t = day?.tasks.find((t) => t.id === sel);
-            if (t && confirm(`Delete "${t.title}"?`)) s.deleteTask(sel);
-          }
+          if (sel) s.deleteTask(sel);
           break;
         case "[":
           s.shiftDate(-1);

@@ -209,9 +209,7 @@ export default function Editor() {
           → tomorrow
         </button>
         <button
-          onClick={() => {
-            if (confirm(`Delete "${task.title}"?`)) deleteTask(task.id);
-          }}
+          onClick={() => deleteTask(task.id)}
           className="text-xs px-2 py-1 rounded border border-red-900 text-red-400 hover:bg-red-950"
         >
           delete
