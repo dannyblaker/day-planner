@@ -27,6 +27,7 @@ const SHORTCUTS: [string, string][] = [
   ["drag 📌 task (timeline)", "move its fixed time (Shift = 5-min snap)"],
   ["Alt+drag (timeline)", "pin task at the dropped time"],
   ["drag row (list)", "reorder the queue"],
+  ["dbl-click task (any view)", "open the editor"],
   ["dbl-click canvas (flow)", "create task at that spot"],
   ["drag ○ → node (flow)", "draw a dependency arrow"],
   ["click arrow (flow)", "remove that dependency"],

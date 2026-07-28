@@ -95,6 +95,28 @@ describe("interaction", () => {
     expect(onSelect).toHaveBeenCalledWith("a");
   });
 
+  it("opens the editor when a block is double-clicked", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    renderTimeline(makeDay([makeTask({ id: "a", title: "Write report" })]), {
+      onSelect: vi.fn(),
+      onEdit,
+    });
+    await user.dblClick(screen.getByText("Write report"));
+    expect(onEdit).toHaveBeenCalledWith("a");
+  });
+
+  it("does not open the editor when the done button is double-clicked", async () => {
+    const user = userEvent.setup();
+    const onEdit = vi.fn();
+    renderTimeline(makeDay([makeTask({ id: "a", title: "Write report" })]), {
+      onEdit,
+      onToggleDone: vi.fn(),
+    });
+    await user.dblClick(screen.getByLabelText("Mark task done"));
+    expect(onEdit).not.toHaveBeenCalled();
+  });
+
   it("marks a task done from the block", async () => {
     const user = userEvent.setup();
     const onToggleDone = vi.fn();

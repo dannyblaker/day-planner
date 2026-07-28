@@ -30,6 +30,8 @@ interface Props {
   onSetFixedStart?: (id: string, start: number) => void;
   /** omitted by the read-only share view, which draws no done button */
   onToggleDone?: (id: string) => void;
+  /** double-click a slot to open the editor, as in the list and flow views */
+  onEdit?: (id: string) => void;
 }
 
 interface DragState {
@@ -92,6 +94,7 @@ export default function Timeline({
   onReorder,
   onSetFixedStart,
   onToggleDone,
+  onEdit,
 }: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
@@ -205,6 +208,14 @@ export default function Timeline({
           onSelect
             ? () => {
                 if (!suppressClick.current) onSelect(t.id);
+              }
+            : undefined
+        }
+        onDoubleClick={
+          onEdit
+            ? (e) => {
+                e.stopPropagation();
+                onEdit(t.id);
               }
             : undefined
         }

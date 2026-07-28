@@ -273,6 +273,11 @@ export default function Home() {
                   useApp.getState().updateTask(id, { fixedStart: start })
                 }
                 onToggleDone={(id) => useApp.getState().toggleDone(id)}
+                onEdit={(id) => {
+                  const s = useApp.getState();
+                  s.select(id);
+                  s.setEditorOpen(true);
+                }}
               />
             </div>
           ) : (
