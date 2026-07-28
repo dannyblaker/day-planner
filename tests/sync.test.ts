@@ -66,13 +66,22 @@ describe("loading", () => {
     expect(app().plan.days["2026-07-28"].tasks[0].title).toBe("From the cache");
   });
 
-  it("writes the loaded plan straight back", async () => {
-    // known behaviour, not an intent: the subscription is live before the
-    // fetch resolves, so load() reads as a change and echoes one PUT back.
-    // Harmless (the payload is identical) but it is a redundant round trip.
+  it("does not echo the loaded plan back to the server", async () => {
     mockServer(makePlan([makeDay()]));
     renderHook(() => usePlanSync());
     await flush();
+    await act(async () => {
+      vi.advanceTimersByTime(DEBOUNCE * 2);
+    });
+    expect(saved()).toHaveLength(0);
+  });
+
+  it("starts saving once the load has landed", async () => {
+    mockServer(makePlan([makeDay()]));
+    renderHook(() => usePlanSync());
+    await flush();
+
+    act(() => void app().quickAdd("Added after loading"));
     await act(async () => {
       vi.advanceTimersByTime(DEBOUNCE);
     });
@@ -98,10 +107,6 @@ describe("saving", () => {
     mockServer(makePlan([makeDay()]));
     renderHook(() => usePlanSync());
     await flush();
-    // let the load's write-back fire, so each test starts from silence
-    await act(async () => {
-      vi.advanceTimersByTime(DEBOUNCE);
-    });
     fetchMock.mockClear();
   });
 

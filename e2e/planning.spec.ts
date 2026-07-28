@@ -22,6 +22,11 @@ test.describe("the morning brain-dump", () => {
     expect(planServer.titles()).toEqual(["Draft the proposal", "Review PRs"]);
   });
 
+  test("writes nothing back just for opening the app", async ({ page, planServer }) => {
+    await page.waitForTimeout(1200); // well past the 600ms autosave debounce
+    expect(planServer.saveCount()).toBe(0);
+  });
+
   test("keeps the input focused so tasks can be typed in a row", async ({ page }) => {
     const input = page.getByPlaceholder(/Add task/);
     await input.fill("First task");
