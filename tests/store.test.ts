@@ -2,7 +2,7 @@ import { useApp } from "@/lib/store";
 import { FLOW } from "@/lib/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetStore } from "./app-state";
-import { at, makeDay, makePlan, makeTask, resetFactory } from "./factory";
+import { makeDay, makePlan, makeTask, resetFactory } from "./factory";
 
 const TODAY = "2026-07-28";
 const TOMORROW = "2026-07-29";
@@ -37,7 +37,7 @@ describe("quickAdd", () => {
       title: "Write report",
       duration: 45,
       priority: 1,
-      status: "todo",
+      done: false,
     });
     expect(app().selectedId).toBe(id);
   });
@@ -165,7 +165,7 @@ describe("queue order", () => {
   });
 
   it("swaps with the next queued task, stepping over finished ones", () => {
-    app().updateTask("b", { status: "done" });
+    app().updateTask("b", { done: true });
     app().moveTask("a", 1); // a trades places with c, not with the done b
     expect(queue()).toEqual(["c", "b", "a"]);
   });
@@ -193,60 +193,10 @@ describe("queue order", () => {
   });
 
   it("leaves done tasks out of an auto-sort", () => {
-    app().updateTask("a", { status: "done" });
+    app().updateTask("a", { done: true });
     app().setPriority("c", 1);
     app().autoSort();
     expect(queue().slice(0, 2)).toEqual(["a", "c"]);
-  });
-});
-
-describe("timers", () => {
-  beforeEach(() => load(makeDay([makeTask({ id: "a" }), makeTask({ id: "b" })])));
-
-  it("starts a task at the current minute", () => {
-    app().startTask("a");
-    expect(task("a")).toMatchObject({ status: "active", actualStart: at(9) });
-  });
-
-  it("only ever runs one task at a time", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 20, 0));
-    app().startTask("b");
-    expect(task("a")).toMatchObject({ status: "todo", actualStart: null });
-    expect(task("a")!.actualMinutes).toBeCloseTo(20, 5);
-    expect(task("b")!.status).toBe("active");
-  });
-
-  it("banks elapsed time on pause and resumes from there", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
-    app().pauseTask("a");
-    expect(task("a")).toMatchObject({ status: "todo", actualStart: null });
-    expect(task("a")!.actualMinutes).toBeCloseTo(30, 5);
-
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 45, 0));
-    app().pauseTask("a");
-    expect(task("a")!.actualMinutes).toBeCloseTo(45, 5);
-  });
-
-  it("ignores a pause on a task that isn't running", () => {
-    app().pauseTask("a");
-    expect(task("a")).toMatchObject({ status: "todo", actualMinutes: 0 });
-  });
-
-  it("starting a task clears its blocker", () => {
-    app().toggleBlocked("a", "waiting");
-    app().startTask("a");
-    expect(task("a")!.blocked).toBeNull();
-  });
-
-  it("banks time when completing a running task", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 10, 0));
-    app().completeTask("a");
-    expect(task("a")!.status).toBe("done");
-    expect(task("a")!.actualMinutes).toBeCloseTo(10, 5);
   });
 });
 
@@ -255,17 +205,18 @@ describe("toggleDone", () => {
 
   it("completes a queued task and reopens a finished one", () => {
     app().toggleDone("a");
-    expect(task("a")!.status).toBe("done");
+    expect(task("a")!.done).toBe(true);
     app().toggleDone("a");
-    expect(task("a")).toMatchObject({ status: "todo", actualStart: null });
+    expect(task("a")!.done).toBe(false);
   });
 
-  it("stops the timer when completing the active task", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 15, 0));
-    app().toggleDone("a");
-    expect(task("a")!.status).toBe("done");
-    expect(task("a")!.actualMinutes).toBeCloseTo(15, 5);
+  it("sets done outright, for the editor's button", () => {
+    app().setDone("a", true);
+    expect(task("a")!.done).toBe(true);
+    app().setDone("a", true); // idempotent
+    expect(task("a")!.done).toBe(true);
+    app().setDone("a", false);
+    expect(task("a")!.done).toBe(false);
   });
 
   it("ignores an unknown id", () => {
@@ -288,12 +239,10 @@ describe("blocking", () => {
     expect(task("a")!.blocked).toBe("Blocked");
   });
 
-  it("banks time and stops the timer when blocking the active task", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 5, 0));
+  it("leaves the done flag alone — blocked and finished are separate facts", () => {
+    app().setDone("a", true);
     app().toggleBlocked("a", "stuck");
-    expect(task("a")).toMatchObject({ status: "todo", actualStart: null });
-    expect(task("a")!.actualMinutes).toBeCloseTo(5, 5);
+    expect(task("a")).toMatchObject({ done: true, blocked: "stuck" });
   });
 });
 
@@ -326,7 +275,7 @@ describe("moving between days", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "a", title: "Alpha", status: "done" }),
+        makeTask({ id: "a", title: "Alpha", done: true }),
         makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
       ])
     )
@@ -357,16 +306,12 @@ describe("moving between days", () => {
     });
   });
 
-  it("defers a task to tomorrow, resetting its state", () => {
+  it("defers a task to tomorrow, exactly as it is", () => {
     app().deferToNextDay("a");
     expect(titles()).toEqual(["Beta"]);
     const moved = app().plan.days[TOMORROW].tasks[0];
-    expect(moved).toMatchObject({
-      title: "Alpha",
-      status: "todo",
-      actualStart: null,
-      dependsOn: [],
-    });
+    // a finished task stays finished; only the links it leaves behind are cut
+    expect(moved).toMatchObject({ title: "Alpha", done: true, dependsOn: [] });
   });
 
   it("cleans up dependencies left behind by a deferred task", () => {
@@ -392,7 +337,7 @@ describe("moving a task to another day", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "a", title: "Alpha", status: "done" }),
+        makeTask({ id: "a", title: "Alpha", done: true }),
         makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
       ])
     )
@@ -403,7 +348,7 @@ describe("moving a task to another day", () => {
     expect(titles()).toEqual(["Beta"]);
     expect(moved()[0]).toMatchObject({
       title: "Alpha",
-      status: "done",
+      done: true,
       dependsOn: [],
     });
   });
@@ -429,15 +374,10 @@ describe("moving a task to another day", () => {
     expect(task("b")!.dependsOn).toEqual([]);
   });
 
-  it("stops the clock on a task moved mid-run", () => {
-    app().startTask("b");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
+  it("carries a finished task over still finished", () => {
+    app().setDone("b", true);
     app().moveTaskToDate("b", LATER);
-    expect(moved()[0]).toMatchObject({
-      status: "todo",
-      actualStart: null,
-      actualMinutes: 30,
-    });
+    expect(moved()[0]).toMatchObject({ title: "Beta", done: true });
   });
 
   it("lets the flowchart place it afresh on its new day", () => {
@@ -482,24 +422,9 @@ describe("moving a task to another day", () => {
       app().moveTaskToDate("a", LATER);
       app().undoMove();
       expect(moved()).toEqual([]);
-      expect(task("a")).toMatchObject({
-        title: "Alpha",
-        status: "done",
-        });
+      expect(task("a")).toMatchObject({ title: "Alpha", done: true });
       expect(task("b")!.dependsOn).toEqual(["a"]);
       expect(app().lastMoved).toBeNull();
-    });
-
-    it("restores a mid-run task exactly as it was", () => {
-      app().startTask("b");
-      vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
-      app().moveTaskToDate("b", LATER);
-      app().undoMove();
-      expect(task("b")).toMatchObject({
-        status: "active",
-        actualStart: at(9),
-        actualMinutes: 0,
-      });
     });
 
     it("works from a different day than the one it was offered on", () => {
@@ -547,7 +472,7 @@ describe("moving a day's unfinished work", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "done", title: "Shipped", status: "done" }),
+        makeTask({ id: "done", title: "Shipped", done: true }),
         makeTask({ id: "a", title: "Alpha", dependsOn: ["done"] }),
         makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
         makeTask({
@@ -556,7 +481,7 @@ describe("moving a day's unfinished work", () => {
           blocked: "waiting on bob",
           dependsOn: ["b"],
         }),
-        makeTask({ id: "late", title: "Wrapped", status: "done", dependsOn: ["b"] }),
+        makeTask({ id: "late", title: "Wrapped", done: true, dependsOn: ["b"] }),
       ])
     )
   );
@@ -592,17 +517,6 @@ describe("moving a day's unfinished work", () => {
   it("carries a blocker across", () => {
     app().moveUnfinishedToDate(LATER);
     expect(moved().find((t) => t.title === "Gamma")!.blocked).toBe("waiting on bob");
-  });
-
-  it("banks the time on whatever was running", () => {
-    app().startTask("a");
-    vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
-    app().moveUnfinishedToDate(LATER);
-    expect(moved().find((t) => t.title === "Alpha")).toMatchObject({
-      status: "todo",
-      actualStart: null,
-      actualMinutes: 30,
-    });
   });
 
   it("does nothing when the day has no unfinished work left", () => {
@@ -660,8 +574,8 @@ describe("clearing finished work", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "done1", title: "Done one", status: "done" }),
-        makeTask({ id: "done2", title: "Done two", status: "done" }),
+        makeTask({ id: "done1", title: "Done one", done: true }),
+        makeTask({ id: "done2", title: "Done two", done: true }),
         makeTask({ id: "todo", title: "Still to do", dependsOn: ["done1"] }),
       ])
     )

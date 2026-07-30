@@ -82,15 +82,15 @@ describe("interaction", () => {
     const user = userEvent.setup();
     renderFlow(makeDay([makeTask({ id: "a", title: "Write report" })]));
     await user.click(within(node("Write report")).getByLabelText("Mark task done"));
-    expect(tasksToday()[0].status).toBe("done");
+    expect(tasksToday()[0].done).toBe(true);
     expect(app().selectedId).toBeNull(); // the click didn't fall through to the node
   });
 
   it("reopens a finished task from its node", async () => {
     const user = userEvent.setup();
-    renderFlow(makeDay([makeTask({ id: "a", title: "Write report", status: "done" })]));
+    renderFlow(makeDay([makeTask({ id: "a", title: "Write report", done: true })]));
     await user.click(within(node("Write report")).getByLabelText("Reopen task"));
-    expect(tasksToday()[0].status).toBe("todo");
+    expect(tasksToday()[0].done).toBe(false);
   });
 
   it("removes a dependency when its arrow is clicked", async () => {

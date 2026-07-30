@@ -1,6 +1,5 @@
 "use client";
 
-import CurrentTask from "@/components/CurrentTask";
 import Editor from "@/components/Editor";
 import FlowView from "@/components/FlowView";
 import GoalsPanel from "@/components/GoalsPanel";
@@ -9,10 +8,12 @@ import QuickAdd from "@/components/QuickAdd";
 import TaskList from "@/components/TaskList";
 import TopBar from "@/components/TopBar";
 import UndoBar from "@/components/UndoBar";
+import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
 import { todayISO } from "@/lib/time";
+import { STATUS_ORDER } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
@@ -23,16 +24,16 @@ export default function Home() {
   const quickAddRef = useRef<HTMLInputElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // keyboard-driven navigation order: queue, blocked, done — as the list shows it
+  // keyboard-driven navigation order: by status, then queue order — the order
+  // the sidebar lists them in, so j/k walks down what you can see
   const navIds = useMemo(() => {
     if (!day) return [] as string[];
-    return [
-      ...day.tasks
-        .filter((t) => (t.status === "todo" || t.status === "active") && !t.blocked)
-        .sort((a, b) => a.order - b.order),
-      ...day.tasks.filter((t) => t.blocked && t.status !== "done"),
-      ...day.tasks.filter((t) => t.status === "done"),
-    ].map((t) => t.id);
+    const statusOfId = statuses(day.tasks);
+    const rank = (t: (typeof day.tasks)[number]) =>
+      STATUS_ORDER.indexOf(statusOfId.get(t.id)!);
+    return [...day.tasks]
+      .sort((a, b) => rank(a) - rank(b) || a.order - b.order)
+      .map((t) => t.id);
   }, [day]);
 
   useEffect(() => {
@@ -74,8 +75,6 @@ export default function Home() {
             ?.scrollIntoView({ block: "nearest" });
         }
       };
-      const activeTask = day?.tasks.find((t) => t.status === "active");
-
       switch (e.key) {
         case "n":
         case "c":
@@ -105,16 +104,6 @@ export default function Home() {
             s.setEditorOpen(true);
           }
           break;
-        case " ": {
-          e.preventDefault();
-          const target = sel
-            ? day?.tasks.find((t) => t.id === sel)
-            : activeTask;
-          if (!target) break;
-          if (target.status === "active") s.pauseTask(target.id);
-          else if (target.status !== "done") s.startTask(target.id);
-          break;
-        }
         case "d":
           if (sel) s.toggleDone(sel);
           break;
@@ -191,7 +180,6 @@ export default function Home() {
       <TopBar exportRef={exportRef} />
       <div className="flex flex-1 min-h-0">
         <aside className="w-80 shrink-0 border-r border-slate-800 flex flex-col gap-3 p-3 overflow-y-auto">
-          <CurrentTask />
           <QuickAdd ref={quickAddRef} />
           <div className="flex-1">
             <TaskList />

@@ -17,9 +17,8 @@ export function makeTask(partial: Partial<Task> = {}): Task {
     duration: 30,
     priority: 3,
     dependsOn: [],
-    status: "todo",
+    done: false,
     order: seq,
-    actualMinutes: 0,
     createdAt: 1_700_000_000_000 + seq,
     ...partial,
   };

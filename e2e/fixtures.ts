@@ -16,20 +16,16 @@ interface Task {
   title: string;
   duration: number;
   priority: number;
-  status: string;
+  done: boolean;
   order: number;
   dependsOn: string[];
-  actualMinutes: number;
   createdAt: number;
   [key: string]: unknown;
 }
 
 export const SHARE_TOKEN = "e2e-share-token";
 
-/**
- * Timers measure against the clock, so the suite pins it: 08:00 on a Tuesday.
- * Elapsed time is then a fact of the fixture rather than of when you ran it.
- */
+/** Pinned so that "today" is a fact of the fixture, not of when you ran it. */
 export const E2E_NOW = new Date(2026, 6, 28, 8, 0, 0);
 
 export function todayISO(d = E2E_NOW): string {

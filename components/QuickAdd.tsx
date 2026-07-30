@@ -1,6 +1,5 @@
 "use client";
 
-import { ensureNotifyPermission } from "@/lib/notify";
 import { useApp } from "@/lib/store";
 import { forwardRef, useState } from "react";
 
@@ -16,7 +15,6 @@ const QuickAdd = forwardRef<HTMLInputElement>(function QuickAdd(_props, ref) {
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={(e) => {
           if (e.key === "Enter" && value.trim()) {
-            ensureNotifyPermission();
             quickAdd(value);
             setValue("");
             // stays focused: brain-dump several tasks in a row

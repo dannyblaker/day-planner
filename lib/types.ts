@@ -1,5 +1,5 @@
 export type Priority = 1 | 2 | 3 | 4;
-export type TaskStatus = "todo" | "active" | "done";
+export type TaskStatus = "todo" | "in-progress" | "done";
 
 export interface Task {
   id: string;
@@ -12,19 +12,39 @@ export interface Task {
   dependsOn: string[];
   /** blocker reason; non-null means blocked */
   blocked?: string | null;
-  status: TaskStatus;
+  /**
+   * The only piece of status that is stored, because it is the only one you
+   * assert: to-do and in-progress fall out of the graph. See statusOf().
+   */
+  done: boolean;
   /** background lane: runs concurrently with focus work (laundry, CI, waiting) */
   parallel?: boolean;
   order: number;
-  /** minutes since midnight when the current/last timer segment started */
-  actualStart?: number | null;
-  /** accumulated worked minutes across timer segments */
-  actualMinutes: number;
   createdAt: number;
   /** position on the flowchart canvas */
   flowX?: number | null;
   flowY?: number | null;
 }
+
+export const STATUS_LABEL: Record<TaskStatus, string> = {
+  todo: "To do",
+  "in-progress": "In progress",
+  done: "Done",
+};
+
+/** How the app lists work: what you can do now, then what is waiting, then what is finished. */
+export const STATUS_ORDER: TaskStatus[] = ["in-progress", "todo", "done"];
+
+/**
+ * Status accent — the dot in the list, the text in the editor. The node and row
+ * skins are the matching `.status-*` classes; both sets of hues live in
+ * globals.css so they follow the theme.
+ */
+export const STATUS_COLOR: Record<TaskStatus, string> = {
+  todo: "var(--status-todo)",
+  "in-progress": "var(--status-progress)",
+  done: "var(--status-done)",
+};
 
 /**
  * Flowchart canvas geometry (shared by view + auto-layout).

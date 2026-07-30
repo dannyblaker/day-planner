@@ -25,11 +25,11 @@ describe("moving the day's work", () => {
     makeDay([
       makeTask({ id: "a", title: "First" }),
       makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
-      makeTask({ id: "d", title: "Finished thing", status: "done" }),
+      makeTask({ id: "d", title: "Finished thing", done: true }),
     ]);
 
   it("offers the move only while something is unfinished", () => {
-    renderList(makeDay([makeTask({ title: "Finished thing", status: "done" })]));
+    renderList(makeDay([makeTask({ title: "Finished thing", done: true })]));
     expect(
       screen.queryByRole("button", { name: /move all/ })
     ).not.toBeInTheDocument();
@@ -63,44 +63,79 @@ describe("moving the day's work", () => {
     expect(app().plan.days["2026-07-28"].tasks.map((t) => t.title)).toEqual([
       "Finished thing",
     ]);
-    expect(screen.getByText(/Nothing queued/)).toBeInTheDocument();
+    // only the day's record is left behind
+    expect(screen.getByText(/Done · 1/)).toBeInTheDocument();
+    expect(screen.queryByText(/In progress ·/)).not.toBeInTheDocument();
   });
 });
 
 describe("sections", () => {
-  it("splits tasks into queue, blocked and done", () => {
+  it("groups tasks by the status the graph derives", () => {
     renderList(
       makeDay([
-        makeTask({ id: "q", title: "Queued thing" }),
+        makeTask({ id: "a", title: "Startable thing" }),
+        makeTask({ id: "w", title: "Waiting thing", dependsOn: ["a"] }),
         makeTask({ id: "b", title: "Blocked thing", blocked: "waiting on legal" }),
-        makeTask({ id: "d", title: "Finished thing", status: "done" }),
+        makeTask({ id: "d", title: "Finished thing", done: true }),
       ])
     );
-    expect(screen.getByText(/Queue · 1/)).toBeInTheDocument();
-    expect(screen.getByText(/Blocked · 1/)).toBeInTheDocument();
+    expect(screen.getByText(/In progress · 1/)).toBeInTheDocument();
+    // a blocker holds a task at to-do just as an unfinished prerequisite does
+    expect(screen.getByText(/To do · 2/)).toBeInTheDocument();
     expect(screen.getByText(/Done · 1/)).toBeInTheDocument();
   });
 
-  it("hides the blocked and done sections when there is nothing in them", () => {
+  it("lists in-progress first — that group is what you can pick up now", () => {
+    renderList(
+      makeDay([
+        makeTask({ id: "w", title: "Waiting thing", order: 1, dependsOn: ["a"] }),
+        makeTask({ id: "a", title: "Startable thing", order: 2 }),
+      ])
+    );
+    const rendered = screen
+      .getAllByText(/Startable thing|Waiting thing/)
+      .map((n) => n.textContent);
+    expect(rendered).toEqual(["Startable thing", "Waiting thing"]);
+  });
+
+  it("promotes the dependents of a task as soon as it is done", async () => {
+    const user = userEvent.setup();
+    renderList(
+      makeDay([
+        makeTask({ id: "a", title: "First" }),
+        makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
+        makeTask({ id: "c", title: "Third", dependsOn: ["b"] }),
+      ])
+    );
+    expect(screen.getByText(/In progress · 1/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("checkbox", { name: "First" }));
+    // Second takes First's place on the frontier; Third still waits on Second
+    expect(await screen.findByText(/In progress · 1/)).toBeInTheDocument();
+    expect(screen.getByText(/To do · 1/)).toBeInTheDocument();
+    expect(screen.getByText(/Done · 1/)).toBeInTheDocument();
+  });
+
+  it("hides a group when there is nothing in it", () => {
     renderList(makeDay([makeTask({ title: "Only thing" })]));
-    expect(screen.queryByText(/Blocked ·/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/To do ·/)).not.toBeInTheDocument();
     expect(screen.queryByText(/Done ·/)).not.toBeInTheDocument();
   });
 
-  it("prompts when the queue is empty", () => {
+  it("prompts when there is nothing at all", () => {
     renderList(makeDay([]));
-    expect(screen.getByText(/Nothing queued/)).toBeInTheDocument();
+    expect(screen.getByText(/Nothing planned/)).toBeInTheDocument();
   });
 
   it("collapses and expands the done list", async () => {
     const user = userEvent.setup();
-    renderList(makeDay([makeTask({ title: "Finished thing", status: "done" })]));
+    renderList(makeDay([makeTask({ title: "Finished thing", done: true })]));
     expect(screen.getByText("Finished thing")).toBeVisible();
     await user.click(screen.getByText(/Done · 1/));
     expect(screen.queryByText("Finished thing")).not.toBeInTheDocument();
   });
 
-  it("orders the queue by position in the queue, not by array position", () => {
+  it("orders within a group by queue position, not by array position", () => {
     renderList(
       makeDay([
         makeTask({ id: "late", title: "Later", order: 2 }),
@@ -141,14 +176,14 @@ describe("row actions", () => {
     const user = userEvent.setup();
     renderList(makeDay([makeTask({ id: "a", title: "Write report" })]));
     await user.click(within(row("Write report")).getByRole("button", { name: /done/i }));
-    expect(app().plan.days["2026-07-28"].tasks[0].status).toBe("done");
+    expect(app().plan.days["2026-07-28"].tasks[0].done).toBe(true);
   });
 
   it("reopens a finished task", async () => {
     const user = userEvent.setup();
-    renderList(makeDay([makeTask({ id: "a", title: "Write report", status: "done" })]));
+    renderList(makeDay([makeTask({ id: "a", title: "Write report", done: true })]));
     await user.click(within(row("Write report")).getByRole("button", { name: /reopen/i }));
-    expect(app().plan.days["2026-07-28"].tasks[0].status).toBe("todo");
+    expect(app().plan.days["2026-07-28"].tasks[0].done).toBe(false);
   });
 
   it("exposes the circle as a checkbox naming its task", async () => {
@@ -157,30 +192,11 @@ describe("row actions", () => {
     const box = screen.getByRole("checkbox", { name: "Write report" });
     expect(box).toHaveAttribute("aria-checked", "false");
     await user.click(box);
-    expect(app().plan.days["2026-07-28"].tasks[0].status).toBe("done");
+    expect(app().plan.days["2026-07-28"].tasks[0].done).toBe(true);
     expect(screen.getByRole("checkbox", { name: "Write report" })).toHaveAttribute(
       "aria-checked",
       "true"
     );
-  });
-
-  it("starts and pauses the timer", async () => {
-    const user = userEvent.setup();
-    renderList(makeDay([makeTask({ id: "a", title: "Write report" })]));
-    await user.click(screen.getByRole("button", { name: "start" }));
-    expect(app().plan.days["2026-07-28"].tasks[0].status).toBe("active");
-    await user.click(screen.getByRole("button", { name: "pause" }));
-    expect(app().plan.days["2026-07-28"].tasks[0].status).toBe("todo");
-  });
-
-  it("offers no start button for blocked or finished tasks", () => {
-    renderList(
-      makeDay([
-        makeTask({ title: "Blocked thing", blocked: "waiting" }),
-        makeTask({ title: "Finished thing", status: "done" }),
-      ])
-    );
-    expect(screen.queryByRole("button", { name: "start" })).not.toBeInTheDocument();
   });
 
   it("selects a task on click and opens the editor on double click", async () => {
@@ -197,7 +213,7 @@ describe("clearing finished work", () => {
   const withDone = () =>
     makeDay([
       makeTask({ id: "a", title: "Still going" }),
-      makeTask({ id: "b", title: "Finished thing", status: "done" }),
+      makeTask({ id: "b", title: "Finished thing", done: true }),
     ]);
 
   it("offers a clear control only when something is finished", () => {

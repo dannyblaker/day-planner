@@ -13,7 +13,7 @@ test.describe("the morning brain-dump", () => {
     await quickAdd(page, "Draft the proposal 1h !1 #deep-work", "Draft the proposal");
     await quickAdd(page, "Review PRs 45m !2", "Review PRs");
 
-    await expect(page.getByText("Queue · 2")).toBeVisible();
+    await expect(page.getByText("In progress · 2")).toBeVisible();
     await expect(flowNode(page, "Draft the proposal")).toBeVisible();
     await expect(flowNode(page, "Draft the proposal").getByText("1h")).toBeVisible();
     await expect(row(page, "Draft the proposal").getByText("deep-work")).toBeVisible();
@@ -57,9 +57,9 @@ test.describe("the morning brain-dump", () => {
     await expect(page.locator("svg title")).toContainText("Design it");
   });
 
-  test("parks a blocked task in its own list, flagged on the canvas", async ({ page }) => {
+  test("holds a blocked task at to-do, flagged on the canvas", async ({ page }) => {
     await quickAdd(page, "Ship it 20m *waiting-on-legal", "Ship it");
-    await expect(page.getByText("Blocked · 1")).toBeVisible();
+    await expect(page.getByText("To do · 1")).toBeVisible();
     await expect(page.getByText(/waiting on legal/).first()).toBeVisible();
     await expect(flowNode(page, "Ship it").getByText(/waiting on legal/)).toBeVisible();
   });
@@ -89,7 +89,7 @@ test.describe("marking work done", () => {
     await row(page, "Write the report").getByRole("button", { name: /done/i }).click();
     await expect(page.getByText("Done · 1")).toBeVisible();
     await planServer.settled();
-    expect(planServer.tasks()[0].status).toBe("done");
+    expect(planServer.tasks()[0].done).toBe(true);
   });
 
   test("from the flowchart node, and back again", async ({ page, planServer }) => {
@@ -101,9 +101,9 @@ test.describe("marking work done", () => {
 
     await node.hover();
     await node.getByLabel("Reopen task").click();
-    await expect(page.getByText("Queue · 1")).toBeVisible();
+    await expect(page.getByText("In progress · 1")).toBeVisible();
     await planServer.settled();
-    expect(planServer.tasks()[0].status).toBe("todo");
+    expect(planServer.tasks()[0].done).toBe(false);
   });
 
   test("with the d key", async ({ page }) => {
@@ -112,7 +112,7 @@ test.describe("marking work done", () => {
     await page.keyboard.press("d");
     await expect(page.getByText("Done · 1")).toBeVisible();
     await page.keyboard.press("d");
-    await expect(page.getByText("Queue · 1")).toBeVisible();
+    await expect(page.getByText("In progress · 1")).toBeVisible();
   });
 });
 
@@ -132,7 +132,7 @@ test.describe("the flowchart", () => {
     expect(Math.round(after.x - before.x)).toBe(200);
     expect(Math.round(after.y - before.y)).toBe(100);
     await planServer.settled();
-    expect(planServer.tasks()[0].status).toBe("todo");
+    expect(planServer.tasks()[0].done).toBe(false);
   });
 
   test("draws and removes a dependency arrow", async ({ page, planServer }) => {
@@ -192,12 +192,12 @@ test.describe("moving between days", () => {
     await page.keyboard.press("j");
     await page.keyboard.press("o"); // defer
 
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
     await page.keyboard.press("]");
     await expect(row(page, "Today's job")).toBeVisible();
 
     await page.keyboard.press("[");
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
     await planServer.settled();
     expect(planServer.titles()).toEqual([]);
   });
@@ -211,7 +211,7 @@ test.describe("moving between days", () => {
     const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
     await editor.getByRole("button", { name: "+1 week" }).click();
     await editor.getByRole("button", { name: "move →" }).click();
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
 
     await page.getByRole("button", { name: /go there/ }).click();
     await expect(row(page, "Ship the thing")).toBeVisible();
@@ -229,13 +229,13 @@ test.describe("moving between days", () => {
     await page.locator("body").click();
     await page.keyboard.press("j");
     await page.keyboard.press("o"); // defer to tomorrow
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
 
     await page.keyboard.press("]");
     await expect(row(page, "Leftovers")).toBeVisible();
     await page.keyboard.press("j");
     await page.keyboard.press("Shift+O");
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
 
     await page.keyboard.press("[");
     await expect(row(page, "Leftovers")).toBeVisible();
@@ -255,7 +255,9 @@ test.describe("moving between days", () => {
     await page.getByRole("button", { name: "move all →" }).click();
     await page.getByRole("button", { name: "next day" }).click();
     await page.getByRole("button", { name: /move 2/ }).click();
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    // only the day's record stays behind
+    await expect(page.getByText("Done · 1")).toBeVisible();
+    await expect(page.getByText("In progress ·")).toHaveCount(0);
 
     await page.keyboard.press("]");
     await expect(row(page, "Draft the deck")).toBeVisible();
@@ -273,7 +275,7 @@ test.describe("moving between days", () => {
     const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
     await editor.getByRole("button", { name: "next day" }).click();
     await editor.getByRole("button", { name: "move →" }).click();
-    await expect(page.getByText("Nothing queued")).toBeVisible();
+    await expect(page.getByText("Nothing planned")).toBeVisible();
 
     await page.getByRole("button", { name: /undo/i }).click();
     await expect(row(page, "Stays put")).toBeVisible();

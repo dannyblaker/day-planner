@@ -5,7 +5,7 @@ import { immer } from "zustand/middleware/immer";
 import { arrangeByDepth, columnX } from "./flow";
 import { dependentsOf, flowDepths } from "./graph";
 import { parseQuickAdd } from "./parse";
-import { nowMinutes, todayISO, addDaysISO } from "./time";
+import { todayISO, addDaysISO } from "./time";
 import {
   DayPlan,
   FLOW,
@@ -32,9 +32,8 @@ function defaultPlan(): Plan {
     duration: 30,
     priority: 3,
     dependsOn: [],
-    status: "todo",
+    done: false,
     order,
-    actualMinutes: 0,
     createdAt: Date.now(),
     ...partial,
   });
@@ -115,11 +114,8 @@ interface AppState {
   moveTask: (id: string, dir: -1 | 1) => void;
   /** drag & drop: re-insert task before another task (null = end of queue) */
   placeBefore: (id: string, beforeId: string | null) => void;
-  startTask: (id: string) => void;
-  pauseTask: (id: string) => void;
-  completeTask: (id: string) => void;
-  reopenTask: (id: string) => void;
-  /** done ⇄ todo, for the `d` key and every done button in the UI */
+  setDone: (id: string, done: boolean) => void;
+  /** the `d` key and every done button in the UI */
   toggleDone: (id: string) => void;
   toggleBlocked: (id: string, reason?: string) => void;
   setPriority: (id: string, p: Priority) => void;
@@ -129,7 +125,7 @@ interface AppState {
   clearDone: () => void;
   undoClear: () => void;
   dismissUndo: () => void;
-  /** move a task to any other day, keeping it as it is (pin included) */
+  /** move a task to any other day, keeping it exactly as it is */
   moveTaskToDate: (id: string, date: string) => void;
   /** move the day's unfinished work to another day, dependencies and all */
   moveUnfinishedToDate: (date: string) => void;
@@ -170,17 +166,9 @@ interface MoveCtx {
  * the undo can put it back. Move the whole day and the graph arrives intact;
  * move one task and it arrives on its own.
  *
- * The two modes differ in how much of a task's own state survives:
- * - "move": carry it over as-is — a finished task stays finished. A running
- *   timer is banked and paused either way.
- * - "defer": "I didn't get to this" — back to todo.
+ * A task travels exactly as it is — a finished one stays finished.
  */
-function moveToDate(
-  s: MoveCtx,
-  ids: string[],
-  date: string,
-  mode: "move" | "defer"
-) {
+function moveToDate(s: MoveCtx, ids: string[], date: string) {
   if (!ISO_DATE.test(date) || date === s.date) return;
   const d = day(s);
   const moving = new Set(ids);
@@ -201,11 +189,6 @@ function moveToDate(
   let order = orders.length ? Math.max(...orders) : 0;
 
   for (const t of leaving) {
-    if (t.status === "active") {
-      accumulate(t);
-      t.status = "todo";
-      t.actualStart = null;
-    }
     target.tasks.push({
       ...t,
       dependsOn: t.dependsOn.filter((dep) => moving.has(dep)),
@@ -213,7 +196,6 @@ function moveToDate(
       flowX: null,
       flowY: null,
       order: ++order,
-      ...(mode === "defer" ? { status: "todo" as const, actualStart: null } : {}),
     });
   }
 
@@ -234,15 +216,6 @@ function moveToDate(
   // only one undo offer at a time
   s.lastCleared = null;
   s.lastMoved = { tasks: before, from: s.date, to: date, deps };
-}
-
-function accumulate(t: Task) {
-  if (t.actualStart != null) {
-    t.actualMinutes =
-      Math.round(
-        ((t.actualMinutes || 0) + Math.max(nowMinutes() - t.actualStart, 0)) * 10
-      ) / 10;
-  }
 }
 
 export const useApp = create<AppState>()(
@@ -353,11 +326,9 @@ export const useApp = create<AppState>()(
           goalId,
           dependsOn: parsed.dependsOn,
           blocked: parsed.blocked,
-          status: "todo",
+          done: false,
           parallel: parsed.parallel,
           order,
-          actualStart: null,
-          actualMinutes: 0,
           createdAt: Date.now(),
         });
         s.selectedId = id;
@@ -386,7 +357,7 @@ export const useApp = create<AppState>()(
     moveTask: (id, dir) =>
       set((s) => {
         const queue = day(s)
-          .tasks.filter((t) => t.status === "todo" && !t.blocked)
+          .tasks.filter((t) => !t.done && !t.blocked)
           .sort((a, b) => a.order - b.order);
         const i = queue.findIndex((t) => t.id === id);
         const j = i + dir;
@@ -412,67 +383,24 @@ export const useApp = create<AppState>()(
         sorted.forEach((x, i) => (x.order = i));
       }),
 
-    startTask: (id) =>
-      set((s) => {
-        for (const t of day(s).tasks) {
-          if (t.status === "active" && t.id !== id) {
-            accumulate(t);
-            t.status = "todo";
-            t.actualStart = null;
-          }
-        }
-        const t = day(s).tasks.find((t) => t.id === id);
-        if (!t) return;
-        t.status = "active";
-        t.blocked = null;
-        t.actualStart = nowMinutes();
-      }),
-
-    pauseTask: (id) =>
+    /** Marking a task done is what advances the frontier: its dependents stop
+     *  waiting and become in-progress on the next render, with nothing stored. */
+    setDone: (id, done) =>
       set((s) => {
         const t = day(s).tasks.find((t) => t.id === id);
-        if (!t || t.status !== "active") return;
-        accumulate(t);
-        t.status = "todo";
-        t.actualStart = null;
-      }),
-
-    completeTask: (id) =>
-      set((s) => {
-        const t = day(s).tasks.find((t) => t.id === id);
-        if (!t) return;
-        if (t.status === "active") accumulate(t);
-        t.status = "done";
-      }),
-
-    reopenTask: (id) =>
-      set((s) => {
-        const t = day(s).tasks.find((t) => t.id === id);
-        if (!t) return;
-        t.status = "todo";
-        t.actualStart = null;
+        if (t) t.done = done;
       }),
 
     toggleDone: (id) => {
       const t = day(get()).tasks.find((t) => t.id === id);
-      if (!t) return;
-      if (t.status === "done") get().reopenTask(id);
-      else get().completeTask(id);
+      if (t) get().setDone(id, !t.done);
     },
 
     toggleBlocked: (id, reason) =>
       set((s) => {
         const t = day(s).tasks.find((t) => t.id === id);
         if (!t) return;
-        if (t.blocked) t.blocked = null;
-        else {
-          if (t.status === "active") {
-            accumulate(t);
-            t.actualStart = null;
-          }
-          t.status = "todo";
-          t.blocked = reason || "Blocked";
-        }
+        t.blocked = t.blocked ? null : reason || "Blocked";
       }),
 
     setPriority: (id, p) =>
@@ -490,7 +418,7 @@ export const useApp = create<AppState>()(
     autoSort: () =>
       set((s) => {
         const queue = day(s)
-          .tasks.filter((t) => t.status === "todo" && !t.blocked)
+          .tasks.filter((t) => !t.done && !t.blocked)
           .sort((a, b) => a.order - b.order);
         const orders = queue.map((t) => t.order).sort((a, b) => a - b);
         const sorted = [...queue].sort(
@@ -504,7 +432,7 @@ export const useApp = create<AppState>()(
         const d = day(s);
         // plain copies, so the snapshot outlives the drafts they came from
         const removed = d.tasks
-          .filter((t) => t.status === "done")
+          .filter((t) => t.done)
           .map((t) => ({ ...t, dependsOn: [...t.dependsOn] }));
         if (!removed.length) return;
 
@@ -550,18 +478,16 @@ export const useApp = create<AppState>()(
 
     dismissUndo: () => set((s) => void (s.lastCleared = null)),
 
-    moveTaskToDate: (id, date) =>
-      set((s) => moveToDate(s, [id], date, "move")),
+    moveTaskToDate: (id, date) => set((s) => moveToDate(s, [id], date)),
 
     moveUnfinishedToDate: (date) =>
       set((s) =>
         moveToDate(
           s,
           day(s)
-            .tasks.filter((t) => t.status !== "done")
+            .tasks.filter((t) => !t.done)
             .map((t) => t.id),
-          date,
-          "move"
+          date
         )
       ),
 
@@ -596,7 +522,7 @@ export const useApp = create<AppState>()(
     },
 
     deferToNextDay: (id) =>
-      set((s) => moveToDate(s, [id], addDaysISO(s.date, 1), "defer")),
+      set((s) => moveToDate(s, [id], addDaysISO(s.date, 1))),
 
     addGoal: (name) =>
       set((s) => {

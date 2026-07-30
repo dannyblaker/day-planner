@@ -1,7 +1,8 @@
 "use client";
 
+import { statuses } from "@/lib/graph";
 import { fmtDateHuman, fmtDur, todayISO } from "@/lib/time";
-import { Plan } from "@/lib/types";
+import { Plan, STATUS_COLOR } from "@/lib/types";
 import { useEffect, useState } from "react";
 import FlowCanvas from "./FlowCanvas";
 import ThemeToggle from "./ThemeToggle";
@@ -66,9 +67,10 @@ export default function ShareView({ token }: { token: string }) {
   }
 
   const total = day.tasks.length;
-  const done = day.tasks.filter((t) => t.status === "done").length;
-  const active = day.tasks.find((t) => t.status === "active");
-  const blocked = day.tasks.filter((t) => t.blocked && t.status !== "done");
+  const done = day.tasks.filter((t) => t.done).length;
+  const statusOfId = statuses(day.tasks);
+  const inProgress = day.tasks.filter((t) => statusOfId.get(t.id) === "in-progress");
+  const blocked = day.tasks.filter((t) => t.blocked && !t.done);
 
   return (
     <div className="min-h-screen bg-background text-slate-300">
@@ -93,14 +95,18 @@ export default function ShareView({ token }: { token: string }) {
       </header>
 
       <div className="h-[calc(100vh-53px)] flex flex-col p-5 gap-4">
-        {active && (
-          <div className="rounded-lg border border-emerald-500/50 bg-emerald-950/30 px-4 py-2.5 text-sm">
-            <span className="text-emerald-400">▶ working on now: </span>
-            <span className="text-slate-100 font-medium">{active.title}</span>
-            <span className="text-slate-500 text-xs">
-              {" "}
-              · planned {fmtDur(active.duration)}
+        {inProgress.length > 0 && (
+          <div className="rounded-lg border px-4 py-2.5 text-sm status-in-progress">
+            <span style={{ color: STATUS_COLOR["in-progress"] }}>
+              ▶ in progress ({inProgress.length}):{" "}
             </span>
+            {inProgress.map((t, i) => (
+              <span key={t.id}>
+                {i > 0 && <span className="text-slate-500"> · </span>}
+                <span className="text-slate-100 font-medium">{t.title}</span>
+                <span className="text-slate-500 text-xs"> {fmtDur(t.duration)}</span>
+              </span>
+            ))}
           </div>
         )}
         {blocked.length > 0 && (

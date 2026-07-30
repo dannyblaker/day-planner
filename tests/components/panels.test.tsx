@@ -1,4 +1,3 @@
-import CurrentTask from "@/components/CurrentTask";
 import DoneButton from "@/components/DoneButton";
 import Editor from "@/components/Editor";
 import GoalsPanel from "@/components/GoalsPanel";
@@ -11,7 +10,7 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
-import { at, makeDay, makeTask, resetFactory } from "../factory";
+import { makeDay, makeTask, resetFactory } from "../factory";
 
 const tasksToday = () => app().plan.days["2026-07-28"].tasks;
 
@@ -101,71 +100,6 @@ describe("QuickAdd", () => {
   });
 });
 
-describe("CurrentTask", () => {
-  const renderPanel = (day: DayPlan) => {
-    seedStore(day);
-    return render(<CurrentTask />);
-  };
-
-  it("offers the next task when nothing is running", () => {
-    renderPanel(makeDay([makeTask({ id: "a", title: "Write report" })]));
-    expect(screen.getByText("Up next")).toBeInTheDocument();
-    expect(screen.getByText("Write report")).toBeInTheDocument();
-  });
-
-  it("starts the offered task", async () => {
-    const user = userEvent.setup();
-    renderPanel(makeDay([makeTask({ id: "a", title: "Write report" })]));
-    await user.click(screen.getByRole("button", { name: /start/i }));
-    expect(tasksToday()[0].status).toBe("active");
-  });
-
-  it("says so when there is nothing queued", () => {
-    renderPanel(makeDay([]));
-    expect(screen.getByText(/All clear/)).toBeInTheDocument();
-  });
-
-  it("counts down while a task runs", () => {
-    renderPanel(
-      makeDay([
-        makeTask({ title: "Write report", duration: 30, status: "active", actualStart: at(8, 50) }),
-      ])
-    );
-    expect(screen.getByText("In progress")).toBeInTheDocument();
-    expect(screen.getByText(/−20:00/)).toBeInTheDocument();
-  });
-
-  it("switches to overrun once the planned time is gone", () => {
-    renderPanel(
-      makeDay([
-        makeTask({ title: "Write report", duration: 30, status: "active", actualStart: at(8) }),
-      ])
-    );
-    expect(screen.getByText("Overrunning")).toBeInTheDocument();
-    expect(screen.getByText(/\+30:00/)).toBeInTheDocument();
-  });
-
-  it("pauses and completes from the panel", async () => {
-    const user = userEvent.setup();
-    renderPanel(
-      makeDay([
-        makeTask({ id: "a", title: "Write report", status: "active", actualStart: at(8, 50) }),
-      ])
-    );
-    await user.click(screen.getByRole("button", { name: /pause/i }));
-    expect(tasksToday()[0].status).toBe("todo");
-  });
-
-  it("puts the countdown in the tab title", () => {
-    renderPanel(
-      makeDay([
-        makeTask({ title: "Write report", duration: 30, status: "active", actualStart: at(8, 50) }),
-      ])
-    );
-    expect(document.title).toContain("Write report");
-  });
-});
-
 describe("Editor", () => {
   const openEditorOn = (day: DayPlan, id: string) => {
     seedStore(day);
@@ -173,6 +107,34 @@ describe("Editor", () => {
     app().setEditorOpen(true);
     return render(<Editor />);
   };
+
+  it("shows the derived status, and only lets you set the done part", async () => {
+    const user = userEvent.setup();
+    openEditorOn(
+      makeDay([
+        makeTask({ id: "a", title: "First" }),
+        makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
+      ]),
+      "b"
+    );
+    expect(screen.getByText("To do")).toBeInTheDocument();
+    expect(screen.getByText(/Waiting on 1 unfinished prerequisite\./)).toBeInTheDocument();
+
+    // finishing the prerequisite promotes this one, with nothing stored
+    app().setDone("a", true);
+    expect(await screen.findByText("In progress")).toBeInTheDocument();
+    expect(screen.getByText(/startable now/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /mark done/i }));
+    expect(tasksToday().find((t) => t.id === "b")!.done).toBe(true);
+    expect(await screen.findByText("Done")).toBeInTheDocument();
+  });
+
+  it("names the blocker instead, when there is one", () => {
+    openEditorOn(makeDay([makeTask({ id: "a", blocked: "waiting on legal" })]), "a");
+    expect(screen.getByText("To do")).toBeInTheDocument();
+    expect(screen.getByText("Blocked: waiting on legal")).toBeInTheDocument();
+  });
 
   it("stays closed until a task is selected and opened", () => {
     seedStore(makeDay([makeTask({ id: "a" })]));
@@ -273,16 +235,16 @@ describe("Editor", () => {
 });
 
 describe("GoalsPanel", () => {
-  it("shows time done against time planned per goal", () => {
+  it("shows work done against work planned per goal", () => {
     seedStore(
       makeDay([
-        makeTask({ goalId: "g1", duration: 60, status: "done", actualMinutes: 45 }),
+        makeTask({ goalId: "g1", duration: 60, done: true }),
         makeTask({ goalId: "g1", duration: 30 }),
       ])
     );
     render(<GoalsPanel />);
     expect(screen.getByText("deep-work")).toBeInTheDocument();
-    expect(screen.getByText("45m / 1h 30m")).toBeInTheDocument();
+    expect(screen.getByText("1h / 1h 30m")).toBeInTheDocument();
   });
 
   it("counts tasks with no goal", () => {

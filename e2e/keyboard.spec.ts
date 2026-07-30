@@ -70,25 +70,30 @@ test("sorts the queue by priority with s", async ({ page, planServer }) => {
 });
 
 test("blocks and unblocks with b", async ({ page }) => {
+  // all three start unblocked, so all three are in progress
+  await expect(page.getByText("In progress · 3")).toBeVisible();
   await page.keyboard.press("j");
   await page.keyboard.press("b");
-  await expect(page.getByText("Blocked · 1")).toBeVisible();
+  // a blocker holds it at to-do
+  await expect(page.getByText("In progress · 2")).toBeVisible();
+  await expect(page.getByText("To do · 1")).toBeVisible();
   await page.keyboard.press("b");
-  await expect(page.getByText("Queue · 3")).toBeVisible();
+  await expect(page.getByText("In progress · 3")).toBeVisible();
 });
 
-test("starts and pauses the timer with space", async ({ page }) => {
+test("marks done with d, and the group counts follow", async ({ page }) => {
   await page.keyboard.press("j");
-  await page.keyboard.press(" ");
-  await expect(page.getByText("In progress")).toBeVisible();
-  await page.keyboard.press(" ");
-  await expect(page.getByText("Up next")).toBeVisible();
+  await page.keyboard.press("d");
+  await expect(page.getByText("In progress · 2")).toBeVisible();
+  await expect(page.getByText("Done · 1")).toBeVisible();
+  await page.keyboard.press("d");
+  await expect(page.getByText("In progress · 3")).toBeVisible();
 });
 
 test("deletes with x", async ({ page }) => {
   await page.keyboard.press("j");
   await page.keyboard.press("x");
-  await expect(page.getByText("Queue · 2")).toBeVisible();
+  await expect(page.getByText("In progress · 2")).toBeVisible();
   await expect(row(page, "First job")).toHaveCount(0);
 });
 
@@ -123,5 +128,5 @@ test("focuses quick-add with n, and ⌘K from anywhere", async ({ page }) => {
 test("shortcuts stay out of the way while typing", async ({ page }) => {
   await page.getByPlaceholder(/Add task/).fill("dbsx typing everything");
   await expect(page.getByPlaceholder(/Add task/)).toHaveValue("dbsx typing everything");
-  await expect(page.getByText("Queue · 3")).toBeVisible();
+  await expect(page.getByText("In progress · 3")).toBeVisible();
 });

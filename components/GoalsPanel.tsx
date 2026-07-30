@@ -16,17 +16,17 @@ export default function GoalsPanel() {
     const tasks = day.tasks.filter((t) => t.goalId === g.id);
     const planned = tasks.reduce((sum, t) => sum + t.duration, 0);
     const done = tasks
-      .filter((t) => t.status === "done")
-      .reduce((sum, t) => sum + (t.actualMinutes || t.duration), 0);
+      .filter((t) => t.done)
+      .reduce((sum, t) => sum + t.duration, 0);
     return { goal: g, planned, done, count: tasks.length };
   });
-  const unmapped = day.tasks.filter((t) => !t.goalId && t.status !== "done").length;
+  const unmapped = day.tasks.filter((t) => !t.goalId && !t.done).length;
   const max = Math.max(...stats.map((s) => s.planned), 1);
 
   return (
     <div>
       <h3 className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1.5">
-        Goals — time mapped today
+        Goals — work mapped, done vs. planned
       </h3>
       <div className="space-y-1.5 px-2">
         {stats.map(({ goal, planned, done, count }) => (

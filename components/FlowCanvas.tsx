@@ -1,8 +1,16 @@
 "use client";
 
 import { FlowPos, arrangeByDepth, inParallelBand } from "@/lib/flow";
+import { statuses } from "@/lib/graph";
 import { fmtDur } from "@/lib/time";
-import { DONE_COLOR, FLOW, Goal, PRIORITY_COLOR, Task } from "@/lib/types";
+import {
+  DONE_COLOR,
+  FLOW,
+  Goal,
+  PRIORITY_COLOR,
+  STATUS_LABEL,
+  Task,
+} from "@/lib/types";
 import { useRef, useState } from "react";
 import DoneButton from "./DoneButton";
 
@@ -66,6 +74,7 @@ export default function FlowCanvas({
   const [createText, setCreateText] = useState("");
 
   const byId = new Map(tasks.map((t) => [t.id, t]));
+  const statusOfId = statuses(tasks);
   // only consulted for nodes that have no stored position of their own
   const fallback = arrangeByDepth(tasks);
 
@@ -263,7 +272,8 @@ export default function FlowCanvas({
                 ? "var(--edge-hover)"
                 : involved
                   ? "var(--edge-active)"
-                  : from.status === "done"
+                  : // a satisfied prerequisite is history — fade the arrow out
+                    from.done
                     ? "var(--edge-dim)"
                     : "var(--edge)";
             return (
@@ -307,8 +317,8 @@ export default function FlowCanvas({
         {tasks.map((t) => {
           const p = pos(t);
           const goal = goals.find((g) => g.id === t.goalId);
-          const done = t.status === "done";
-          const active = t.status === "active";
+          const status = statusOfId.get(t.id)!;
+          const done = status === "done";
           const dragging = dragNode?.id === t.id;
           return (
             <div
@@ -331,18 +341,12 @@ export default function FlowCanvas({
                     }
                   : undefined
               }
-              className={`group absolute z-10 rounded-lg border px-2.5 py-1.5 select-none ${
+              title={`${t.title} — ${STATUS_LABEL[status]}`}
+              className={`group absolute z-10 rounded-lg border px-2.5 py-1.5 select-none status-${status} ${
                 onMove ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
-              } ${
-                done
-                  ? "opacity-40 border-slate-700 bg-slate-900"
-                  : active
-                    ? "border-emerald-400/70 bg-emerald-950/70"
-                    : t.blocked
-                      ? "border-red-500/60 bg-red-950/40"
-                      : t.parallel
-                        ? "border-dashed border-slate-500 bg-slate-800/90"
-                        : "border-slate-600 bg-slate-800/95"
+              } ${done ? "opacity-60" : ""} ${
+                // dashed all round marks the concurrent lane, as it always has
+                t.parallel ? "border-dashed" : ""
               } ${selectedId === t.id ? "ring-2 ring-indigo-400" : ""}`}
               style={{
                 left: p.x,
@@ -362,7 +366,7 @@ export default function FlowCanvas({
                   done ? "line-through text-slate-500" : "text-slate-100"
                 }`}
               >
-                {active && <span className="text-emerald-400">▶ </span>}
+                {status === "in-progress" && <span title="in progress">▶ </span>}
                 {t.title}
               </div>
               <div className="text-[9px] text-slate-400 flex gap-1.5 items-center mt-0.5 flex-wrap">

@@ -1,9 +1,14 @@
 "use client";
 
-import { dependentsOf } from "@/lib/graph";
+import { dependentsOf, statusOf } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { todayISO } from "@/lib/time";
-import { PRIORITY_COLOR, Priority } from "@/lib/types";
+import {
+  PRIORITY_COLOR,
+  Priority,
+  STATUS_COLOR,
+  STATUS_LABEL,
+} from "@/lib/types";
 import DayPicker from "./DayPicker";
 import { useState } from "react";
 
@@ -21,6 +26,7 @@ export default function Editor() {
     updateTask,
     deleteTask,
     setEditorOpen,
+    setDone,
     toggleDependency,
     deferToNextDay,
     moveTaskToDate,
@@ -34,6 +40,10 @@ export default function Editor() {
 
   const others = day.tasks.filter((t) => t.id !== task.id);
   const wouldCycle = dependentsOf(day.tasks, task.id);
+  const status = statusOf(task, new Map(day.tasks.map((t) => [t.id, t])));
+  const waiting = task.dependsOn
+    .map((id) => day.tasks.find((t) => t.id === id))
+    .filter((d) => d && !d.done).length;
 
   return (
     <aside className="w-72 shrink-0 border-l border-slate-800 bg-slate-900/60 p-3 overflow-y-auto space-y-3">
@@ -48,6 +58,35 @@ export default function Editor() {
         >
           ✕
         </button>
+      </div>
+
+      {/* Status is read-only on purpose: it follows the graph, and the one
+          thing you decide — whether this is finished — is the button below. */}
+      <div className={`rounded-md border px-2.5 py-2 status-${status}`}>
+        <div className="flex items-center justify-between gap-2">
+          <span
+            className="text-[11px] font-medium uppercase tracking-wider"
+            style={{ color: STATUS_COLOR[status] }}
+          >
+            {STATUS_LABEL[status]}
+          </span>
+          <button
+            onClick={() => setDone(task.id, !task.done)}
+            className="btn"
+            title="the only part of status you set (d)"
+          >
+            {task.done ? "↺ reopen" : "✓ mark done"}
+          </button>
+        </div>
+        <p className="text-[10px] text-slate-500 mt-1">
+          {task.done
+            ? "Finished — whatever depends on this is free to start."
+            : task.blocked
+              ? `Blocked: ${task.blocked}`
+              : waiting > 0
+                ? `Waiting on ${waiting} unfinished prerequisite${waiting === 1 ? "" : "s"}.`
+                : "Every prerequisite is done — this is startable now."}
+        </p>
       </div>
 
       <div>

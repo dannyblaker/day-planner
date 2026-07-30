@@ -1,37 +1,46 @@
 "use client";
 
+import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { fmtDur, todayISO } from "@/lib/time";
-import { Goal, PRIORITY_COLOR, Task } from "@/lib/types";
+import {
+  Goal,
+  PRIORITY_COLOR,
+  STATUS_COLOR,
+  STATUS_LABEL,
+  STATUS_ORDER,
+  Task,
+  TaskStatus,
+} from "@/lib/types";
 import DayPicker from "./DayPicker";
 import { useRef, useState } from "react";
 
 function Row({
   task,
+  status,
   goal,
   selected,
 }: {
   task: Task;
+  status: TaskStatus;
   goal?: Goal;
   selected: boolean;
 }) {
-  const { select, setEditorOpen, startTask, pauseTask, toggleDone } = useApp();
-  const done = task.status === "done";
-  const active = task.status === "active";
+  const { select, setEditorOpen, toggleDone } = useApp();
+  const done = status === "done";
 
   return (
     <div
       data-task-row={task.id}
+      data-status={status}
       onClick={() => select(task.id)}
       onDoubleClick={() => {
         select(task.id);
         setEditorOpen(true);
       }}
       className={`group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border ${
-        selected
-          ? "border-indigo-400/70 bg-indigo-950/40"
-          : "border-transparent hover:bg-slate-800/60"
-      } ${done ? "opacity-50" : ""}`}
+        selected ? "border-indigo-400/70 bg-indigo-950/40" : `status-${status}`
+      } ${done ? "opacity-60" : ""}`}
     >
       <button
         onClick={(e) => {
@@ -61,7 +70,6 @@ function Row({
             done ? "line-through text-slate-500" : "text-slate-200"
           }`}
         >
-          {active && <span className="text-emerald-400">▶ </span>}
           {task.title}
         </div>
         <div className="text-[10px] text-slate-500 flex gap-1.5 items-center flex-wrap">
@@ -86,18 +94,6 @@ function Row({
         </div>
       </div>
       <div className="flex items-center gap-1 shrink-0 opacity-0 transition-opacity group-hover:opacity-100 focus-within:opacity-100">
-        {!done && !task.blocked && (
-          <button
-            onClick={(e) => {
-              e.stopPropagation();
-              if (active) pauseTask(task.id);
-              else startTask(task.id);
-            }}
-            className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-slate-600 text-slate-200"
-          >
-            {active ? "pause" : "start"}
-          </button>
-        )}
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -113,6 +109,12 @@ function Row({
   );
 }
 
+/**
+ * The plan as a list, grouped by the status the graph derives — in-progress
+ * first, because that group *is* the answer to "what can I pick up right now".
+ * Only the to-do group is draggable: order decides which unblocked task leads,
+ * and reordering finished or startable-already work would mean nothing.
+ */
 export default function TaskList() {
   const day = useApp((s) => s.plan.days[s.date]);
   const date = useApp((s) => s.date);
@@ -129,160 +131,157 @@ export default function TaskList() {
   const dragId = useRef<string | null>(null);
   if (!day) return null;
 
-  const queue = day.tasks
-    .filter((t) => (t.status === "todo" || t.status === "active") && !t.blocked)
-    .sort((a, b) => a.order - b.order);
-  const blocked = day.tasks.filter((t) => t.blocked && t.status !== "done");
-  const done = day.tasks.filter((t) => t.status === "done");
-  const unfinished = day.tasks.filter((t) => t.status !== "done");
+  const statusOfId = statuses(day.tasks);
+  const inStatus = (s: TaskStatus) =>
+    day.tasks
+      .filter((t) => statusOfId.get(t.id) === s)
+      .sort((a, b) => a.order - b.order);
+
+  const unfinished = day.tasks.filter((t) => !t.done);
   const goalOf = (t: Task) => goals.find((g) => g.id === t.goalId);
+  const groups = STATUS_ORDER.map((s) => ({ status: s, tasks: inStatus(s) }));
+  const todo = inStatus("todo");
 
   return (
     <div className="space-y-3">
-      <div>
-        <div className="flex items-baseline gap-2 px-2 mb-1">
-          <h3 className="text-[10px] uppercase tracking-wider text-slate-500">
-            Queue · {queue.length}
-          </h3>
-          <div className="flex-1" />
-          {unfinished.length > 0 && (
-            <button
-              onClick={() => setMoveOpen(!moveOpen)}
-              aria-expanded={moveOpen}
-              className={`text-[10px] ${
-                moveOpen ? "text-indigo-300" : "text-slate-600 hover:text-indigo-300"
-              }`}
-              title="move this day's unfinished work to another day, dependencies and all"
-            >
-              move all →
-            </button>
-          )}
-        </div>
-        {moveOpen && (
-          <div className="px-2 pb-2">
-            <DayPicker
-              ariaLabel="Move all unfinished tasks to"
-              value={moveDate}
-              from={date}
-              onChange={setMoveDate}
-            >
+      {groups.map(({ status, tasks }) => {
+        if (!tasks.length) return null;
+        const isDone = status === "done";
+        const draggable = status === "todo";
+        return (
+          <div key={status}>
+            <div className="flex items-baseline gap-2 px-2 mb-1">
               <button
-                onClick={() => {
-                  moveUnfinishedToDate(moveDate);
-                  setMoveOpen(false);
-                }}
-                disabled={!moveDate || moveDate === date}
-                className="btn"
-                title={
-                  moveDate === date
-                    ? "that is the day they are already on"
-                    : "dependencies between them survive the move"
-                }
+                onClick={isDone ? () => setShowDone(!showDone) : undefined}
+                disabled={!isDone}
+                className={`text-[10px] uppercase tracking-wider ${
+                  isDone ? "hover:text-slate-300" : "cursor-default"
+                }`}
+                style={{ color: STATUS_COLOR[status] }}
               >
-                move {unfinished.length} →
+                {STATUS_LABEL[status]} · {tasks.length}
+                {isDone && (showDone ? " ▾" : " ▸")}
               </button>
-            </DayPicker>
-          </div>
-        )}
-        <div
-          className="space-y-0.5"
-          onDragLeave={(e) => {
-            if (e.currentTarget === e.target) setDropBefore(undefined);
-          }}
-        >
-          {queue.map((t, i) => (
-            <div
-              key={t.id}
-              draggable
-              onDragStart={(e) => {
-                dragId.current = t.id;
-                e.dataTransfer.effectAllowed = "move";
-                e.dataTransfer.setData("text/plain", t.id);
-              }}
-              onDragOver={(e) => {
-                e.preventDefault();
-                e.dataTransfer.dropEffect = "move";
-                const r = e.currentTarget.getBoundingClientRect();
-                const before = e.clientY < r.top + r.height / 2;
-                setDropBefore(before ? t.id : queue[i + 1]?.id ?? null);
-              }}
-              onDrop={(e) => {
-                e.preventDefault();
-                if (dragId.current && dropBefore !== undefined)
-                  placeBefore(dragId.current, dropBefore);
-                dragId.current = null;
-                setDropBefore(undefined);
-              }}
-              onDragEnd={() => {
-                dragId.current = null;
-                setDropBefore(undefined);
-              }}
-            >
-              {dropBefore === t.id && (
-                <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+              <div className="flex-1" />
+              {isDone && (
+                <button
+                  onClick={clearDone}
+                  className="text-[10px] text-slate-600 hover:text-red-400"
+                  title="remove finished tasks from this day (undoable)"
+                >
+                  clear
+                </button>
               )}
-              <Row task={t} goal={goalOf(t)} selected={selectedId === t.id} />
+              {status === "in-progress" && unfinished.length > 0 && (
+                <button
+                  onClick={() => setMoveOpen(!moveOpen)}
+                  aria-expanded={moveOpen}
+                  className={`text-[10px] ${
+                    moveOpen ? "text-indigo-300" : "text-slate-600 hover:text-indigo-300"
+                  }`}
+                  title="move this day's unfinished work to another day, dependencies and all"
+                >
+                  move all →
+                </button>
+              )}
             </div>
-          ))}
-          {dropBefore === null && (
-            <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
-          )}
-          {queue.length === 0 && (
-            <p className="text-xs text-slate-600 px-2">
-              Nothing queued — press <kbd className="kbd">n</kbd> to add a task.
-            </p>
-          )}
-        </div>
-      </div>
 
-      {blocked.length > 0 && (
-        <div>
-          <h3 className="text-[10px] uppercase tracking-wider text-red-400/80 px-2 mb-1">
-            Blocked · {blocked.length}
-          </h3>
-          <div className="space-y-0.5">
-            {blocked.map((t) => (
-              <Row
-                key={t.id}
-                task={t}
-                goal={goalOf(t)}
-                selected={selectedId === t.id}
-              />
-            ))}
-          </div>
-        </div>
-      )}
+            {status === "in-progress" && moveOpen && (
+              <div className="px-2 pb-2">
+                <DayPicker
+                  ariaLabel="Move all unfinished tasks to"
+                  value={moveDate}
+                  from={date}
+                  onChange={setMoveDate}
+                >
+                  <button
+                    onClick={() => {
+                      moveUnfinishedToDate(moveDate);
+                      setMoveOpen(false);
+                    }}
+                    disabled={!moveDate || moveDate === date}
+                    className="btn"
+                    title={
+                      moveDate === date
+                        ? "that is the day they are already on"
+                        : "dependencies between them survive the move"
+                    }
+                  >
+                    move {unfinished.length} →
+                  </button>
+                </DayPicker>
+              </div>
+            )}
 
-      {done.length > 0 && (
-        <div>
-          <div className="flex items-baseline gap-2 px-2 mb-1">
-            <button
-              onClick={() => setShowDone(!showDone)}
-              className="text-[10px] uppercase tracking-wider text-slate-500 hover:text-slate-300"
-            >
-              Done · {done.length} {showDone ? "▾" : "▸"}
-            </button>
-            <button
-              onClick={clearDone}
-              className="text-[10px] text-slate-600 hover:text-red-400"
-              title="remove finished tasks from this day (undoable)"
-            >
-              clear
-            </button>
+            {(!isDone || showDone) && (
+              <div
+                className="space-y-0.5"
+                onDragLeave={(e) => {
+                  if (e.currentTarget === e.target) setDropBefore(undefined);
+                }}
+              >
+                {tasks.map((t, i) =>
+                  draggable ? (
+                    <div
+                      key={t.id}
+                      draggable
+                      onDragStart={(e) => {
+                        dragId.current = t.id;
+                        e.dataTransfer.effectAllowed = "move";
+                        e.dataTransfer.setData("text/plain", t.id);
+                      }}
+                      onDragOver={(e) => {
+                        e.preventDefault();
+                        e.dataTransfer.dropEffect = "move";
+                        const r = e.currentTarget.getBoundingClientRect();
+                        const before = e.clientY < r.top + r.height / 2;
+                        setDropBefore(before ? t.id : todo[i + 1]?.id ?? null);
+                      }}
+                      onDrop={(e) => {
+                        e.preventDefault();
+                        if (dragId.current && dropBefore !== undefined)
+                          placeBefore(dragId.current, dropBefore);
+                        dragId.current = null;
+                        setDropBefore(undefined);
+                      }}
+                      onDragEnd={() => {
+                        dragId.current = null;
+                        setDropBefore(undefined);
+                      }}
+                    >
+                      {dropBefore === t.id && (
+                        <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+                      )}
+                      <Row
+                        task={t}
+                        status={status}
+                        goal={goalOf(t)}
+                        selected={selectedId === t.id}
+                      />
+                    </div>
+                  ) : (
+                    <Row
+                      key={t.id}
+                      task={t}
+                      status={status}
+                      goal={goalOf(t)}
+                      selected={selectedId === t.id}
+                    />
+                  )
+                )}
+                {draggable && dropBefore === null && (
+                  <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+                )}
+              </div>
+            )}
           </div>
-          {showDone && (
-            <div className="space-y-0.5">
-              {done.map((t) => (
-                <Row
-                  key={t.id}
-                  task={t}
-                  goal={goalOf(t)}
-                  selected={selectedId === t.id}
-                />
-              ))}
-            </div>
-          )}
-        </div>
+        );
+      })}
+
+      {day.tasks.length === 0 && (
+        <p className="text-xs text-slate-600 px-2">
+          Nothing planned — press <kbd className="kbd">n</kbd> to add a task.
+        </p>
       )}
     </div>
   );

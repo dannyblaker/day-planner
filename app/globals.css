@@ -45,6 +45,23 @@
   --prio-3: #38bdf8;
   --prio-4: #94a3b8;
   --prio-done: #52627a;
+
+  /*
+   * Status: grey waiting → amber go → green finished. Amber carries the eye
+   * because in-progress is the only column you can act on, and it is the one
+   * hue here that neither of the others can be confused with.
+   */
+  --status-todo: #94a3b8;
+  --status-todo-border: #475569;
+  --status-todo-bg: #1e293bf2;
+
+  --status-progress: #fbbf24;
+  --status-progress-border: #f59e0b;
+  --status-progress-bg: #422e0699;
+
+  --status-done: #34d399;
+  --status-done-border: #065f46;
+  --status-done-bg: #022c221a;
 }
 
 :root[data-theme="light"] {
@@ -66,6 +83,18 @@
   --prio-3: #0284c7;
   --prio-4: #64748b;
   --prio-done: #cbd5e1;
+
+  --status-todo: #64748b;
+  --status-todo-border: #cbd5e1;
+  --status-todo-bg: #ffffff;
+
+  --status-progress: #b45309;
+  --status-progress-border: #f59e0b;
+  --status-progress-bg: #fffbeb;
+
+  --status-done: #047857;
+  --status-done-border: #a7f3d0;
+  --status-done-bg: #f0fdf9;
 
   /* structural ramp — inverted */
   --color-slate-50: oklch(12.9% 0.042 264.695);
@@ -128,6 +157,21 @@ body {
 .btn:disabled {
   opacity: 0.5;
   cursor: default;
+}
+
+/* Status skins, shared by the flowchart nodes and the sidebar rows so the two
+   never disagree about what colour a status is. */
+.status-todo {
+  border-color: var(--status-todo-border);
+  background: var(--status-todo-bg);
+}
+.status-in-progress {
+  border-color: var(--status-progress-border);
+  background: var(--status-progress-bg);
+}
+.status-done {
+  border-color: var(--status-done-border);
+  background: var(--status-done-bg);
 }
 
 .kbd {

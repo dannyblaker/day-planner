@@ -9,8 +9,8 @@ import { makeDay, makeTask, resetFactory } from "../factory";
 const dayWithFinishedWork = () =>
   makeDay([
     makeTask({ id: "a", title: "Still going" }),
-    makeTask({ id: "b", title: "Finished one", status: "done" }),
-    makeTask({ id: "c", title: "Finished two", status: "done" }),
+    makeTask({ id: "b", title: "Finished one", done: true }),
+    makeTask({ id: "c", title: "Finished two", done: true }),
   ]);
 
 beforeEach(() => {
@@ -31,7 +31,7 @@ describe("visibility", () => {
   });
 
   it("says 'task' when only one was cleared", () => {
-    seedStore(makeDay([makeTask({ title: "Finished one", status: "done" })]));
+    seedStore(makeDay([makeTask({ title: "Finished one", done: true })]));
     render(<UndoBar />);
     act(() => app().clearDone());
     expect(screen.getByRole("status")).toHaveTextContent("Cleared 1 done task");
@@ -75,7 +75,7 @@ describe("a task sent to another day", () => {
       makeDay([
         makeTask({ id: "a", title: "Still going" }),
         makeTask({ id: "b", title: "Also going" }),
-        makeTask({ id: "c", title: "Finished one", status: "done" }),
+        makeTask({ id: "c", title: "Finished one", done: true }),
       ])
     );
     render(<UndoBar />);

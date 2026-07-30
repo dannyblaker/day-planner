@@ -1,14 +1,14 @@
 "use client";
 
 import { useApp } from "@/lib/store";
+import { STATUS_COLOR, TaskStatus } from "@/lib/types";
 
 const SHORTCUTS: [string, string][] = [
   ["n / c / ⌘K", "add task (quick-add)"],
   ["j / k or ↓ / ↑", "select next / previous task"],
-  ["Shift+J / Shift+K", "move task down / up the queue"],
+  ["Shift+J / Shift+K", "move task down / up the to-do queue"],
   ["Enter / e", "edit selected task"],
-  ["Space", "start / pause timer on selected task"],
-  ["d", "toggle done"],
+  ["d", "toggle done — dependents become in-progress"],
   ["b", "toggle blocked"],
   ["1 – 4", "set priority P1–P4"],
   ["p", "toggle parallel (background lane)"],
@@ -41,6 +41,12 @@ const SYNTAX: [string, string][] = [
   ["~", "parallel / background task"],
   ["*waiting-on-bob", "blocked, with reason"],
   ["^", "spontaneous: do next — everything else shifts"],
+];
+
+const STATUSES: [string, string][] = [
+  ["In progress", "every prerequisite is done — startable right now"],
+  ["To do", "still waiting on a prerequisite, or blocked"],
+  ["Done", "you marked it finished; its dependents move up"],
 ];
 
 export default function HelpOverlay() {
@@ -76,6 +82,31 @@ export default function HelpOverlay() {
             </div>
           ))}
         </div>
+        <h2 className="text-sm font-semibold text-slate-200 mb-2">Status</h2>
+        <p className="text-[11px] text-slate-500 mb-2">
+          Status is derived from the dependency graph — the only part you set is
+          whether a task is done.
+        </p>
+        <div className="grid grid-cols-2 gap-x-8 gap-y-1.5 mb-5">
+          {STATUSES.map(([name, desc]) => (
+            <div key={name} className="flex items-center gap-2 text-xs">
+              <span
+                className={`px-1.5 py-0.5 rounded border text-[10px] whitespace-nowrap status-${name
+                  .toLowerCase()
+                  .replace(" ", "-")}`}
+                style={{
+                  color: STATUS_COLOR[
+                    name.toLowerCase().replace(" ", "-") as TaskStatus
+                  ],
+                }}
+              >
+                {name}
+              </span>
+              <span className="text-slate-400">{desc}</span>
+            </div>
+          ))}
+        </div>
+
         <h2 className="text-sm font-semibold text-slate-200 mb-2">
           Quick-add syntax
         </h2>
