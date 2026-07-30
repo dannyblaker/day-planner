@@ -2,20 +2,23 @@
 
 import ThemeToggle from "@/components/ThemeToggle";
 import { exportPDF, exportPNG } from "@/lib/export";
+import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { fmtDateHuman, todayISO } from "@/lib/time";
+import { STATUS_COLOR, STATUS_LABEL, STATUS_ORDER } from "@/lib/types";
 import { useState } from "react";
 
 export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLElement | null> }) {
-  const { date, shiftDate, setDate, setHelpOpen, saving } = useApp();
-  const day = useApp((s) => s.plan.days[s.date]);
+  const { setHelpOpen, saving } = useApp();
+  const tasks = useApp((s) => s.plan.tasks);
   const shareToken = useApp((s) => s.plan.shareToken);
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  if (!day) return null;
-
-  const isToday = date === todayISO();
+  const statusOfId = statuses(tasks);
+  const counts = STATUS_ORDER.map((s) => ({
+    status: s,
+    n: tasks.filter((t) => statusOfId.get(t.id) === s).length,
+  }));
 
   const copyShare = async () => {
     const url = `${location.origin}/share/${shareToken}`;
@@ -32,8 +35,8 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
     if (!exportRef.current || exporting) return;
     setExporting(true);
     try {
-      if (kind === "png") await exportPNG(exportRef.current, `plan-${date}`);
-      else await exportPDF(exportRef.current, `plan-${date}`);
+      if (kind === "png") await exportPNG(exportRef.current, "plan");
+      else await exportPDF(exportRef.current, "plan");
     } finally {
       setExporting(false);
     }
@@ -45,23 +48,22 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
         DayFlow
       </h1>
 
-      <div className="flex items-center gap-1">
-        <button onClick={() => shiftDate(-1)} className="btn" title="previous day ( [ )">
-          ‹
-        </button>
-        <button
-          onClick={() => setDate(todayISO())}
-          className={`text-xs px-2 py-1 rounded ${
-            isToday ? "text-slate-200 font-medium" : "text-slate-400 hover:text-slate-200"
-          }`}
-          title="jump to today (t)"
-        >
-          {fmtDateHuman(date)}
-          {isToday && <span className="text-indigo-400"> · today</span>}
-        </button>
-        <button onClick={() => shiftDate(1)} className="btn" title="next day ( ] )">
-          ›
-        </button>
+      {/* what the board adds up to — the one number that used to be capacity */}
+      <div
+        className="flex items-center gap-2.5 text-[11px] px-2 py-1 rounded-md border border-slate-700 bg-slate-800/60"
+        title="every status is derived from the dependency graph"
+      >
+        {counts.map(({ status, n }) => (
+          <span key={status} className="flex items-center gap-1.5">
+            <span
+              className="w-1.5 h-1.5 rounded-full"
+              style={{ backgroundColor: STATUS_COLOR[status] }}
+            />
+            <span className="text-slate-400">
+              {n} {STATUS_LABEL[status].toLowerCase()}
+            </span>
+          </span>
+        ))}
       </div>
 
       <div className="flex-1" />

@@ -69,14 +69,16 @@ export interface Goal {
   color: string;
 }
 
-export interface DayPlan {
-  date: string; // YYYY-MM-DD
-  tasks: Task[];
-}
-
+/**
+ * The whole plan: one flat graph of work, with no date on it.
+ *
+ * There used to be a day per date and a task belonged to one of them. Nothing
+ * here needs a calendar — a dependency graph is a statement about order, not
+ * about when — and the days mostly served the schedule that no longer exists.
+ */
 export interface Plan {
   goals: Goal[];
-  days: Record<string, DayPlan>;
+  tasks: Task[];
   shareToken: string;
 }
 
@@ -100,6 +102,3 @@ export const GOAL_COLORS = [
   "#4ade80",
 ];
 
-export function emptyDay(date: string): DayPlan {
-  return { date, tasks: [] };
-}

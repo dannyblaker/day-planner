@@ -10,7 +10,7 @@ export default function FlowView({
 }: {
   exportRef?: React.RefObject<HTMLDivElement | null>;
 }) {
-  const day = useApp((s) => s.plan.days[s.date]);
+  const tasks = useApp((s) => s.plan.tasks);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const {
@@ -24,12 +24,10 @@ export default function FlowView({
     autoArrangeFlow,
   } = useApp();
 
-  const missingPos = day?.tasks.filter((t) => t.flowX == null).length ?? 0;
+  const missingPos = tasks.filter((t) => t.flowX == null).length;
   useEffect(() => {
     if (missingPos > 0) ensureFlowPositions();
   }, [missingPos, ensureFlowPositions]);
-
-  if (!day) return null;
 
   return (
     <div className="h-full flex flex-col">
@@ -44,7 +42,7 @@ export default function FlowView({
       </div>
 
       <FlowCanvas
-        tasks={day.tasks}
+        tasks={tasks}
         goals={goals}
         selectedId={selectedId}
         onSelect={select}

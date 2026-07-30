@@ -2,7 +2,7 @@
 
 import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { fmtDur, todayISO } from "@/lib/time";
+import { fmtDur } from "@/lib/format";
 import {
   Goal,
   PRIORITY_COLOR,
@@ -12,7 +12,6 @@ import {
   Task,
   TaskStatus,
 } from "@/lib/types";
-import DayPicker from "./DayPicker";
 import { useRef, useState } from "react";
 
 function Row({
@@ -112,32 +111,26 @@ function Row({
 /**
  * The plan as a list, grouped by the status the graph derives — in-progress
  * first, because that group *is* the answer to "what can I pick up right now".
- * Only the to-do group is draggable: order decides which unblocked task leads,
- * and reordering finished or startable-already work would mean nothing.
+ * Only the to-do group is draggable: order decides which waiting task leads,
+ * and dragging finished work around would mean nothing.
  */
 export default function TaskList() {
-  const day = useApp((s) => s.plan.days[s.date]);
-  const date = useApp((s) => s.date);
+  const tasks = useApp((s) => s.plan.tasks);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const placeBefore = useApp((s) => s.placeBefore);
   const clearDone = useApp((s) => s.clearDone);
-  const moveUnfinishedToDate = useApp((s) => s.moveUnfinishedToDate);
   const [showDone, setShowDone] = useState(true);
-  const [moveOpen, setMoveOpen] = useState(false);
-  const [moveDate, setMoveDate] = useState(todayISO());
   // drag & drop: id to insert before; null = end of queue; undefined = not dragging
   const [dropBefore, setDropBefore] = useState<string | null | undefined>(undefined);
   const dragId = useRef<string | null>(null);
-  if (!day) return null;
 
-  const statusOfId = statuses(day.tasks);
+  const statusOfId = statuses(tasks);
   const inStatus = (s: TaskStatus) =>
-    day.tasks
+    tasks
       .filter((t) => statusOfId.get(t.id) === s)
       .sort((a, b) => a.order - b.order);
 
-  const unfinished = day.tasks.filter((t) => !t.done);
   const goalOf = (t: Task) => goals.find((g) => g.id === t.goalId);
   const groups = STATUS_ORDER.map((s) => ({ status: s, tasks: inStatus(s) }));
   const todo = inStatus("todo");
@@ -167,51 +160,12 @@ export default function TaskList() {
                 <button
                   onClick={clearDone}
                   className="text-[10px] text-slate-600 hover:text-red-400"
-                  title="remove finished tasks from this day (undoable)"
+                  title="drop the finished tasks off the board (undoable)"
                 >
                   clear
                 </button>
               )}
-              {status === "in-progress" && unfinished.length > 0 && (
-                <button
-                  onClick={() => setMoveOpen(!moveOpen)}
-                  aria-expanded={moveOpen}
-                  className={`text-[10px] ${
-                    moveOpen ? "text-indigo-300" : "text-slate-600 hover:text-indigo-300"
-                  }`}
-                  title="move this day's unfinished work to another day, dependencies and all"
-                >
-                  move all →
-                </button>
-              )}
             </div>
-
-            {status === "in-progress" && moveOpen && (
-              <div className="px-2 pb-2">
-                <DayPicker
-                  ariaLabel="Move all unfinished tasks to"
-                  value={moveDate}
-                  from={date}
-                  onChange={setMoveDate}
-                >
-                  <button
-                    onClick={() => {
-                      moveUnfinishedToDate(moveDate);
-                      setMoveOpen(false);
-                    }}
-                    disabled={!moveDate || moveDate === date}
-                    className="btn"
-                    title={
-                      moveDate === date
-                        ? "that is the day they are already on"
-                        : "dependencies between them survive the move"
-                    }
-                  >
-                    move {unfinished.length} →
-                  </button>
-                </DayPicker>
-              </div>
-            )}
 
             {(!isDone || showDone) && (
               <div
@@ -278,7 +232,7 @@ export default function TaskList() {
         );
       })}
 
-      {day.tasks.length === 0 && (
+      {tasks.length === 0 && (
         <p className="text-xs text-slate-600 px-2">
           Nothing planned — press <kbd className="kbd">n</kbd> to add a task.
         </p>

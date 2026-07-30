@@ -1,26 +1,22 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { fmtDur } from "@/lib/time";
+import { fmtDur } from "@/lib/format";
 import { useState } from "react";
 
 export default function GoalsPanel() {
   const goals = useApp((s) => s.plan.goals);
-  const day = useApp((s) => s.plan.days[s.date]);
+  const tasks = useApp((s) => s.plan.tasks);
   const { addGoal, deleteGoal } = useApp();
   const [name, setName] = useState("");
 
-  if (!day) return null;
-
   const stats = goals.map((g) => {
-    const tasks = day.tasks.filter((t) => t.goalId === g.id);
-    const planned = tasks.reduce((sum, t) => sum + t.duration, 0);
-    const done = tasks
-      .filter((t) => t.done)
-      .reduce((sum, t) => sum + t.duration, 0);
-    return { goal: g, planned, done, count: tasks.length };
+    const mine = tasks.filter((t) => t.goalId === g.id);
+    const planned = mine.reduce((sum, t) => sum + t.duration, 0);
+    const done = mine.filter((t) => t.done).reduce((sum, t) => sum + t.duration, 0);
+    return { goal: g, planned, done, count: mine.length };
   });
-  const unmapped = day.tasks.filter((t) => !t.goalId && !t.done).length;
+  const unmapped = tasks.filter((t) => !t.goalId && !t.done).length;
   const max = Math.max(...stats.map((s) => s.planned), 1);
 
   return (

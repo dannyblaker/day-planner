@@ -12,13 +12,12 @@ import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
-import { todayISO } from "@/lib/time";
-import { STATUS_ORDER } from "@/lib/types";
+import { STATUS_ORDER, Task } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
   usePlanSync();
-  const day = useApp((s) => s.plan.days[s.date]);
+  const tasks = useApp((s) => s.plan.tasks);
   const loaded = useApp((s) => s.loaded);
 
   const quickAddRef = useRef<HTMLInputElement>(null);
@@ -27,14 +26,12 @@ export default function Home() {
   // keyboard-driven navigation order: by status, then queue order — the order
   // the sidebar lists them in, so j/k walks down what you can see
   const navIds = useMemo(() => {
-    if (!day) return [] as string[];
-    const statusOfId = statuses(day.tasks);
-    const rank = (t: (typeof day.tasks)[number]) =>
-      STATUS_ORDER.indexOf(statusOfId.get(t.id)!);
-    return [...day.tasks]
+    const statusOfId = statuses(tasks);
+    const rank = (t: Task) => STATUS_ORDER.indexOf(statusOfId.get(t.id)!);
+    return [...tasks]
       .sort((a, b) => rank(a) - rank(b) || a.order - b.order)
       .map((t) => t.id);
-  }, [day]);
+  }, [tasks]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -53,7 +50,7 @@ export default function Home() {
       }
       if (!inField && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        s.undoLast();
+        s.undoClear();
         return;
       }
       if (e.key === "Escape") {
@@ -112,7 +109,7 @@ export default function Home() {
           break;
         case "p":
           if (sel) {
-            const t = day?.tasks.find((t) => t.id === sel);
+            const t = s.plan.tasks.find((t) => t.id === sel);
             if (t) s.updateTask(sel, { parallel: !t.parallel });
           }
           break;
@@ -133,30 +130,15 @@ export default function Home() {
         case "s":
           s.autoSort();
           break;
-        case "o":
-          if (sel) s.deferToNextDay(sel);
-          break;
-        case "O":
-          if (sel) s.moveTaskToDate(sel, todayISO());
-          break;
         case "x":
         case "Delete":
           if (sel) s.deleteTask(sel);
-          break;
-        case "[":
-          s.shiftDate(-1);
-          break;
-        case "]":
-          s.shiftDate(1);
-          break;
-        case "t":
-          s.setDate(todayISO());
           break;
         case "m":
           toggleTheme();
           break;
         case "u":
-          s.undoLast();
+          s.undoClear();
           break;
         case "?":
           s.setHelpOpen(true);
@@ -165,9 +147,9 @@ export default function Home() {
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [navIds, day]);
+  }, [navIds]);
 
-  if (!loaded || !day) {
+  if (!loaded) {
     return (
       <div className="h-screen flex items-center justify-center text-slate-600 text-sm">
         Loading your plan…

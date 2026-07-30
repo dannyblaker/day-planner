@@ -1,13 +1,13 @@
 "use client";
 
 import { statuses } from "@/lib/graph";
-import { fmtDateHuman, fmtDur, todayISO } from "@/lib/time";
+import { fmtDur } from "@/lib/format";
 import { Plan, STATUS_COLOR } from "@/lib/types";
 import { useEffect, useState } from "react";
 import FlowCanvas from "./FlowCanvas";
 import ThemeToggle from "./ThemeToggle";
 
-/** Read-only live view of today's plan — poll the server every 5 seconds. */
+/** Read-only live view of the plan — poll the server every 5 seconds. */
 export default function ShareView({ token }: { token: string }) {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -55,28 +55,16 @@ export default function ShareView({ token }: { token: string }) {
     );
   }
 
-  const date = todayISO();
-  const day = plan.days[date];
-
-  if (!day) {
-    return (
-      <div className="h-screen flex items-center justify-center text-slate-500 text-sm">
-        No plan for today yet.
-      </div>
-    );
-  }
-
-  const total = day.tasks.length;
-  const done = day.tasks.filter((t) => t.done).length;
-  const statusOfId = statuses(day.tasks);
-  const inProgress = day.tasks.filter((t) => statusOfId.get(t.id) === "in-progress");
-  const blocked = day.tasks.filter((t) => t.blocked && !t.done);
+  const total = plan.tasks.length;
+  const done = plan.tasks.filter((t) => t.done).length;
+  const statusOfId = statuses(plan.tasks);
+  const inProgress = plan.tasks.filter((t) => statusOfId.get(t.id) === "in-progress");
+  const blocked = plan.tasks.filter((t) => t.blocked && !t.done);
 
   return (
     <div className="min-h-screen bg-background text-slate-300">
       <header className="flex items-center gap-3 px-5 py-3 border-b border-slate-800 sticky top-0 bg-background/95 backdrop-blur z-20 flex-wrap">
         <h1 className="text-sm font-semibold text-indigo-300">DayFlow</h1>
-        <span className="text-xs text-slate-400">{fmtDateHuman(date)}</span>
         <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           live · read-only
@@ -118,7 +106,7 @@ export default function ShareView({ token }: { token: string }) {
           </div>
         )}
         {/* no editing callbacks: the canvas renders itself read-only */}
-        <FlowCanvas tasks={day.tasks} goals={plan.goals} />
+        <FlowCanvas tasks={plan.tasks} goals={plan.goals} />
       </div>
     </div>
   );

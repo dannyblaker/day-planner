@@ -3,7 +3,7 @@ import { usePlanSync } from "@/lib/sync";
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, resetStore } from "./app-state";
-import { makeDay, makePlan, makeTask, resetFactory } from "./factory";
+import { makePlan, makeTask, resetFactory } from "./factory";
 
 const DEBOUNCE = 600;
 
@@ -32,13 +32,13 @@ beforeEach(() => {
 
 describe("loading", () => {
   it("puts the server's plan into the store", async () => {
-    const plan = makePlan([makeDay([makeTask({ title: "From the server" })])]);
+    const plan = makePlan([makeTask({ title: "From the server" })]);
     mockServer(plan);
     renderHook(() => usePlanSync());
     await flush();
 
     expect(app().loaded).toBe(true);
-    expect(app().plan.days["2026-07-28"].tasks[0].title).toBe("From the server");
+    expect(app().plan.tasks[0].title).toBe("From the server");
   });
 
   it("publishes the seeded plan on a first run, so the share link works at once", async () => {
@@ -53,7 +53,7 @@ describe("loading", () => {
   });
 
   it("falls back to localStorage when the server is unreachable", async () => {
-    const cached = makePlan([makeDay([makeTask({ title: "From the cache" })])]);
+    const cached = makePlan([makeTask({ title: "From the cache" })]);
     localStorage.setItem("dayflow-plan", JSON.stringify(cached));
     fetchMock = vi.fn(async () => {
       throw new Error("offline");
@@ -63,11 +63,11 @@ describe("loading", () => {
     renderHook(() => usePlanSync());
     await flush();
 
-    expect(app().plan.days["2026-07-28"].tasks[0].title).toBe("From the cache");
+    expect(app().plan.tasks[0].title).toBe("From the cache");
   });
 
   it("does not echo the loaded plan back to the server", async () => {
-    mockServer(makePlan([makeDay()]));
+    mockServer(makePlan());
     renderHook(() => usePlanSync());
     await flush();
     await act(async () => {
@@ -77,7 +77,7 @@ describe("loading", () => {
   });
 
   it("starts saving once the load has landed", async () => {
-    mockServer(makePlan([makeDay()]));
+    mockServer(makePlan());
     renderHook(() => usePlanSync());
     await flush();
 
@@ -98,13 +98,13 @@ describe("loading", () => {
     await flush();
 
     expect(app().loaded).toBe(true);
-    expect(app().plan.days).toBeDefined();
+    expect(app().plan.tasks).toBeDefined();
   });
 });
 
 describe("saving", () => {
   beforeEach(async () => {
-    mockServer(makePlan([makeDay()]));
+    mockServer(makePlan());
     renderHook(() => usePlanSync());
     await flush();
     fetchMock.mockClear();
@@ -118,7 +118,7 @@ describe("saving", () => {
       vi.advanceTimersByTime(DEBOUNCE);
     });
     expect(saved()).toHaveLength(1);
-    expect(JSON.parse(saved()[0][1]!.body as string).days["2026-07-28"].tasks).toHaveLength(1);
+    expect(JSON.parse(saved()[0][1]!.body as string).tasks).toHaveLength(1);
   });
 
   it("coalesces a burst of edits into a single save", async () => {
@@ -139,7 +139,7 @@ describe("saving", () => {
       vi.advanceTimersByTime(DEBOUNCE);
     });
     const cached = JSON.parse(localStorage.getItem("dayflow-plan")!);
-    expect(cached.days["2026-07-28"].tasks[0].title).toBe("Something new");
+    expect(cached.tasks[0].title).toBe("Something new");
   });
 
   it("raises and lowers the saving flag around the write", async () => {

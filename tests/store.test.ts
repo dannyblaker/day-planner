@@ -1,23 +1,19 @@
 import { useApp } from "@/lib/store";
-import { FLOW } from "@/lib/types";
+import { FLOW, Plan, Task } from "@/lib/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetStore } from "./app-state";
-import { makeDay, makePlan, makeTask, resetFactory } from "./factory";
-
-const TODAY = "2026-07-28";
-const TOMORROW = "2026-07-29";
+import { makePlan, makeTask, resetFactory } from "./factory";
 
 const app = () => useApp.getState();
-const tasks = () => app().plan.days[app().date].tasks;
+const tasks = () => app().plan.tasks;
 const task = (id: string) => tasks().find((t) => t.id === id);
 const titles = () => tasks().map((t) => t.title);
 /** queue order, which is what the `order` field encodes */
 const queue = () =>
   [...tasks()].sort((a, b) => a.order - b.order).map((t) => t.id);
 
-function load(day = makeDay()) {
-  app().load(makePlan([day]));
-  app().setDate(day.date);
+function load(seed: Task[] = []) {
+  app().load(makePlan(seed));
 }
 
 beforeEach(() => {
@@ -76,15 +72,15 @@ describe("quickAdd", () => {
     });
   });
 
-  it("creates the day on demand when adding to an empty date", () => {
-    app().setDate("2026-08-15");
-    expect(app().quickAdd("Fresh day task")).toBeTruthy();
-    expect(app().plan.days["2026-08-15"].tasks).toHaveLength(1);
+  it("adds to an empty board", () => {
+    app().load(makePlan([]));
+    expect(app().quickAdd("First ever task")).toBeTruthy();
+    expect(tasks()).toHaveLength(1);
   });
 });
 
 describe("editing a task", () => {
-  beforeEach(() => load(makeDay([makeTask({ id: "a", title: "Alpha" })])));
+  beforeEach(() => load([makeTask({ id: "a", title: "Alpha" })]));
 
   it("patches only the given fields", () => {
     app().updateTask("a", { title: "Renamed", duration: 90 });
@@ -112,10 +108,10 @@ describe("editing a task", () => {
 describe("deleting", () => {
   beforeEach(() =>
     load(
-      makeDay([
+      [
         makeTask({ id: "a" }),
         makeTask({ id: "b", dependsOn: ["a"] }),
-      ])
+      ]
     )
   );
 
@@ -143,11 +139,11 @@ describe("deleting", () => {
 describe("queue order", () => {
   beforeEach(() =>
     load(
-      makeDay([
+      [
         makeTask({ id: "a", order: 1 }),
         makeTask({ id: "b", order: 2 }),
         makeTask({ id: "c", order: 3 }),
-      ])
+      ]
     )
   );
 
@@ -201,7 +197,7 @@ describe("queue order", () => {
 });
 
 describe("toggleDone", () => {
-  beforeEach(() => load(makeDay([makeTask({ id: "a" })])));
+  beforeEach(() => load([makeTask({ id: "a" })]));
 
   it("completes a queued task and reopens a finished one", () => {
     app().toggleDone("a");
@@ -225,7 +221,7 @@ describe("toggleDone", () => {
 });
 
 describe("blocking", () => {
-  beforeEach(() => load(makeDay([makeTask({ id: "a" })])));
+  beforeEach(() => load([makeTask({ id: "a" })]));
 
   it("blocks with a reason and unblocks on the second call", () => {
     app().toggleBlocked("a", "waiting on legal");
@@ -248,7 +244,7 @@ describe("blocking", () => {
 
 describe("dependencies", () => {
   beforeEach(() =>
-    load(makeDay([makeTask({ id: "a" }), makeTask({ id: "b" }), makeTask({ id: "c" })]))
+    load([makeTask({ id: "a" }), makeTask({ id: "b" }), makeTask({ id: "c" })])
   );
 
   it("adds and removes a link", () => {
@@ -271,281 +267,8 @@ describe("dependencies", () => {
   });
 });
 
-describe("moving between days", () => {
-  beforeEach(() =>
-    load(
-      makeDay([
-        makeTask({ id: "a", title: "Alpha", done: true }),
-        makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
-      ])
-    )
-  );
-
-  it("steps forward and back, and jumps to a date", () => {
-    app().shiftDate(1);
-    expect(app().date).toBe(TOMORROW);
-    app().shiftDate(-1);
-    expect(app().date).toBe(TODAY);
-    app().setDate("2026-12-25");
-    expect(app().date).toBe("2026-12-25");
-  });
-
-  it("drops the selection when changing day", () => {
-    app().select("a");
-    app().setEditorOpen(true);
-    app().shiftDate(1);
-    expect(app().selectedId).toBeNull();
-    expect(app().editorOpen).toBe(false);
-  });
-
-  it("creates an empty day on arrival", () => {
-    app().shiftDate(1);
-    expect(app().plan.days[TOMORROW]).toMatchObject({
-      date: TOMORROW,
-      tasks: [],
-    });
-  });
-
-  it("defers a task to tomorrow, exactly as it is", () => {
-    app().deferToNextDay("a");
-    expect(titles()).toEqual(["Beta"]);
-    const moved = app().plan.days[TOMORROW].tasks[0];
-    // a finished task stays finished; only the links it leaves behind are cut
-    expect(moved).toMatchObject({ title: "Alpha", done: true, dependsOn: [] });
-  });
-
-  it("cleans up dependencies left behind by a deferred task", () => {
-    app().deferToNextDay("a");
-    expect(task("b")!.dependsOn).toEqual([]);
-  });
-
-  it("appends the deferred task after tomorrow's existing work", () => {
-    app().shiftDate(1);
-    app().quickAdd("Already there");
-    app().shiftDate(-1);
-    app().deferToNextDay("a");
-    const tomorrow = app().plan.days[TOMORROW].tasks;
-    expect(tomorrow.map((t) => t.title)).toEqual(["Already there", "Alpha"]);
-    expect(tomorrow[1].order).toBeGreaterThan(tomorrow[0].order);
-  });
-});
-
-describe("moving a task to another day", () => {
-  const LATER = "2026-08-05";
-  const moved = () => app().plan.days[LATER]?.tasks ?? [];
-
-  beforeEach(() =>
-    load(
-      makeDay([
-        makeTask({ id: "a", title: "Alpha", done: true }),
-        makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
-      ])
-    )
-  );
-
-  it("takes the task off this day and puts it on that one, as it is", () => {
-    app().moveTaskToDate("a", LATER);
-    expect(titles()).toEqual(["Beta"]);
-    expect(moved()[0]).toMatchObject({
-      title: "Alpha",
-      done: true,
-      dependsOn: [],
-    });
-  });
-
-  it("creates the target day if it has never been visited", () => {
-    app().moveTaskToDate("a", LATER);
-    expect(app().plan.days[LATER]).toMatchObject({
-      date: LATER,
-    });
-  });
-
-  it("appends it after whatever that day already holds", () => {
-    app().setDate(LATER);
-    app().quickAdd("Already there");
-    app().setDate(TODAY);
-    app().moveTaskToDate("a", LATER);
-    expect(moved().map((t) => t.title)).toEqual(["Already there", "Alpha"]);
-    expect(moved()[1].order).toBeGreaterThan(moved()[0].order);
-  });
-
-  it("frees the tasks left waiting on it", () => {
-    app().moveTaskToDate("a", LATER);
-    expect(task("b")!.dependsOn).toEqual([]);
-  });
-
-  it("carries a finished task over still finished", () => {
-    app().setDone("b", true);
-    app().moveTaskToDate("b", LATER);
-    expect(moved()[0]).toMatchObject({ title: "Beta", done: true });
-  });
-
-  it("lets the flowchart place it afresh on its new day", () => {
-    app().updateTask("a", { flowX: 100, flowY: 200 });
-    app().moveTaskToDate("a", LATER);
-    expect(moved()[0]).toMatchObject({ flowX: null, flowY: null });
-  });
-
-  it("closes the editor on a task that has just left the day", () => {
-    app().select("a");
-    app().setEditorOpen(true);
-    app().moveTaskToDate("a", LATER);
-    expect(app().selectedId).toBeNull();
-    expect(app().editorOpen).toBe(false);
-  });
-
-  it("ignores a move to the day it is already on, or to a non-date", () => {
-    app().moveTaskToDate("a", TODAY);
-    app().moveTaskToDate("a", "");
-    app().moveTaskToDate("a", "next friday");
-    expect(titles()).toEqual(["Alpha", "Beta"]);
-    expect(app().lastMoved).toBeNull();
-  });
-
-  it("ignores a task that isn't on this day", () => {
-    app().moveTaskToDate("nope", LATER);
-    expect(moved()).toEqual([]);
-  });
-
-  describe("undo", () => {
-    it("offers the move, naming both days and the links it cut", () => {
-      app().moveTaskToDate("a", LATER);
-      expect(app().lastMoved).toMatchObject({
-        from: TODAY,
-        to: LATER,
-        deps: { b: ["a"] },
-      });
-      expect(app().lastMoved!.tasks.map((t) => t.title)).toEqual(["Alpha"]);
-    });
-
-    it("brings the task back with its state and its links", () => {
-      app().moveTaskToDate("a", LATER);
-      app().undoMove();
-      expect(moved()).toEqual([]);
-      expect(task("a")).toMatchObject({ title: "Alpha", done: true });
-      expect(task("b")!.dependsOn).toEqual(["a"]);
-      expect(app().lastMoved).toBeNull();
-    });
-
-    it("works from a different day than the one it was offered on", () => {
-      app().moveTaskToDate("a", LATER);
-      app().setDate("2026-09-09");
-      app().undoMove();
-      expect(app().plan.days[TODAY].tasks.map((t) => t.title)).toContain("Alpha");
-      expect(app().plan.days[LATER].tasks).toEqual([]);
-    });
-
-    it("keeps a defer undoable too", () => {
-      app().deferToNextDay("b");
-      app().undoLast();
-      expect(titles()).toEqual(["Alpha", "Beta"]);
-      expect(app().plan.days[TOMORROW].tasks).toEqual([]);
-    });
-
-    it("puts only one offer on the table at a time", () => {
-      app().moveTaskToDate("b", LATER);
-      app().clearDone();
-      expect(app().lastMoved).toBeNull();
-      expect(app().lastCleared).not.toBeNull();
-
-      app().undoClear();
-      app().moveTaskToDate("a", LATER);
-      expect(app().lastCleared).toBeNull();
-      expect(app().lastMoved).not.toBeNull();
-    });
-
-    it("undoes the clear when no move is pending", () => {
-      app().clearDone();
-      app().undoLast();
-      expect(task("a")).toBeDefined();
-    });
-  });
-});
-
-describe("moving a day's unfinished work", () => {
-  const LATER = "2026-08-05";
-  const moved = () => app().plan.days[LATER]?.tasks ?? [];
-  const movedTitles = () => moved().map((t) => t.title);
-  const dep = (title: string) =>
-    moved().find((t) => t.title === title)!.dependsOn;
-
-  beforeEach(() =>
-    load(
-      makeDay([
-        makeTask({ id: "done", title: "Shipped", done: true }),
-        makeTask({ id: "a", title: "Alpha", dependsOn: ["done"] }),
-        makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
-        makeTask({
-          id: "c",
-          title: "Gamma",
-          blocked: "waiting on bob",
-          dependsOn: ["b"],
-        }),
-        makeTask({ id: "late", title: "Wrapped", done: true, dependsOn: ["b"] }),
-      ])
-    )
-  );
-
-  it("takes everything unfinished and leaves the finished work behind", () => {
-    app().moveUnfinishedToDate(LATER);
-    expect(titles()).toEqual(["Shipped", "Wrapped"]);
-    expect(movedTitles()).toEqual(["Alpha", "Beta", "Gamma"]);
-  });
-
-  it("keeps the dependencies between the tasks that travel together", () => {
-    app().moveUnfinishedToDate(LATER);
-    expect(dep("Beta")).toEqual(["a"]);
-    expect(dep("Gamma")).toEqual(["b"]);
-  });
-
-  it("cuts only the links that would have crossed the day boundary", () => {
-    app().moveUnfinishedToDate(LATER);
-    expect(dep("Alpha")).toEqual([]); // it waited on work that stayed behind
-    expect(task("late")!.dependsOn).toEqual([]);
-  });
-
-  it("keeps the queue in the order it was in", () => {
-    app().setDate(LATER);
-    app().quickAdd("Already there");
-    app().setDate(TODAY);
-    app().moveTaskToDate("c", LATER); // Gamma goes on ahead of the others
-    app().moveUnfinishedToDate(LATER);
-    expect(movedTitles()).toEqual(["Already there", "Gamma", "Alpha", "Beta"]);
-    expect(moved().map((t) => t.order)).toEqual([1, 2, 3, 4]);
-  });
-
-  it("carries a blocker across", () => {
-    app().moveUnfinishedToDate(LATER);
-    expect(moved().find((t) => t.title === "Gamma")!.blocked).toBe("waiting on bob");
-  });
-
-  it("does nothing when the day has no unfinished work left", () => {
-    app().moveUnfinishedToDate(LATER);
-    app().dismissMove();
-    app().moveUnfinishedToDate("2026-08-06");
-    expect(app().plan.days["2026-08-06"]).toBeUndefined();
-    expect(app().lastMoved).toBeNull();
-  });
-
-  it("puts the whole batch back on undo, links and all", () => {
-    app().moveUnfinishedToDate(LATER);
-    app().undoMove();
-    expect(titles().sort()).toEqual([
-      "Alpha",
-      "Beta",
-      "Gamma",
-      "Shipped",
-      "Wrapped",
-    ]);
-    expect(task("a")!.dependsOn).toEqual(["done"]);
-    expect(task("b")!.dependsOn).toEqual(["a"]);
-    expect(task("late")!.dependsOn).toEqual(["b"]);
-    expect(moved()).toEqual([]);
-  });
-});
-
 describe("goals", () => {
-  beforeEach(() => load(makeDay([makeTask({ id: "a", goalId: "g1" })])));
+  beforeEach(() => load([makeTask({ id: "a", goalId: "g1" })]));
 
   it("adds a goal, trimming the name", () => {
     app().addGoal("  reading  ");
@@ -558,30 +281,26 @@ describe("goals", () => {
     expect(app().plan.goals).toHaveLength(1);
   });
 
-  it("unassigns the goal from every day's tasks when deleted", () => {
-    app().shiftDate(1);
-    const other = app().quickAdd("Tomorrow task #deep-work")!;
-    app().shiftDate(-1);
+  it("unassigns the goal from every task when deleted", () => {
+    const other = app().quickAdd("Another task #deep-work")!;
     app().deleteGoal("g1");
     expect(task("a")!.goalId).toBeNull();
-    expect(
-      app().plan.days[TOMORROW].tasks.find((t) => t.id === other)!.goalId
-    ).toBeNull();
+    expect(task(other)!.goalId).toBeNull();
   });
 });
 
 describe("clearing finished work", () => {
   beforeEach(() =>
     load(
-      makeDay([
+      [
         makeTask({ id: "done1", title: "Done one", done: true }),
         makeTask({ id: "done2", title: "Done two", done: true }),
         makeTask({ id: "todo", title: "Still to do", dependsOn: ["done1"] }),
-      ])
+      ]
     )
   );
 
-  it("removes the day's finished tasks and the links pointing at them", () => {
+  it("removes the finished tasks and the links pointing at them", () => {
     app().clearDone();
     expect(titles()).toEqual(["Still to do"]);
     expect(task("todo")!.dependsOn).toEqual([]);
@@ -589,10 +308,7 @@ describe("clearing finished work", () => {
 
   it("records the batch so it can be undone", () => {
     app().clearDone();
-    expect(app().lastCleared).toMatchObject({
-      date: TODAY,
-      deps: { todo: ["done1"] },
-    });
+    expect(app().lastCleared).toMatchObject({ deps: { todo: ["done1"] } });
     expect(app().lastCleared!.tasks.map((t) => t.id)).toEqual(["done1", "done2"]);
   });
 
@@ -628,14 +344,6 @@ describe("clearing finished work", () => {
     expect(titles()).toHaveLength(4);
   });
 
-  it("restores to the day the tasks came from, not the day on screen", () => {
-    app().clearDone();
-    app().shiftDate(1);
-    app().undoClear();
-    expect(app().plan.days[TODAY].tasks).toHaveLength(3);
-    expect(app().plan.days[TOMORROW].tasks).toHaveLength(0);
-  });
-
   it("does not duplicate a task that came back some other way", () => {
     app().clearDone();
     app().undoClear();
@@ -651,24 +359,15 @@ describe("clearing finished work", () => {
     expect(titles()).toEqual(["Still to do"]);
   });
 
-  it("only clears the day on screen", () => {
-    app().shiftDate(1);
-    app().quickAdd("Tomorrow task");
-    const tomorrowId = app().plan.days[TOMORROW].tasks[0].id;
-    app().toggleDone(tomorrowId);
-    app().shiftDate(-1);
-    app().clearDone();
-    expect(app().plan.days[TOMORROW].tasks).toHaveLength(1);
-  });
 });
 
 describe("flowchart layout", () => {
   it("gives every task a position, keeping dependents to the right", () => {
     load(
-      makeDay([
+      [
         makeTask({ id: "a" }),
         makeTask({ id: "b", dependsOn: ["a"] }),
-      ])
+      ]
     );
     app().ensureFlowPositions();
     expect(task("a")!.flowX).toBe(40);
@@ -677,24 +376,24 @@ describe("flowchart layout", () => {
   });
 
   it("leaves positions that already exist alone", () => {
-    load(makeDay([makeTask({ id: "a", flowX: 999, flowY: 111 })]));
+    load([makeTask({ id: "a", flowX: 999, flowY: 111 })]);
     app().ensureFlowPositions();
     expect(task("a")).toMatchObject({ flowX: 999, flowY: 111 });
   });
 
   it("drops parallel tasks into the background band", () => {
-    load(makeDay([makeTask({ id: "ci", parallel: true })]));
+    load([makeTask({ id: "ci", parallel: true })]);
     app().ensureFlowPositions();
     expect(task("ci")!.flowY!).toBeGreaterThanOrEqual(FLOW.PAR_Y);
   });
 
   it("re-lays the whole graph by depth on auto-arrange", () => {
     load(
-      makeDay([
+      [
         makeTask({ id: "a", flowX: 999, flowY: 999 }),
         makeTask({ id: "b", dependsOn: ["a"], flowX: 0, flowY: 0 }),
         makeTask({ id: "c", dependsOn: ["b"] }),
-      ])
+      ]
     );
     app().autoArrangeFlow();
     expect(task("a")!.flowX).toBe(40);
@@ -703,7 +402,7 @@ describe("flowchart layout", () => {
   });
 
   it("stacks tasks at the same depth without overlapping", () => {
-    load(makeDay([makeTask({ id: "a" }), makeTask({ id: "b" })]));
+    load([makeTask({ id: "a" }), makeTask({ id: "b" })]);
     app().autoArrangeFlow();
     expect(task("a")!.flowX).toBe(task("b")!.flowX);
     expect(task("a")!.flowY).not.toBe(task("b")!.flowY);
@@ -712,9 +411,9 @@ describe("flowchart layout", () => {
 
 describe("loading", () => {
   it("takes a plan from the server and marks itself ready", () => {
-    app().load(makePlan([makeDay([makeTask({ title: "From the server" })])]));
+    app().load(makePlan([makeTask({ title: "From the server" })]));
     expect(app().loaded).toBe(true);
-    expect(app().plan.days[TODAY].tasks[0].title).toBe("From the server");
+    expect(app().plan.tasks[0].title).toBe("From the server");
   });
 
   it("keeps the seeded plan on a first run with no saved data", () => {
@@ -724,8 +423,11 @@ describe("loading", () => {
     expect(app().plan).toBe(seeded);
   });
 
-  it("ensures today's day exists after loading", () => {
-    app().load(makePlan([makeDay([], { date: "2020-01-01" })]));
-    expect(app().plan.days[TODAY]).toBeDefined();
+  it("keeps the seed rather than a stored plan of the wrong shape", () => {
+    const seeded = app().plan;
+    // e.g. the pre-flattening document, which had a days map instead of tasks
+    app().load({ goals: [], days: {} } as unknown as Plan);
+    expect(app().plan).toBe(seeded);
+    expect(app().loaded).toBe(true);
   });
 });

@@ -2,47 +2,33 @@
 
 import { dependentsOf, statusOf } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { todayISO } from "@/lib/time";
 import {
   PRIORITY_COLOR,
   Priority,
   STATUS_COLOR,
   STATUS_LABEL,
 } from "@/lib/types";
-import DayPicker from "./DayPicker";
-import { useState } from "react";
 
 const field =
   "w-full bg-slate-800 border border-slate-700 focus:border-indigo-500 outline-none rounded px-2 py-1.5 text-[13px] text-slate-200";
 const label = "text-[10px] uppercase tracking-wider text-slate-500 mb-1 block";
 
 export default function Editor() {
-  const day = useApp((s) => s.plan.days[s.date]);
-  const date = useApp((s) => s.date);
+  const tasks = useApp((s) => s.plan.tasks);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const open = useApp((s) => s.editorOpen);
-  const {
-    updateTask,
-    deleteTask,
-    setEditorOpen,
-    setDone,
-    toggleDependency,
-    deferToNextDay,
-    moveTaskToDate,
-  } = useApp();
-  // Where "move" sends the task: today unless told otherwise. It sticks once
-  // picked, so sweeping several tasks onto the same day is one click each.
-  const [moveDate, setMoveDate] = useState(todayISO());
+  const { updateTask, deleteTask, setEditorOpen, setDone, toggleDependency } =
+    useApp();
 
-  const task = day?.tasks.find((t) => t.id === selectedId);
-  if (!open || !task || !day) return null;
+  const task = tasks.find((t) => t.id === selectedId);
+  if (!open || !task) return null;
 
-  const others = day.tasks.filter((t) => t.id !== task.id);
-  const wouldCycle = dependentsOf(day.tasks, task.id);
-  const status = statusOf(task, new Map(day.tasks.map((t) => [t.id, t])));
+  const others = tasks.filter((t) => t.id !== task.id);
+  const wouldCycle = dependentsOf(tasks, task.id);
+  const status = statusOf(task, new Map(tasks.map((t) => [t.id, t])));
   const waiting = task.dependsOn
-    .map((id) => day.tasks.find((t) => t.id === id))
+    .map((id) => tasks.find((t) => t.id === id))
     .filter((d) => d && !d.done).length;
 
   return (
@@ -221,39 +207,7 @@ export default function Editor() {
         </div>
       )}
 
-      <div>
-        <label className={label} htmlFor="move-to-date">
-          Move to another day
-        </label>
-        <DayPicker
-          id="move-to-date"
-          value={moveDate}
-          from={date}
-          onChange={setMoveDate}
-        >
-          <button
-            onClick={() => moveTaskToDate(task.id, moveDate)}
-            disabled={!moveDate || moveDate === date}
-            className="btn"
-            title={
-              moveDate === date
-                ? "that is the day it is already on"
-                : "move it there exactly as it is"
-            }
-          >
-            move →
-          </button>
-        </DayPicker>
-      </div>
-
-      <div className="flex gap-2 pt-1">
-        <button
-          onClick={() => deferToNextDay(task.id)}
-          className="btn flex-1"
-          title="didn't get to it — push it to tomorrow (o)"
-        >
-          → tomorrow
-        </button>
+      <div className="flex pt-1">
         <button
           onClick={() => deleteTask(task.id)}
           className="text-xs px-2 py-1 rounded border border-red-900 text-red-400 hover:bg-red-950"

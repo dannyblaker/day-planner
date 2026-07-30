@@ -7,7 +7,7 @@ import { promises as fs } from "fs";
 import os from "os";
 import path from "path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { makeDay, makePlan } from "./factory";
+import { makePlan, makeTask } from "./factory";
 
 const dbGetPlan = vi.fn();
 const dbPutPlan = vi.fn();
@@ -53,7 +53,7 @@ describe("file-backed storage (no DATABASE_URL)", () => {
 
   it("writes the plan and reads it back", async () => {
     const { GET, PUT } = await loadRoute();
-    const plan = makePlan([makeDay()]);
+    const plan = makePlan();
 
     const saved = await PUT(put(plan));
     expect(await saved.json()).toEqual({ ok: true });
@@ -72,10 +72,10 @@ describe("file-backed storage (no DATABASE_URL)", () => {
 
   it("overwrites rather than appending on the next save", async () => {
     const { GET, PUT } = await loadRoute();
-    await PUT(put(makePlan([makeDay([], { date: "2026-07-28" })])));
-    await PUT(put(makePlan([makeDay([], { date: "2026-08-01" })])));
+    await PUT(put(makePlan([makeTask({ title: "First" })])));
+    await PUT(put(makePlan([makeTask({ title: "Second" })])));
     const stored = await GET().then((r) => r.json());
-    expect(Object.keys(stored.days)).toEqual(["2026-08-01"]);
+    expect(stored.tasks.map((t: { title: string }) => t.title)).toEqual(["Second"]);
   });
 
   it("survives a corrupt file by reporting no plan", async () => {

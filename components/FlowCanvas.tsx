@@ -2,7 +2,7 @@
 
 import { FlowPos, arrangeByDepth, inParallelBand } from "@/lib/flow";
 import { statuses } from "@/lib/graph";
-import { fmtDur } from "@/lib/time";
+import { fmtDur } from "@/lib/format";
 import {
   DONE_COLOR,
   FLOW,

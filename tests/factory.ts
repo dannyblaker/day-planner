@@ -1,4 +1,4 @@
-import { DayPlan, Plan, Task } from "@/lib/types";
+import { Plan, Task } from "@/lib/types";
 
 /** Fixtures with stable ids, so assertions can name tasks directly. */
 
@@ -6,8 +6,6 @@ let seq = 0;
 export function resetFactory() {
   seq = 0;
 }
-
-export const at = (h: number, m = 0) => h * 60 + m;
 
 export function makeTask(partial: Partial<Task> = {}): Task {
   seq += 1;
@@ -24,14 +22,10 @@ export function makeTask(partial: Partial<Task> = {}): Task {
   };
 }
 
-export function makeDay(tasks: Task[] = [], partial: Partial<DayPlan> = {}): DayPlan {
-  return { date: "2026-07-28", tasks, ...partial };
-}
-
-export function makePlan(days: DayPlan[] = [makeDay()], partial: Partial<Plan> = {}): Plan {
+export function makePlan(tasks: Task[] = [], partial: Partial<Plan> = {}): Plan {
   return {
     goals: [{ id: "g1", name: "deep-work", color: "#818cf8" }],
-    days: Object.fromEntries(days.map((d) => [d.date, d])),
+    tasks,
     shareToken: "share-token",
     ...partial,
   };

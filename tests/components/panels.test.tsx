@@ -5,14 +5,14 @@ import HelpOverlay from "@/components/HelpOverlay";
 import QuickAdd from "@/components/QuickAdd";
 import ThemeToggle from "@/components/ThemeToggle";
 import { currentTheme } from "@/lib/theme";
-import { DayPlan } from "@/lib/types";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { Task } from "@/lib/types";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
-import { makeDay, makeTask, resetFactory } from "../factory";
+import { makeTask, resetFactory } from "../factory";
 
-const tasksToday = () => app().plan.days["2026-07-28"].tasks;
+const planTasks = () => app().plan.tasks;
 
 beforeEach(() => {
   resetFactory();
@@ -83,7 +83,7 @@ describe("QuickAdd", () => {
     render(<QuickAdd />);
     const input = screen.getByPlaceholderText(/Add task/);
     await user.type(input, "Write report 45m !1{Enter}");
-    expect(tasksToday()[0]).toMatchObject({
+    expect(planTasks()[0]).toMatchObject({
       title: "Write report",
       duration: 45,
       priority: 1,
@@ -96,13 +96,13 @@ describe("QuickAdd", () => {
     const user = userEvent.setup();
     render(<QuickAdd />);
     await user.type(screen.getByPlaceholderText(/Add task/), "   {Enter}");
-    expect(tasksToday()).toHaveLength(0);
+    expect(planTasks()).toHaveLength(0);
   });
 });
 
 describe("Editor", () => {
-  const openEditorOn = (day: DayPlan, id: string) => {
-    seedStore(day);
+  const openEditorOn = (tasks: Task[], id: string) => {
+    seedStore(tasks);
     app().select(id);
     app().setEditorOpen(true);
     return render(<Editor />);
@@ -111,10 +111,10 @@ describe("Editor", () => {
   it("shows the derived status, and only lets you set the done part", async () => {
     const user = userEvent.setup();
     openEditorOn(
-      makeDay([
+      [
         makeTask({ id: "a", title: "First" }),
         makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
-      ]),
+      ],
       "b"
     );
     expect(screen.getByText("To do")).toBeInTheDocument();
@@ -126,70 +126,70 @@ describe("Editor", () => {
     expect(screen.getByText(/startable now/)).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /mark done/i }));
-    expect(tasksToday().find((t) => t.id === "b")!.done).toBe(true);
+    expect(planTasks().find((t) => t.id === "b")!.done).toBe(true);
     expect(await screen.findByText("Done")).toBeInTheDocument();
   });
 
   it("names the blocker instead, when there is one", () => {
-    openEditorOn(makeDay([makeTask({ id: "a", blocked: "waiting on legal" })]), "a");
+    openEditorOn([makeTask({ id: "a", blocked: "waiting on legal" })], "a");
     expect(screen.getByText("To do")).toBeInTheDocument();
     expect(screen.getByText("Blocked: waiting on legal")).toBeInTheDocument();
   });
 
   it("stays closed until a task is selected and opened", () => {
-    seedStore(makeDay([makeTask({ id: "a" })]));
+    seedStore([makeTask({ id: "a" })]);
     render(<Editor />);
     expect(screen.queryByText("Edit task")).not.toBeInTheDocument();
   });
 
   it("edits the title and duration", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a", title: "Old" })]), "a");
+    openEditorOn([makeTask({ id: "a", title: "Old" })], "a");
     const title = screen.getByDisplayValue("Old");
     await user.clear(title);
     await user.type(title, "New");
-    expect(tasksToday()[0].title).toBe("New");
+    expect(planTasks()[0].title).toBe("New");
   });
 
   it("sets priority from the P buttons", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a" })]), "a");
+    openEditorOn([makeTask({ id: "a" })], "a");
     await user.click(screen.getByRole("button", { name: "P1" }));
-    expect(tasksToday()[0].priority).toBe(1);
+    expect(planTasks()[0].priority).toBe(1);
   });
 
   it("assigns a goal", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a" })]), "a");
+    openEditorOn([makeTask({ id: "a" })], "a");
     await user.selectOptions(screen.getByRole("combobox"), "g1");
-    expect(tasksToday()[0].goalId).toBe("g1");
+    expect(planTasks()[0].goalId).toBe("g1");
   });
 
   it("marks a task parallel", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a" })]), "a");
+    openEditorOn([makeTask({ id: "a" })], "a");
     await user.click(screen.getByLabelText(/runs in parallel/));
-    expect(tasksToday()[0].parallel).toBe(true);
+    expect(planTasks()[0].parallel).toBe(true);
   });
 
   it("blocks a task by typing a reason", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a" })]), "a");
+    openEditorOn([makeTask({ id: "a" })], "a");
     await user.type(screen.getByPlaceholderText(/reason/), "waiting");
-    expect(tasksToday()[0].blocked).toBe("waiting");
+    expect(planTasks()[0].blocked).toBe("waiting");
   });
 
   it("links a dependency, and refuses one that would cycle", async () => {
     const user = userEvent.setup();
     openEditorOn(
-      makeDay([
+      [
         makeTask({ id: "a", title: "First" }),
         makeTask({ id: "b", title: "Second" }),
-      ]),
+      ],
       "a"
     );
     await user.click(screen.getByLabelText("Second"));
-    expect(tasksToday()[0].dependsOn).toEqual(["b"]);
+    expect(planTasks()[0].dependsOn).toEqual(["b"]);
 
     // now edit Second: depending on First would close the loop
     app().select("b");
@@ -199,48 +199,20 @@ describe("Editor", () => {
 
   it("defers and deletes", async () => {
     const user = userEvent.setup();
-    openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
+    openEditorOn([makeTask({ id: "a", title: "Only" })], "a");
     await user.click(screen.getByRole("button", { name: /delete/i }));
-    expect(tasksToday()).toHaveLength(0);
+    expect(planTasks()).toHaveLength(0);
   });
 
-  describe("move to another day", () => {
-    const picker = () => screen.getByLabelText("Move to another day");
-    const moveButton = () => screen.getByRole("button", { name: "move →" });
-
-    it("aims at today, so there is nothing to do while today is on screen", () => {
-      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
-      expect(picker()).toHaveValue("2026-07-28");
-      expect(moveButton()).toBeDisabled();
-    });
-
-    it("sends the task to the day the picker names", async () => {
-      const user = userEvent.setup();
-      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
-      fireEvent.change(picker(), { target: { value: "2026-08-05" } });
-      await user.click(moveButton());
-      expect(tasksToday()).toHaveLength(0);
-      expect(app().plan.days["2026-08-05"].tasks[0].title).toBe("Only");
-    });
-
-    it("offers a week out as a shortcut", async () => {
-      const user = userEvent.setup();
-      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
-      await user.click(screen.getByRole("button", { name: "+1 week" }));
-      await user.click(moveButton());
-      expect(app().plan.days["2026-08-04"].tasks[0].title).toBe("Only");
-    });
-
-  });
 });
 
 describe("GoalsPanel", () => {
   it("shows work done against work planned per goal", () => {
     seedStore(
-      makeDay([
+      [
         makeTask({ goalId: "g1", duration: 60, done: true }),
         makeTask({ goalId: "g1", duration: 30 }),
-      ])
+      ]
     );
     render(<GoalsPanel />);
     expect(screen.getByText("deep-work")).toBeInTheDocument();
@@ -248,7 +220,7 @@ describe("GoalsPanel", () => {
   });
 
   it("counts tasks with no goal", () => {
-    seedStore(makeDay([makeTask({}), makeTask({})]));
+    seedStore([makeTask({}), makeTask({})]);
     render(<GoalsPanel />);
     expect(screen.getByText(/2 tasks not mapped to a goal/)).toBeInTheDocument();
   });
@@ -287,7 +259,7 @@ describe("HelpOverlay", () => {
     seedStore();
     app().setHelpOpen(true);
     render(<HelpOverlay />);
-    for (const key of ["d", "b", "m", "Shift+O", "u / ⌘Z", "?"]) {
+    for (const key of ["d", "b", "p", "s", "m", "u / ⌘Z", "?"]) {
       expect(screen.getByText(key, { selector: "kbd" })).toBeInTheDocument();
     }
   });

@@ -4,12 +4,8 @@ export { expect };
 
 export interface Plan {
   goals: { id: string; name: string; color: string }[];
-  days: Record<string, DayPlan>;
-  shareToken: string;
-}
-interface DayPlan {
-  date: string;
   tasks: Task[];
+  shareToken: string;
 }
 interface Task {
   id: string;
@@ -25,22 +21,13 @@ interface Task {
 
 export const SHARE_TOKEN = "e2e-share-token";
 
-/** Pinned so that "today" is a fact of the fixture, not of when you ran it. */
+/** Pinned so `createdAt` and the like are facts of the run, not of the clock. */
 export const E2E_NOW = new Date(2026, 6, 28, 8, 0, 0);
 
-export function todayISO(d = E2E_NOW): string {
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
-    d.getDate()
-  ).padStart(2, "0")}`;
-}
-
-export const E2E_DATE = todayISO();
-export const TOMORROW = todayISO(new Date(2026, 6, 29));
-
-export function emptyPlan(date = E2E_DATE): Plan {
+export function emptyPlan(): Plan {
   return {
     goals: [{ id: "g1", name: "deep-work", color: "#818cf8" }],
-    days: { [date]: { date, tasks: [] } },
+    tasks: [],
     shareToken: SHARE_TOKEN,
   };
 }
@@ -49,8 +36,8 @@ export function emptyPlan(date = E2E_DATE): Plan {
 export interface PlanServer {
   /** the plan as the "server" currently holds it */
   current(): Plan;
-  tasks(date?: string): Task[];
-  titles(date?: string): string[];
+  tasks(): Task[];
+  titles(): string[];
   /** how many saves the client has pushed */
   saveCount(): number;
   /** wait for the debounced autosave to land */
@@ -78,8 +65,8 @@ async function installPlanRoute(
 
   return {
     current: () => plan,
-    tasks: (date = E2E_DATE) => plan.days[date]?.tasks ?? [],
-    titles: (date = E2E_DATE) => (plan.days[date]?.tasks ?? []).map((t) => t.title),
+    tasks: () => plan.tasks ?? [],
+    titles: () => (plan.tasks ?? []).map((t) => t.title),
     saveCount: () => saves,
     settled: async () => {
       const before = saves;

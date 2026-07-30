@@ -2,7 +2,7 @@ import { expect, quickAdd, row, test } from "./fixtures";
 
 const undoBar = (page: import("@playwright/test").Page) => page.getByRole("status");
 const clearControl = (page: import("@playwright/test").Page) =>
-  page.getByTitle(/remove finished tasks/);
+  page.getByTitle(/drop the finished tasks/);
 
 async function twoDoneOneLeft(page: import("@playwright/test").Page) {
   await quickAdd(page, "Finished one 30m", "Finished one");
@@ -21,7 +21,7 @@ test.beforeEach(async ({ page }) => {
   await twoDoneOneLeft(page);
 });
 
-test("clears the day's finished work and offers an undo", async ({ page, planServer }) => {
+test("clears the finished work and offers an undo", async ({ page, planServer }) => {
   await clearControl(page).click();
 
   await expect(page.getByText("Done · 2")).toBeHidden();
