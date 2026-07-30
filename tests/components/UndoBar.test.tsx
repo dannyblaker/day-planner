@@ -1,4 +1,5 @@
 import UndoBar from "@/components/UndoBar";
+import { fmtDateHuman } from "@/lib/time";
 import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -54,6 +55,61 @@ describe("acting on the offer", () => {
     await user.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByRole("status")).not.toBeInTheDocument();
     expect(app().plan.days["2026-07-28"].tasks).toHaveLength(1);
+  });
+});
+
+describe("a task sent to another day", () => {
+  const LATER = "2026-08-05";
+  const moveIt = () => act(() => app().moveTaskToDate("a", LATER));
+
+  it("says where it went", () => {
+    render(<UndoBar />);
+    moveIt();
+    expect(screen.getByRole("status")).toHaveTextContent(
+      `Moved “Still going” to ${fmtDateHuman(LATER)}`
+    );
+  });
+
+  it("brings it back on undo, and leaves the day it went to empty", async () => {
+    const user = userEvent.setup();
+    render(<UndoBar />);
+    moveIt();
+    await user.click(screen.getByRole("button", { name: /undo/i }));
+    expect(app().plan.days["2026-07-28"].tasks.map((t) => t.title)).toContain(
+      "Still going"
+    );
+    expect(app().plan.days[LATER].tasks).toEqual([]);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("offers to follow the task to its new day", async () => {
+    const user = userEvent.setup();
+    render(<UndoBar />);
+    moveIt();
+    await user.click(screen.getByRole("button", { name: /go there/ }));
+    expect(app().date).toBe(LATER);
+    expect(app().plan.days[LATER].tasks.map((t) => t.title)).toEqual([
+      "Still going",
+    ]);
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+  });
+
+  it("dismisses without moving it back", async () => {
+    const user = userEvent.setup();
+    render(<UndoBar />);
+    moveIt();
+    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(app().plan.days[LATER].tasks).toHaveLength(1);
+  });
+
+  it("gives up on the offer after ten seconds, leaving the move in place", () => {
+    vi.useFakeTimers();
+    render(<UndoBar />);
+    moveIt();
+    act(() => vi.advanceTimersByTime(10_500));
+    expect(screen.queryByRole("status")).not.toBeInTheDocument();
+    expect(app().plan.days[LATER].tasks).toHaveLength(1);
   });
 });
 

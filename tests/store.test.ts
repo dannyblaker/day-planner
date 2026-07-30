@@ -1,12 +1,12 @@
 import { useApp } from "@/lib/store";
 import { FLOW } from "@/lib/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { resetStore } from "./app-state";
 import { at, makeDay, makePlan, makeTask, resetFactory } from "./factory";
 
 const TODAY = "2026-07-28";
 const TOMORROW = "2026-07-29";
 
-const pristine = useApp.getState();
 const app = () => useApp.getState();
 const tasks = () => app().plan.days[app().date].tasks;
 const task = (id: string) => tasks().find((t) => t.id === id);
@@ -24,7 +24,7 @@ beforeEach(() => {
   resetFactory();
   vi.useFakeTimers();
   vi.setSystemTime(new Date(2026, 6, 28, 9, 0, 0));
-  useApp.setState(pristine, true);
+  resetStore();
 });
 
 describe("quickAdd", () => {
@@ -385,6 +385,161 @@ describe("moving between days", () => {
     const tomorrow = app().plan.days[TOMORROW].tasks;
     expect(tomorrow.map((t) => t.title)).toEqual(["Already there", "Alpha"]);
     expect(tomorrow[1].order).toBeGreaterThan(tomorrow[0].order);
+  });
+});
+
+describe("moving a task to another day", () => {
+  const LATER = "2026-08-05";
+  const moved = () => app().plan.days[LATER]?.tasks ?? [];
+
+  beforeEach(() =>
+    load(
+      makeDay([
+        makeTask({ id: "a", title: "Alpha", status: "done", fixedStart: at(10) }),
+        makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
+      ])
+    )
+  );
+
+  it("takes the task off this day and puts it on that one, as it is", () => {
+    app().moveTaskToDate("a", LATER);
+    expect(titles()).toEqual(["Beta"]);
+    expect(moved()[0]).toMatchObject({
+      title: "Alpha",
+      status: "done",
+      fixedStart: at(10),
+      dependsOn: [],
+    });
+  });
+
+  it("creates the target day if it has never been visited", () => {
+    app().moveTaskToDate("a", LATER);
+    expect(app().plan.days[LATER]).toMatchObject({
+      date: LATER,
+      dayStart: at(8),
+      dayEnd: at(18),
+    });
+  });
+
+  it("appends it after whatever that day already holds", () => {
+    app().setDate(LATER);
+    app().quickAdd("Already there");
+    app().setDate(TODAY);
+    app().moveTaskToDate("a", LATER);
+    expect(moved().map((t) => t.title)).toEqual(["Already there", "Alpha"]);
+    expect(moved()[1].order).toBeGreaterThan(moved()[0].order);
+  });
+
+  it("frees the tasks left waiting on it", () => {
+    app().moveTaskToDate("a", LATER);
+    expect(task("b")!.dependsOn).toEqual([]);
+  });
+
+  it("stops the clock on a task moved mid-run", () => {
+    app().startTask("b");
+    vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
+    app().moveTaskToDate("b", LATER);
+    expect(moved()[0]).toMatchObject({
+      status: "todo",
+      actualStart: null,
+      actualMinutes: 30,
+    });
+  });
+
+  it("lets the flowchart place it afresh on its new day", () => {
+    app().updateTask("a", { flowX: 100, flowY: 200 });
+    app().moveTaskToDate("a", LATER);
+    expect(moved()[0]).toMatchObject({ flowX: null, flowY: null });
+  });
+
+  it("closes the editor on a task that has just left the day", () => {
+    app().select("a");
+    app().setEditorOpen(true);
+    app().moveTaskToDate("a", LATER);
+    expect(app().selectedId).toBeNull();
+    expect(app().editorOpen).toBe(false);
+  });
+
+  it("ignores a move to the day it is already on, or to a non-date", () => {
+    app().moveTaskToDate("a", TODAY);
+    app().moveTaskToDate("a", "");
+    app().moveTaskToDate("a", "next friday");
+    expect(titles()).toEqual(["Alpha", "Beta"]);
+    expect(app().lastMoved).toBeNull();
+  });
+
+  it("ignores a task that isn't on this day", () => {
+    app().moveTaskToDate("nope", LATER);
+    expect(moved()).toEqual([]);
+  });
+
+  describe("undo", () => {
+    it("offers the move, naming both days", () => {
+      app().moveTaskToDate("a", LATER);
+      expect(app().lastMoved).toMatchObject({
+        from: TODAY,
+        to: LATER,
+        dependents: ["b"],
+      });
+    });
+
+    it("brings the task back with its state and its links", () => {
+      app().moveTaskToDate("a", LATER);
+      app().undoMove();
+      expect(moved()).toEqual([]);
+      expect(task("a")).toMatchObject({
+        title: "Alpha",
+        status: "done",
+        fixedStart: at(10),
+      });
+      expect(task("b")!.dependsOn).toEqual(["a"]);
+      expect(app().lastMoved).toBeNull();
+    });
+
+    it("restores a mid-run task exactly as it was", () => {
+      app().startTask("b");
+      vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
+      app().moveTaskToDate("b", LATER);
+      app().undoMove();
+      expect(task("b")).toMatchObject({
+        status: "active",
+        actualStart: at(9),
+        actualMinutes: 0,
+      });
+    });
+
+    it("works from a different day than the one it was offered on", () => {
+      app().moveTaskToDate("a", LATER);
+      app().setDate("2026-09-09");
+      app().undoMove();
+      expect(app().plan.days[TODAY].tasks.map((t) => t.title)).toContain("Alpha");
+      expect(app().plan.days[LATER].tasks).toEqual([]);
+    });
+
+    it("keeps a defer undoable too", () => {
+      app().deferToNextDay("b");
+      app().undoLast();
+      expect(titles()).toEqual(["Alpha", "Beta"]);
+      expect(app().plan.days[TOMORROW].tasks).toEqual([]);
+    });
+
+    it("puts only one offer on the table at a time", () => {
+      app().moveTaskToDate("b", LATER);
+      app().clearDone();
+      expect(app().lastMoved).toBeNull();
+      expect(app().lastCleared).not.toBeNull();
+
+      app().undoClear();
+      app().moveTaskToDate("a", LATER);
+      expect(app().lastCleared).toBeNull();
+      expect(app().lastMoved).not.toBeNull();
+    });
+
+    it("undoes the clear when no move is pending", () => {
+      app().clearDone();
+      app().undoLast();
+      expect(task("a")).toBeDefined();
+    });
   });
 });
 

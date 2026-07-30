@@ -2,9 +2,10 @@
 
 import { dependentsOf } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
-import { fmtTime } from "@/lib/time";
+import { addDaysISO, fmtTime, todayISO } from "@/lib/time";
 import { Priority } from "@/lib/types";
 import { PRIORITY_COLOR } from "./Timeline";
+import { useState } from "react";
 
 const field =
   "w-full bg-slate-800 border border-slate-700 focus:border-indigo-500 outline-none rounded px-2 py-1.5 text-[13px] text-slate-200";
@@ -12,6 +13,7 @@ const label = "text-[10px] uppercase tracking-wider text-slate-500 mb-1 block";
 
 export default function Editor() {
   const day = useApp((s) => s.plan.days[s.date]);
+  const date = useApp((s) => s.date);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const open = useApp((s) => s.editorOpen);
@@ -21,7 +23,11 @@ export default function Editor() {
     setEditorOpen,
     toggleDependency,
     deferToNextDay,
+    moveTaskToDate,
   } = useApp();
+  // Where "move" sends the task: today unless told otherwise. It sticks once
+  // picked, so sweeping several tasks onto the same day is one click each.
+  const [moveDate, setMoveDate] = useState(todayISO());
 
   const task = day?.tasks.find((t) => t.id === selectedId);
   if (!open || !task || !day) return null;
@@ -200,11 +206,60 @@ export default function Editor() {
         </div>
       )}
 
+      <div>
+        <label className={label} htmlFor="move-to-date">
+          Move to another day
+        </label>
+        <div className="flex gap-1.5">
+          <input
+            id="move-to-date"
+            type="date"
+            className={field}
+            value={moveDate}
+            onChange={(e) => setMoveDate(e.target.value)}
+            onKeyDown={(e) => e.stopPropagation()}
+          />
+          <button
+            onClick={() => moveTaskToDate(task.id, moveDate)}
+            disabled={!moveDate || moveDate === date}
+            className="btn"
+            title={
+              moveDate === date
+                ? "that is the day it is already on"
+                : "move it there as it is, pinned time included"
+            }
+          >
+            move →
+          </button>
+        </div>
+        <div className="flex gap-2 mt-1.5">
+          {(
+            [
+              ["today", todayISO()],
+              ["next day", addDaysISO(date, 1)],
+              ["+1 week", addDaysISO(date, 7)],
+            ] as const
+          ).map(([name, iso]) => (
+            <button
+              key={name}
+              onClick={() => setMoveDate(iso)}
+              className={`text-[10px] ${
+                moveDate === iso
+                  ? "text-indigo-300"
+                  : "text-slate-500 hover:text-slate-300"
+              }`}
+            >
+              {name}
+            </button>
+          ))}
+        </div>
+      </div>
+
       <div className="flex gap-2 pt-1">
         <button
           onClick={() => deferToNextDay(task.id)}
           className="btn flex-1"
-          title="move to tomorrow (o)"
+          title="didn't get to it — push to tomorrow and drop its pinned time (o)"
         >
           → tomorrow
         </button>

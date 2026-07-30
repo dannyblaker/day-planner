@@ -1,4 +1,7 @@
-import { expect, flowNode, quickAdd, row, slot, test } from "./fixtures";
+import { expect, flowNode, quickAdd, row, slot, test, todayISO } from "./fixtures";
+
+/** a week on from the pinned clock, which is what the editor's "+1 week" means */
+const NEXT_WEEK = todayISO(new Date(2026, 7, 4));
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
@@ -225,5 +228,59 @@ test.describe("moving between days", () => {
     await expect(page.getByText("Nothing queued")).toBeVisible();
     await planServer.settled();
     expect(planServer.titles()).toEqual([]);
+  });
+
+  test("sends a task to a chosen day, then follows it there", async ({
+    page,
+    planServer,
+  }) => {
+    await quickAdd(page, "Ship the thing 30m", "Ship the thing");
+    await row(page, "Ship the thing").dblclick();
+    const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
+    await editor.getByRole("button", { name: "+1 week" }).click();
+    await editor.getByRole("button", { name: "move →" }).click();
+    await expect(page.getByText("Nothing queued")).toBeVisible();
+
+    await page.getByRole("button", { name: /go there/ }).click();
+    await expect(page.getByText(`DayFlow · ${NEXT_WEEK}`)).toBeVisible();
+    await expect(row(page, "Ship the thing")).toBeVisible();
+
+    await planServer.settled();
+    expect(planServer.titles()).toEqual([]);
+    expect(planServer.titles(NEXT_WEEK)).toEqual(["Ship the thing"]);
+  });
+
+  test("pulls tomorrow's task back to today with Shift+O", async ({
+    page,
+    planServer,
+  }) => {
+    await quickAdd(page, "Leftovers 30m", "Leftovers");
+    await page.locator("body").click();
+    await page.keyboard.press("j");
+    await page.keyboard.press("o"); // defer to tomorrow
+    await expect(page.getByText("Nothing queued")).toBeVisible();
+
+    await page.keyboard.press("]");
+    await expect(row(page, "Leftovers")).toBeVisible();
+    await page.keyboard.press("j");
+    await page.keyboard.press("Shift+O");
+    await expect(page.getByText("Nothing queued")).toBeVisible();
+
+    await page.keyboard.press("[");
+    await expect(row(page, "Leftovers")).toBeVisible();
+    await planServer.settled();
+    expect(planServer.titles()).toEqual(["Leftovers"]);
+  });
+
+  test("takes a moved task back where it came from on undo", async ({ page }) => {
+    await quickAdd(page, "Stays put 30m", "Stays put");
+    await row(page, "Stays put").dblclick();
+    const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
+    await editor.getByRole("button", { name: "next day" }).click();
+    await editor.getByRole("button", { name: "move →" }).click();
+    await expect(page.getByText("Nothing queued")).toBeVisible();
+
+    await page.getByRole("button", { name: /undo/i }).click();
+    await expect(row(page, "Stays put")).toBeVisible();
   });
 });

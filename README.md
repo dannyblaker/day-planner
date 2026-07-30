@@ -19,8 +19,9 @@ The core idea is that the timeline is *derived state*. You maintain a simple ord
 - **Live share** — send your manager a read-only link (`Share live`) that polls the plan every 5 seconds.
 - **Export** — one click to PNG or PDF of the timeline, matching the theme you're in.
 - **Light / dark theme** (`m`, or the ☀️/🌙 button) — follows your OS preference until you pick one; the choice is per-device and applied before first paint, so there's no flash on reload.
-- **Multi-day** — navigate days with `[` / `]`, defer a task to tomorrow with `o`.
+- **Multi-day** — navigate days with `[` / `]`. Defer a task to tomorrow with `o`, or send it to any date from the editor's **Move to another day** picker (`today` / `next day` / `+1 week` shortcuts, aimed at today by default). A moved task keeps everything it had, pinned meeting time included; a defer means "didn't get to it", so it goes back to *to-do* and drops the pin. `Shift+O` pulls the selected task onto today — the quick way to sweep yesterday's leftovers forward.
 - **Clear finished work** — `clear` on the Done list drops the day's completed tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
+- **Undo for anything that leaves the day** — clears and cross-day moves both raise the same transient bar: undo (or `u` / `⌘Z`) restores the task and the dependency links it left behind, and `go there →` jumps to the day it landed on.
 - **Drag & drop** — drag tasks on the timeline (or rows in the list) to reorder the queue; drag a 📌 pinned task to move its time (Shift = 5-min snap); Alt+drag any task to pin it at a specific time.
 - **Flowchart view** (`v`) — plan visually on a canvas: tasks are nodes, dependencies are arrows you draw by dragging from a node's ○ port. Double-click the canvas to create a task in place (quick-add syntax works), click an arrow to remove it, and drop a node into the ∥ swimlane to make it concurrent. Auto-arrange lays the graph out by dependency depth. Both views edit the same plan, so the timeline reflows as you sketch.
 
@@ -57,7 +58,7 @@ npm run test:watch
 Two layers, split by what they can actually prove:
 
 - **`tests/`** — the derived-state core in isolation: the scheduler's packing, anchoring, dependency and lane rules; the quick-add grammar; every store action; the theme boot script; the debounced autosave; and the plan route against a temp directory and a stubbed Postgres.
-- **`e2e/`** — the app in a real browser: quick-add through to a reflowed timeline, the three done buttons, clear/undo, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), and the share link's read-only guarantee.
+- **`e2e/`** — the app in a real browser: quick-add through to a reflowed timeline, the three done buttons, clear/undo, moving tasks between days, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), and the share link's read-only guarantee.
 
 The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead. The clock is pinned to 08:00 on 2026-07-28, so schedules are deterministic rather than depending on when you run the suite.
 
@@ -85,8 +86,9 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 | `+` / `-` | duration ±15m |
 | `s` | auto-sort by priority |
 | `o` | defer to tomorrow |
+| `Shift+O` | move to today |
 | `x` / `Del` | delete |
-| `u` / `⌘Z` | undo the last clear |
+| `u` / `⌘Z` | undo the last clear or move |
 | `[` / `]` | previous / next day |
 | `t` | today |
 | `v` | toggle timeline / flowchart view |

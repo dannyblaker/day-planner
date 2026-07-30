@@ -96,7 +96,7 @@ export default function Home() {
       }
       if (!inField && (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "z") {
         e.preventDefault();
-        s.undoClear();
+        s.undoLast();
         return;
       }
       if (e.key === "Escape") {
@@ -191,6 +191,9 @@ export default function Home() {
         case "o":
           if (sel) s.deferToNextDay(sel);
           break;
+        case "O":
+          if (sel) s.moveTaskToDate(sel, todayISO());
+          break;
         case "x":
         case "Delete":
           if (sel) s.deleteTask(sel);
@@ -211,7 +214,7 @@ export default function Home() {
           toggleTheme();
           break;
         case "u":
-          s.undoClear();
+          s.undoLast();
           break;
         case "?":
           s.setHelpOpen(true);

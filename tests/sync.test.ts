@@ -25,9 +25,9 @@ function mockServer(plan: unknown) {
 
 beforeEach(() => {
   resetFactory();
-  resetStore();
   vi.useFakeTimers({ shouldAdvanceTime: true });
   vi.setSystemTime(new Date(2026, 6, 28, 9, 0, 0));
+  resetStore(); // after the clock is pinned: the reset re-dates the seed from it
 });
 
 describe("loading", () => {

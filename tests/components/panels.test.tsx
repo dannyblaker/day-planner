@@ -8,7 +8,7 @@ import ThemeToggle from "@/components/ThemeToggle";
 import { scheduleDay } from "@/lib/scheduler";
 import { currentTheme } from "@/lib/theme";
 import { DayPlan } from "@/lib/types";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
@@ -242,6 +242,55 @@ describe("Editor", () => {
     await user.click(screen.getByRole("button", { name: /delete/i }));
     expect(tasksToday()).toHaveLength(0);
   });
+
+  describe("move to another day", () => {
+    const picker = () => screen.getByLabelText("Move to another day");
+    const moveButton = () => screen.getByRole("button", { name: "move →" });
+
+    it("aims at today, so there is nothing to do while today is on screen", () => {
+      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
+      expect(picker()).toHaveValue("2026-07-28");
+      expect(moveButton()).toBeDisabled();
+    });
+
+    it("sends the task to the day the picker names", async () => {
+      const user = userEvent.setup();
+      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
+      fireEvent.change(picker(), { target: { value: "2026-08-05" } });
+      await user.click(moveButton());
+      expect(tasksToday()).toHaveLength(0);
+      expect(app().plan.days["2026-08-05"].tasks[0].title).toBe("Only");
+    });
+
+    it("offers a week out as a shortcut", async () => {
+      const user = userEvent.setup();
+      openEditorOn(makeDay([makeTask({ id: "a", title: "Only" })]), "a");
+      await user.click(screen.getByRole("button", { name: "+1 week" }));
+      await user.click(moveButton());
+      expect(app().plan.days["2026-08-04"].tasks[0].title).toBe("Only");
+    });
+
+    it("carries a pinned meeting time over", async () => {
+      const user = userEvent.setup();
+      openEditorOn(
+        makeDay([makeTask({ id: "a", title: "Standup", fixedStart: at(10) })]),
+        "a"
+      );
+      await user.click(screen.getByRole("button", { name: "next day" }));
+      await user.click(moveButton());
+      expect(app().plan.days["2026-07-29"].tasks[0].fixedStart).toBe(at(10));
+    });
+
+    it("drops it when deferring instead — that time belonged to today", async () => {
+      const user = userEvent.setup();
+      openEditorOn(
+        makeDay([makeTask({ id: "a", title: "Standup", fixedStart: at(10) })]),
+        "a"
+      );
+      await user.click(screen.getByRole("button", { name: /tomorrow/ }));
+      expect(app().plan.days["2026-07-29"].tasks[0].fixedStart).toBeNull();
+    });
+  });
 });
 
 describe("GoalsPanel", () => {
@@ -297,7 +346,7 @@ describe("HelpOverlay", () => {
     seedStore();
     app().setHelpOpen(true);
     render(<HelpOverlay />);
-    for (const key of ["d", "b", "v", "m", "u / ⌘Z", "?"]) {
+    for (const key of ["d", "b", "v", "m", "Shift+O", "u / ⌘Z", "?"]) {
       expect(screen.getByText(key, { selector: "kbd" })).toBeInTheDocument();
     }
   });
