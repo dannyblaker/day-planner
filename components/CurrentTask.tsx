@@ -2,11 +2,10 @@
 
 import { useApp } from "@/lib/store";
 import { fmtDur, nowMinutes } from "@/lib/time";
-import { Slot } from "@/lib/types";
 import { useEffect, useRef, useState } from "react";
 import { notify } from "@/lib/notify";
 
-export default function CurrentTask({ slots }: { slots: Slot[] }) {
+export default function CurrentTask() {
   const day = useApp((s) => s.plan.days[s.date]);
   const { startTask, pauseTask, completeTask } = useApp();
   const [, setTick] = useState(0);
@@ -45,9 +44,10 @@ export default function CurrentTask({ slots }: { slots: Slot[] }) {
   if (!day) return null;
 
   if (!active) {
-    const next = slots.find(
-      (s) => s.task.status === "todo" && !s.fixed && s.lane === "focus"
-    );
+    // whatever is at the head of the queue — the same order the list shows
+    const next = day.tasks
+      .filter((t) => t.status === "todo" && !t.blocked && !t.parallel)
+      .sort((a, b) => a.order - b.order)[0];
     return (
       <div className="rounded-lg border border-slate-800 bg-slate-900/60 p-3">
         <div className="text-[10px] uppercase tracking-wider text-slate-500 mb-1">
@@ -56,15 +56,13 @@ export default function CurrentTask({ slots }: { slots: Slot[] }) {
         {next ? (
           <div className="flex items-center gap-2">
             <div className="min-w-0 flex-1">
-              <div className="text-sm text-slate-200 truncate">
-                {next.task.title}
-              </div>
+              <div className="text-sm text-slate-200 truncate">{next.title}</div>
               <div className="text-[11px] text-slate-500">
-                {fmtDur(next.task.duration)}
+                {fmtDur(next.duration)}
               </div>
             </div>
             <button
-              onClick={() => startTask(next.task.id)}
+              onClick={() => startTask(next.id)}
               className="text-xs px-3 py-1.5 rounded-md bg-emerald-600 hover:bg-emerald-500 text-white font-medium"
             >
               ▶ Start

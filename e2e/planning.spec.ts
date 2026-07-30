@@ -1,13 +1,4 @@
-import {
-  expect,
-  flowNode,
-  quickAdd,
-  row,
-  slot,
-  test,
-  todayISO,
-  TOMORROW,
-} from "./fixtures";
+import { expect, flowNode, quickAdd, row, test, todayISO, TOMORROW } from "./fixtures";
 
 /** a week on from the pinned clock, which is what the editor's "+1 week" means */
 const NEXT_WEEK = todayISO(new Date(2026, 7, 4));
@@ -18,17 +9,14 @@ test.beforeEach(async ({ page }) => {
 });
 
 test.describe("the morning brain-dump", () => {
-  test("adds tasks and schedules them back to back", async ({ page, planServer }) => {
+  test("adds tasks to the list and the canvas at once", async ({ page, planServer }) => {
     await quickAdd(page, "Draft the proposal 1h !1 #deep-work", "Draft the proposal");
     await quickAdd(page, "Review PRs 45m !2", "Review PRs");
 
     await expect(page.getByText("Queue · 2")).toBeVisible();
-    await expect(slot(page, "Draft the proposal")).toBeVisible();
+    await expect(flowNode(page, "Draft the proposal")).toBeVisible();
+    await expect(flowNode(page, "Draft the proposal").getByText("1h")).toBeVisible();
     await expect(row(page, "Draft the proposal").getByText("deep-work")).toBeVisible();
-
-    // the second task starts where the first one ends
-    await expect(slot(page, "Draft the proposal")).toHaveAttribute("title", /08:00–09:00/);
-    await expect(slot(page, "Review PRs")).toHaveAttribute("title", /09:00–09:45/);
 
     await planServer.settled();
     expect(planServer.titles()).toEqual(["Draft the proposal", "Review PRs"]);
@@ -47,15 +35,6 @@ test.describe("the morning brain-dump", () => {
     await expect(input).toHaveValue("");
   });
 
-  test("pins a meeting at its time and packs work around it", async ({ page }) => {
-    await quickAdd(page, "Standup 15m @10:00", "Standup");
-    await quickAdd(page, "Deep work 3h", "Deep work");
-
-    await expect(slot(page, "Standup")).toHaveAttribute("title", /10:00–10:15/);
-    // three hours cannot fit before 10:00, so it lands after the meeting
-    await expect(slot(page, "Deep work")).toHaveAttribute("title", /10:15–13:15/);
-  });
-
   test("puts an urgent task at the front of the queue", async ({ page, planServer }) => {
     await quickAdd(page, "Normal work 30m", "Normal work");
     await quickAdd(page, "Hotfix 20m ^", "Hotfix");
@@ -68,38 +47,35 @@ test.describe("the morning brain-dump", () => {
     expect(order).toEqual(["Hotfix", "Normal work"]);
   });
 
-  test("holds a dependent task until its prerequisite is done", async ({ page }) => {
+  test("links a dependent task to its prerequisite", async ({ page }) => {
     await quickAdd(page, "Design it 1h", "Design it");
     await quickAdd(page, "Build it 30m >design", "Build it");
 
-    await expect(slot(page, "Design it")).toHaveAttribute("title", /08:00–09:00/);
-    await expect(slot(page, "Build it")).toHaveAttribute("title", /09:00–09:30/);
     await expect(row(page, "Build it").getByTitle("has dependencies")).toHaveText(/1/);
+    // an arrow on the canvas, drawn from the prerequisite to the dependent
+    await expect(page.locator("g.cursor-pointer")).toHaveCount(1);
+    await expect(page.locator("svg title")).toContainText("Design it");
   });
 
-  test("parks a blocked task out of the timeline", async ({ page }) => {
+  test("parks a blocked task in its own list, flagged on the canvas", async ({ page }) => {
     await quickAdd(page, "Ship it 20m *waiting-on-legal", "Ship it");
     await expect(page.getByText("Blocked · 1")).toBeVisible();
-    await expect(page.getByText(/waiting on legal/)).toBeVisible();
-    await expect(slot(page, "Ship it")).toHaveCount(0);
+    await expect(page.getByText(/waiting on legal/).first()).toBeVisible();
+    await expect(flowNode(page, "Ship it").getByText(/waiting on legal/)).toBeVisible();
   });
 
-  test("gives background work its own lane", async ({ page }) => {
+  test("drops background work into the concurrency band", async ({ page }) => {
     await quickAdd(page, "Focus work 1h", "Focus work");
     await quickAdd(page, "CI pipeline 45m ~", "CI pipeline");
-    await expect(page.getByText("parallel")).toBeVisible();
-    // both start at once — the background lane overlaps focus work
-    await expect(slot(page, "Focus work")).toHaveAttribute("title", /08:00–09:00/);
-    await expect(slot(page, "CI pipeline")).toHaveAttribute("title", /08:00–08:45/);
-  });
-});
 
-test.describe("capacity", () => {
-  test("reports slack, then flags going over", async ({ page }) => {
-    await expect(page.getByTitle(/focus-lane work remaining/)).toContainText("slack");
-    await quickAdd(page, "Enormous job 12h", "Enormous job");
-    await expect(page.getByTitle(/focus-lane work remaining/)).toContainText("over by");
-    await expect(slot(page, "Enormous job").getByText("past day end")).toBeVisible();
+    await expect(page.getByText(/tasks here run concurrently/)).toBeVisible();
+    await expect(flowNode(page, "CI pipeline").getByTitle("concurrent")).toBeVisible();
+    await expect(flowNode(page, "Focus work").getByTitle("concurrent")).toHaveCount(0);
+
+    // the ∥ node sits below the divider, the focus node above it
+    const ci = (await flowNode(page, "CI pipeline").boundingBox())!;
+    const focus = (await flowNode(page, "Focus work").boundingBox())!;
+    expect(ci.y).toBeGreaterThan(focus.y);
   });
 });
 
@@ -116,17 +92,8 @@ test.describe("marking work done", () => {
     expect(planServer.tasks()[0].status).toBe("done");
   });
 
-  test("from the timeline block", async ({ page, planServer }) => {
-    await slot(page, "Write the report").hover();
-    await slot(page, "Write the report").getByLabel("Mark task done").click();
-    await expect(page.getByText("Done · 1")).toBeVisible();
-    await planServer.settled();
-    expect(planServer.tasks()[0].status).toBe("done");
-  });
-
   test("from the flowchart node, and back again", async ({ page, planServer }) => {
     await page.locator("body").click();
-    await page.keyboard.press("v");
     const node = flowNode(page, "Write the report");
     await node.hover();
     await node.getByLabel("Mark task done").click();
@@ -153,7 +120,6 @@ test.describe("the flowchart", () => {
   test("drags a node without tripping its done button", async ({ page, planServer }) => {
     await quickAdd(page, "Write the report 30m", "Write the report");
     await page.locator("body").click();
-    await page.keyboard.press("v");
 
     const node = flowNode(page, "Write the report");
     const before = (await node.boundingBox())!;
@@ -173,7 +139,6 @@ test.describe("the flowchart", () => {
     await quickAdd(page, "First job 30m", "First job");
     await quickAdd(page, "Second job 30m", "Second job");
     await page.locator("body").click();
-    await page.keyboard.press("v");
 
     const source = flowNode(page, "First job");
     const target = flowNode(page, "Second job");
@@ -202,7 +167,6 @@ test.describe("the flowchart", () => {
   test("opens the editor beside the canvas, not off-screen", async ({ page }) => {
     await quickAdd(page, "Write the report 30m", "Write the report");
     await page.locator("body").click();
-    await page.keyboard.press("v");
 
     await flowNode(page, "Write the report").dblclick();
     const editor = page.getByRole("complementary").filter({ hasText: "Edit task" });
@@ -211,7 +175,6 @@ test.describe("the flowchart", () => {
   });
 
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {
-    await page.keyboard.press("v");
     await page.locator(".cursor-grab").first().dblclick({ position: { x: 400, y: 300 } });
     await page.getByPlaceholder(/New task/).fill("Made on the canvas 25m");
     await page.getByPlaceholder(/New task/).press("Enter");
@@ -251,7 +214,6 @@ test.describe("moving between days", () => {
     await expect(page.getByText("Nothing queued")).toBeVisible();
 
     await page.getByRole("button", { name: /go there/ }).click();
-    await expect(page.getByText(`DayFlow · ${NEXT_WEEK}`)).toBeVisible();
     await expect(row(page, "Ship the thing")).toBeVisible();
 
     await planServer.settled();

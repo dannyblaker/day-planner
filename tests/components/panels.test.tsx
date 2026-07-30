@@ -5,7 +5,6 @@ import GoalsPanel from "@/components/GoalsPanel";
 import HelpOverlay from "@/components/HelpOverlay";
 import QuickAdd from "@/components/QuickAdd";
 import ThemeToggle from "@/components/ThemeToggle";
-import { scheduleDay } from "@/lib/scheduler";
 import { currentTheme } from "@/lib/theme";
 import { DayPlan } from "@/lib/types";
 import { fireEvent, render, screen } from "@testing-library/react";
@@ -105,7 +104,7 @@ describe("QuickAdd", () => {
 describe("CurrentTask", () => {
   const renderPanel = (day: DayPlan) => {
     seedStore(day);
-    return render(<CurrentTask slots={scheduleDay(day, at(9))} />);
+    return render(<CurrentTask />);
   };
 
   it("offers the next task when nothing is running", () => {
@@ -270,26 +269,6 @@ describe("Editor", () => {
       expect(app().plan.days["2026-08-04"].tasks[0].title).toBe("Only");
     });
 
-    it("carries a pinned meeting time over", async () => {
-      const user = userEvent.setup();
-      openEditorOn(
-        makeDay([makeTask({ id: "a", title: "Standup", fixedStart: at(10) })]),
-        "a"
-      );
-      await user.click(screen.getByRole("button", { name: "next day" }));
-      await user.click(moveButton());
-      expect(app().plan.days["2026-07-29"].tasks[0].fixedStart).toBe(at(10));
-    });
-
-    it("drops it when deferring instead — that time belonged to today", async () => {
-      const user = userEvent.setup();
-      openEditorOn(
-        makeDay([makeTask({ id: "a", title: "Standup", fixedStart: at(10) })]),
-        "a"
-      );
-      await user.click(screen.getByRole("button", { name: /tomorrow/ }));
-      expect(app().plan.days["2026-07-29"].tasks[0].fixedStart).toBeNull();
-    });
   });
 });
 
@@ -346,7 +325,7 @@ describe("HelpOverlay", () => {
     seedStore();
     app().setHelpOpen(true);
     render(<HelpOverlay />);
-    for (const key of ["d", "b", "v", "m", "Shift+O", "u / ⌘Z", "?"]) {
+    for (const key of ["d", "b", "m", "Shift+O", "u / ⌘Z", "?"]) {
       expect(screen.getByText(key, { selector: "kbd" })).toBeInTheDocument();
     }
   });

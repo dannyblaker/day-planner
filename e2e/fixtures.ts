@@ -9,8 +9,6 @@ export interface Plan {
 }
 interface DayPlan {
   date: string;
-  dayStart: number;
-  dayEnd: number;
   tasks: Task[];
 }
 interface Task {
@@ -29,9 +27,8 @@ interface Task {
 export const SHARE_TOKEN = "e2e-share-token";
 
 /**
- * The schedule is derived from the current time, so the suite pins the clock:
- * 08:00 on a Tuesday, which is also the day's start. Every task therefore lands
- * at a predictable hour instead of wherever "now" happens to be.
+ * Timers measure against the clock, so the suite pins it: 08:00 on a Tuesday.
+ * Elapsed time is then a fact of the fixture rather than of when you ran it.
  */
 export const E2E_NOW = new Date(2026, 6, 28, 8, 0, 0);
 
@@ -47,7 +44,7 @@ export const TOMORROW = todayISO(new Date(2026, 6, 29));
 export function emptyPlan(date = E2E_DATE): Plan {
   return {
     goals: [{ id: "g1", name: "deep-work", color: "#818cf8" }],
-    days: { [date]: { date, dayStart: 8 * 60, dayEnd: 18 * 60, tasks: [] } },
+    days: { [date]: { date, tasks: [] } },
     shareToken: SHARE_TOKEN,
   };
 }
@@ -146,9 +143,6 @@ export async function quickAdd(page: Page, input: string, title = input.split(/\
 
 export const row = (page: Page, title: string) =>
   page.locator("[data-task-row]").filter({ hasText: title });
-
-export const slot = (page: Page, title: string) =>
-  page.locator(`div[title^=${JSON.stringify(title)}]`);
 
 export const flowNode = (page: Page, title: string) =>
   page.locator("[data-flow-node]").filter({ hasText: title });

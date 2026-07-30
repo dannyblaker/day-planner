@@ -1,15 +1,14 @@
 import FlowView from "@/components/FlowView";
-import { scheduleDay } from "@/lib/scheduler";
 import { DayPlan } from "@/lib/types";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
-import { at, makeDay, makeTask, resetFactory } from "../factory";
+import { makeDay, makeTask, resetFactory } from "../factory";
 
 function renderFlow(day: DayPlan) {
   seedStore(day);
-  return render(<FlowView slots={scheduleDay(day, at(9))} />);
+  return render(<FlowView />);
 }
 
 const tasksToday = () => app().plan.days["2026-07-28"].tasks;
@@ -23,7 +22,7 @@ beforeEach(() => {
 });
 
 describe("the canvas", () => {
-  it("draws a node per task, with its duration and scheduled start", () => {
+  it("draws a node per task, with its duration", () => {
     renderFlow(
       makeDay([
         makeTask({ id: "a", title: "Write report", duration: 60 }),
@@ -32,7 +31,6 @@ describe("the canvas", () => {
     );
     expect(screen.getAllByText(/Write report|Review PRs/)).toHaveLength(2);
     expect(within(node("Write report")).getByText("1h")).toBeInTheDocument();
-    expect(within(node("Write report")).getByText("09:00")).toBeInTheDocument();
   });
 
   it("labels both bands", () => {
@@ -57,7 +55,7 @@ describe("the canvas", () => {
     expect(screen.getByText(/First → Second/)).toBeInTheDocument();
   });
 
-  it("marks blocked and unfittable work on the node", () => {
+  it("marks blocked work on the node", () => {
     renderFlow(
       makeDay([makeTask({ title: "Ship it", blocked: "waiting on legal", duration: 30 })])
     );

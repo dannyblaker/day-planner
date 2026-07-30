@@ -1,15 +1,14 @@
 import TaskList from "@/components/TaskList";
-import { scheduleDay } from "@/lib/scheduler";
 import { DayPlan } from "@/lib/types";
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
-import { at, makeDay, makeTask, resetFactory } from "../factory";
+import { makeDay, makeTask, resetFactory } from "../factory";
 
 function renderList(day: DayPlan) {
   seedStore(day);
-  return render(<TaskList slots={scheduleDay(day, at(9))} />);
+  return render(<TaskList />);
 }
 
 const row = (title: string) =>
@@ -101,7 +100,7 @@ describe("sections", () => {
     expect(screen.queryByText("Finished thing")).not.toBeInTheDocument();
   });
 
-  it("orders the queue by scheduled start, not by array position", () => {
+  it("orders the queue by position in the queue, not by array position", () => {
     renderList(
       makeDay([
         makeTask({ id: "late", title: "Later", order: 2 }),
@@ -114,22 +113,16 @@ describe("sections", () => {
 });
 
 describe("row detail", () => {
-  it("shows duration, scheduled start and the goal chip", () => {
+  it("shows duration and the goal chip", () => {
     renderList(makeDay([makeTask({ title: "Write report", duration: 45, goalId: "g1" })]));
     const r = row("Write report");
     expect(within(r).getByText("45m")).toBeInTheDocument();
-    expect(within(r).getByText("09:00")).toBeInTheDocument();
     expect(within(r).getByText("deep-work")).toBeInTheDocument();
   });
 
   it("flags a blocked task with its reason", () => {
     renderList(makeDay([makeTask({ title: "Ship it", blocked: "waiting on legal" })]));
     expect(screen.getByText(/waiting on legal/)).toBeInTheDocument();
-  });
-
-  it("marks work that will not fit before the end of the day", () => {
-    renderList(makeDay([makeTask({ title: "Huge job", duration: 600 })], { dayEnd: at(10) }));
-    expect(screen.getByText(/won't fit/)).toBeInTheDocument();
   });
 
   it("counts dependencies", () => {

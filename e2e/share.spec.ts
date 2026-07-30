@@ -4,7 +4,7 @@ test.describe("the live share link", () => {
   test("shows today's plan read-only", async ({ page, planServer }) => {
     await page.goto("/");
     await quickAdd(page, "Draft the proposal 1h", "Draft the proposal");
-    await quickAdd(page, "Standup 15m @10:00", "Standup");
+    await quickAdd(page, "Standup 15m", "Standup");
     await planServer.settled();
 
     await page.goto(`/share/${SHARE_TOKEN}`);
@@ -43,7 +43,7 @@ test.describe("the live share link", () => {
     await expect(page.getByText(/working on now/)).toBeVisible();
     await expect(page.getByText("Running now").first()).toBeVisible();
     await expect(page.getByText(/blocked \(1\)/)).toBeVisible();
-    await expect(page.getByText(/waiting on legal/)).toBeVisible();
+    await expect(page.getByText(/waiting on legal/).first()).toBeVisible();
   });
 
   test("rejects a wrong token", async ({ page }) => {

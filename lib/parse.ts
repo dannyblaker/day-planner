@@ -1,4 +1,3 @@
-import { parseTime } from "./time";
 import { Goal, Priority, Task } from "./types";
 
 export interface ParsedTask {
@@ -6,7 +5,6 @@ export interface ParsedTask {
   duration: number;
   priority: Priority;
   goalName?: string;
-  fixedStart?: number | null;
   dependsOn: string[];
   parallel: boolean;
   blocked: string | null;
@@ -16,11 +14,10 @@ export interface ParsedTask {
 
 /**
  * Quick-add syntax, e.g.:
- *   "Write report 45m !1 #deepwork @2pm >design ~ ^"
- *   45m/1h    duration        !1..!4   priority
- *   #goal     goal (created if new)    @2pm / @14:30  fixed start
- *   >title    depends on task matching title prefix
- *   ~         background/parallel      *reason  blocked
+ *   "Write report 45m !1 #deepwork >design ~ ^"
+ *   45m/1h    duration                !1..!4   priority
+ *   #goal     goal (created if new)   >title   depends on title prefix
+ *   ~         background/parallel     *reason  blocked
  *   ^         do next (front of queue)
  */
 export function parseQuickAdd(
@@ -67,13 +64,6 @@ export function parseQuickAdd(
       );
       out.goalName = existing ? existing.name : name;
       continue;
-    }
-    if (raw.startsWith("@") && raw.length > 1) {
-      const t = parseTime(raw.slice(1));
-      if (t != null) {
-        out.fixedStart = t;
-        continue;
-      }
     }
     if (raw.startsWith(">") && raw.length > 1) {
       const q = raw.slice(1).toLowerCase();

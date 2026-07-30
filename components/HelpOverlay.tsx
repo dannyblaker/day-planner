@@ -20,28 +20,23 @@ const SHORTCUTS: [string, string][] = [
   ["u / ⌘Z", "undo the last clear or move"],
   ["[ / ]", "previous / next day"],
   ["t", "jump to today"],
-  ["v", "toggle timeline / flowchart view"],
   ["m", "toggle light / dark theme"],
   ["?", "this help"],
   ["Esc", "close panels / deselect"],
-  ["drag task (timeline)", "reorder the queue"],
-  ["drag 📌 task (timeline)", "move its fixed time (Shift = 5-min snap)"],
-  ["Alt+drag (timeline)", "pin task at the dropped time"],
   ["drag row (list)", "reorder the queue"],
-  ["dbl-click task (any view)", "open the editor"],
+  ["dbl-click task", "open the editor"],
   ["move to day (editor)", "send the task to any date"],
   ["move all → (list)", "send the day's unfinished work to another date"],
-  ["dbl-click canvas (flow)", "create task at that spot"],
-  ["drag ○ → node (flow)", "draw a dependency arrow"],
-  ["click arrow (flow)", "remove that dependency"],
-  ["drop node in ∥ band (flow)", "make it concurrent"],
+  ["dbl-click canvas", "create task at that spot"],
+  ["drag ○ → node", "draw a dependency arrow"],
+  ["click arrow", "remove that dependency"],
+  ["drop node in ∥ band", "make it concurrent"],
 ];
 
 const SYNTAX: [string, string][] = [
   ["45m · 1h · 1h30", "duration"],
   ["!1 … !4", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
-  ["@2pm · @14:30", "fixed start time (meeting)"],
   [">design", "depends on task whose title starts with “design”"],
   ["~", "parallel / background task"],
   ["*waiting-on-bob", "blocked, with reason"],
@@ -87,7 +82,7 @@ export default function HelpOverlay() {
         <p className="text-[11px] text-slate-500 mb-2">
           Type a title plus any tokens, e.g.{" "}
           <code className="text-indigo-300">
-            Fix login bug 1h !1 #deep-work &gt;deploy ^
+            Fix login bug 1h !1 #deep-work &gt;deploy ~
           </code>
         </p>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">

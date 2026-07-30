@@ -1,20 +1,17 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { fmtDur, fmtTime, todayISO } from "@/lib/time";
-import { Goal, Slot, Task } from "@/lib/types";
+import { fmtDur, todayISO } from "@/lib/time";
+import { Goal, PRIORITY_COLOR, Task } from "@/lib/types";
 import DayPicker from "./DayPicker";
-import { PRIORITY_COLOR } from "./Timeline";
 import { useRef, useState } from "react";
 
 function Row({
   task,
-  slot,
   goal,
   selected,
 }: {
   task: Task;
-  slot?: Slot;
   goal?: Goal;
   selected: boolean;
 }) {
@@ -69,8 +66,6 @@ function Row({
         </div>
         <div className="text-[10px] text-slate-500 flex gap-1.5 items-center flex-wrap">
           <span>{fmtDur(task.duration)}</span>
-          {slot && !done && <span>{fmtTime(slot.start)}</span>}
-          {task.fixedStart != null && <span title="fixed time">📌</span>}
           {task.parallel && <span title="runs in parallel">∥</span>}
           {task.dependsOn.length > 0 && (
             <span title="has dependencies">⛓ {task.dependsOn.length}</span>
@@ -80,7 +75,6 @@ function Row({
               ⛔ {task.blocked}
             </span>
           )}
-          {slot?.overflow && <span className="text-red-400">won&apos;t fit</span>}
           {goal && (
             <span
               className="px-1 rounded-full"
@@ -119,7 +113,7 @@ function Row({
   );
 }
 
-export default function TaskList({ slots }: { slots: Slot[] }) {
+export default function TaskList() {
   const day = useApp((s) => s.plan.days[s.date]);
   const date = useApp((s) => s.date);
   const goals = useApp((s) => s.plan.goals);
@@ -135,11 +129,9 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
   const dragId = useRef<string | null>(null);
   if (!day) return null;
 
-  const slotOf = new Map(slots.map((s) => [s.task.id, s]));
-  const startOf = (t: Task) => slotOf.get(t.id)?.start ?? 9999;
   const queue = day.tasks
     .filter((t) => (t.status === "todo" || t.status === "active") && !t.blocked)
-    .sort((a, b) => startOf(a) - startOf(b));
+    .sort((a, b) => a.order - b.order);
   const blocked = day.tasks.filter((t) => t.blocked && t.status !== "done");
   const done = day.tasks.filter((t) => t.status === "done");
   const unfinished = day.tasks.filter((t) => t.status !== "done");
@@ -229,12 +221,7 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
               {dropBefore === t.id && (
                 <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
               )}
-              <Row
-                task={t}
-                slot={slotOf.get(t.id)}
-                goal={goalOf(t)}
-                selected={selectedId === t.id}
-              />
+              <Row task={t} goal={goalOf(t)} selected={selectedId === t.id} />
             </div>
           ))}
           {dropBefore === null && (

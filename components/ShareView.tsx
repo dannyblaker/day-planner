@@ -1,11 +1,10 @@
 "use client";
 
-import { scheduleDay } from "@/lib/scheduler";
-import { fmtDateHuman, fmtDur, nowMinutes, todayISO } from "@/lib/time";
+import { fmtDateHuman, fmtDur, todayISO } from "@/lib/time";
 import { Plan } from "@/lib/types";
 import { useEffect, useState } from "react";
+import FlowCanvas from "./FlowCanvas";
 import ThemeToggle from "./ThemeToggle";
-import Timeline from "./Timeline";
 
 /** Read-only live view of today's plan — poll the server every 5 seconds. */
 export default function ShareView({ token }: { token: string }) {
@@ -57,7 +56,6 @@ export default function ShareView({ token }: { token: string }) {
 
   const date = todayISO();
   const day = plan.days[date];
-  const now = nowMinutes();
 
   if (!day) {
     return (
@@ -67,7 +65,6 @@ export default function ShareView({ token }: { token: string }) {
     );
   }
 
-  const slots = scheduleDay(day, now);
   const total = day.tasks.length;
   const done = day.tasks.filter((t) => t.status === "done").length;
   const active = day.tasks.find((t) => t.status === "active");
@@ -95,9 +92,9 @@ export default function ShareView({ token }: { token: string }) {
         </span>
       </header>
 
-      <div className="max-w-3xl mx-auto p-5">
+      <div className="h-[calc(100vh-53px)] flex flex-col p-5 gap-4">
         {active && (
-          <div className="mb-4 rounded-lg border border-emerald-500/50 bg-emerald-950/30 px-4 py-2.5 text-sm">
+          <div className="rounded-lg border border-emerald-500/50 bg-emerald-950/30 px-4 py-2.5 text-sm">
             <span className="text-emerald-400">▶ working on now: </span>
             <span className="text-slate-100 font-medium">{active.title}</span>
             <span className="text-slate-500 text-xs">
@@ -107,20 +104,15 @@ export default function ShareView({ token }: { token: string }) {
           </div>
         )}
         {blocked.length > 0 && (
-          <div className="mb-4 rounded-lg border border-red-900 bg-red-950/20 px-4 py-2.5 text-xs">
+          <div className="rounded-lg border border-red-900 bg-red-950/20 px-4 py-2.5 text-xs">
             <span className="text-red-400 font-medium">
               ⛔ blocked ({blocked.length}):{" "}
             </span>
             {blocked.map((t) => `${t.title} — ${t.blocked}`).join(" · ")}
           </div>
         )}
-        <Timeline
-          day={day}
-          slots={slots}
-          now={now}
-          goals={plan.goals}
-          isToday
-        />
+        {/* no editing callbacks: the canvas renders itself read-only */}
+        <FlowCanvas tasks={day.tasks} goals={plan.goals} />
       </div>
     </div>
   );

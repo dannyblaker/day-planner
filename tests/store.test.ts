@@ -326,7 +326,7 @@ describe("moving between days", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "a", title: "Alpha", status: "done", fixedStart: at(10) }),
+        makeTask({ id: "a", title: "Alpha", status: "done" }),
         makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
       ])
     )
@@ -349,12 +349,10 @@ describe("moving between days", () => {
     expect(app().editorOpen).toBe(false);
   });
 
-  it("creates an empty day with sensible bounds on arrival", () => {
+  it("creates an empty day on arrival", () => {
     app().shiftDate(1);
     expect(app().plan.days[TOMORROW]).toMatchObject({
       date: TOMORROW,
-      dayStart: at(8),
-      dayEnd: at(18),
       tasks: [],
     });
   });
@@ -367,7 +365,6 @@ describe("moving between days", () => {
       title: "Alpha",
       status: "todo",
       actualStart: null,
-      fixedStart: null,
       dependsOn: [],
     });
   });
@@ -395,7 +392,7 @@ describe("moving a task to another day", () => {
   beforeEach(() =>
     load(
       makeDay([
-        makeTask({ id: "a", title: "Alpha", status: "done", fixedStart: at(10) }),
+        makeTask({ id: "a", title: "Alpha", status: "done" }),
         makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
       ])
     )
@@ -407,7 +404,6 @@ describe("moving a task to another day", () => {
     expect(moved()[0]).toMatchObject({
       title: "Alpha",
       status: "done",
-      fixedStart: at(10),
       dependsOn: [],
     });
   });
@@ -416,8 +412,6 @@ describe("moving a task to another day", () => {
     app().moveTaskToDate("a", LATER);
     expect(app().plan.days[LATER]).toMatchObject({
       date: LATER,
-      dayStart: at(8),
-      dayEnd: at(18),
     });
   });
 
@@ -491,8 +485,7 @@ describe("moving a task to another day", () => {
       expect(task("a")).toMatchObject({
         title: "Alpha",
         status: "done",
-        fixedStart: at(10),
-      });
+        });
       expect(task("b")!.dependsOn).toEqual(["a"]);
       expect(app().lastMoved).toBeNull();
     });
@@ -596,11 +589,9 @@ describe("moving a day's unfinished work", () => {
     expect(moved().map((t) => t.order)).toEqual([1, 2, 3, 4]);
   });
 
-  it("carries a blocker and a pinned time across", () => {
-    app().updateTask("b", { fixedStart: at(10) });
+  it("carries a blocker across", () => {
     app().moveUnfinishedToDate(LATER);
     expect(moved().find((t) => t.title === "Gamma")!.blocked).toBe("waiting on bob");
-    expect(moved().find((t) => t.title === "Beta")!.fixedStart).toBe(at(10));
   });
 
   it("banks the time on whatever was running", () => {
@@ -636,20 +627,6 @@ describe("moving a day's unfinished work", () => {
     expect(task("b")!.dependsOn).toEqual(["a"]);
     expect(task("late")!.dependsOn).toEqual(["b"]);
     expect(moved()).toEqual([]);
-  });
-});
-
-describe("day bounds", () => {
-  beforeEach(() => load());
-
-  it("sets the working window", () => {
-    app().setDayBounds(at(7), at(19));
-    expect(app().plan.days[TODAY]).toMatchObject({ dayStart: at(7), dayEnd: at(19) });
-  });
-
-  it("keeps the day at least an hour long", () => {
-    app().setDayBounds(at(9), at(8));
-    expect(app().plan.days[TODAY].dayEnd).toBe(at(10));
   });
 });
 

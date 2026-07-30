@@ -26,13 +26,7 @@ export function makeTask(partial: Partial<Task> = {}): Task {
 }
 
 export function makeDay(tasks: Task[] = [], partial: Partial<DayPlan> = {}): DayPlan {
-  return {
-    date: "2026-07-28",
-    dayStart: at(8),
-    dayEnd: at(18),
-    tasks,
-    ...partial,
-  };
+  return { date: "2026-07-28", tasks, ...partial };
 }
 
 export function makePlan(days: DayPlan[] = [makeDay()], partial: Partial<Plan> = {}): Plan {

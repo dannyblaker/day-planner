@@ -1,7 +1,7 @@
 import { parseQuickAdd } from "@/lib/parse";
 import { Goal } from "@/lib/types";
 import { beforeEach, describe, expect, it } from "vitest";
-import { at, makeTask, resetFactory } from "./factory";
+import { makeTask, resetFactory } from "./factory";
 
 const goals: Goal[] = [
   { id: "g1", name: "deep-work", color: "#818cf8" },
@@ -90,22 +90,6 @@ describe("goals", () => {
     const parsed = parse("Task #");
     expect(parsed.goalName).toBeUndefined();
     expect(parsed.title).toBe("Task #");
-  });
-});
-
-describe("fixed start", () => {
-  it.each([
-    ["@2pm", at(14)],
-    ["@14:30", at(14, 30)],
-    ["@9", at(9)],
-  ])("anchors %s", (token, expected) => {
-    expect(parse(`Standup ${token}`).fixedStart).toBe(expected);
-  });
-
-  it("keeps an unparseable @token as part of the title", () => {
-    const parsed = parse("Ping @bob");
-    expect(parsed.fixedStart).toBeUndefined();
-    expect(parsed.title).toBe("Ping @bob");
   });
 });
 

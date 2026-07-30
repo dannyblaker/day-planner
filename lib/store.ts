@@ -2,8 +2,9 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
+import { arrangeByDepth, columnX } from "./flow";
+import { dependentsOf, flowDepths } from "./graph";
 import { parseQuickAdd } from "./parse";
-import { dependentsOf, flowDepths } from "./scheduler";
 import { nowMinutes, todayISO, addDaysISO } from "./time";
 import {
   DayPlan,
@@ -54,16 +55,12 @@ function defaultPlan(): Plan {
       2
     ),
     mk(
-      { title: "Team stand-up", duration: 15, priority: 2, fixedStart: 10 * 60 },
+      { title: "CI pipeline run (background)", duration: 45, parallel: true, priority: 3 },
       3
     ),
     mk(
-      { title: "CI pipeline run (background)", duration: 45, parallel: true, priority: 3 },
-      4
-    ),
-    mk(
       { title: "Press ? for shortcuts — try adding a task with N", duration: 15, priority: 4, goalId: goals[1].id },
-      5
+      4
     ),
   ];
   return { goals, days: { [date]: day }, shareToken: uid() + uid() };
@@ -99,8 +96,6 @@ interface AppState {
   saving: boolean;
   lastCleared: ClearedBatch | null;
   lastMoved: MovedBatch | null;
-  view: "timeline" | "flow";
-  setView: (v: "timeline" | "flow") => void;
   /** assign flowchart positions to tasks that don't have one yet */
   ensureFlowPositions: () => void;
   /** re-layout the whole flowchart by dependency depth */
@@ -143,7 +138,6 @@ interface AppState {
   /** whichever of the two pending offers is on the table (the `u` key) */
   undoLast: () => void;
   deferToNextDay: (id: string) => void;
-  setDayBounds: (start: number, end: number) => void;
   addGoal: (name: string) => void;
   deleteGoal: (id: string) => void;
   toggleDependency: (taskId: string, depId: string) => void;
@@ -177,10 +171,9 @@ interface MoveCtx {
  * move one task and it arrives on its own.
  *
  * The two modes differ in how much of a task's own state survives:
- * - "move": reschedule as-is — a pinned meeting keeps its time, a finished task
- *   stays finished. A running timer is banked and paused either way.
- * - "defer": "I didn't get to this" — back to todo, and the pin is dropped
- *   because it was a time on the day being left behind.
+ * - "move": carry it over as-is — a finished task stays finished. A running
+ *   timer is banked and paused either way.
+ * - "defer": "I didn't get to this" — back to todo.
  */
 function moveToDate(
   s: MoveCtx,
@@ -220,9 +213,7 @@ function moveToDate(
       flowX: null,
       flowY: null,
       order: ++order,
-      ...(mode === "defer"
-        ? { status: "todo" as const, actualStart: null, fixedStart: null }
-        : {}),
+      ...(mode === "defer" ? { status: "todo" as const, actualStart: null } : {}),
     });
   }
 
@@ -265,9 +256,6 @@ export const useApp = create<AppState>()(
     saving: false,
     lastCleared: null,
     lastMoved: null,
-    view: "timeline",
-
-    setView: (v) => set((s) => void (s.view = v)),
 
     ensureFlowPositions: () =>
       set((s) => {
@@ -276,7 +264,7 @@ export const useApp = create<AppState>()(
         if (!missing.length) return;
         const depths = flowDepths(d.tasks);
         for (const t of missing) {
-          const x = 40 + (depths.get(t.id) || 0) * 250;
+          const x = columnX(depths.get(t.id) || 0);
           const bandTop = t.parallel ? FLOW.PAR_Y + 50 : 60;
           const bandMax = t.parallel
             ? FLOW.H - FLOW.NODE_H - 20
@@ -300,19 +288,12 @@ export const useApp = create<AppState>()(
     autoArrangeFlow: () =>
       set((s) => {
         const d = day(s);
-        const depths = flowDepths(d.tasks);
-        const counters: Record<string, number> = {};
-        const sorted = [...d.tasks].sort(
-          (a, b) =>
-            (depths.get(a.id) || 0) - (depths.get(b.id) || 0) ||
-            a.order - b.order
-        );
-        for (const t of sorted) {
-          const dep = depths.get(t.id) || 0;
-          const key = (t.parallel ? "p" : "f") + dep;
-          const i = (counters[key] = (counters[key] ?? -1) + 1);
-          t.flowX = 40 + dep * 250;
-          t.flowY = t.parallel ? FLOW.PAR_Y + 50 + i * 100 : 60 + i * 100;
+        const layout = arrangeByDepth(d.tasks);
+        for (const t of d.tasks) {
+          const p = layout.get(t.id);
+          if (!p) continue;
+          t.flowX = p.x;
+          t.flowY = p.y;
         }
       }),
 
@@ -373,7 +354,6 @@ export const useApp = create<AppState>()(
           dependsOn: parsed.dependsOn,
           blocked: parsed.blocked,
           status: "todo",
-          fixedStart: parsed.fixedStart ?? null,
           parallel: parsed.parallel,
           order,
           actualStart: null,
@@ -617,13 +597,6 @@ export const useApp = create<AppState>()(
 
     deferToNextDay: (id) =>
       set((s) => moveToDate(s, [id], addDaysISO(s.date, 1), "defer")),
-
-    setDayBounds: (start, end) =>
-      set((s) => {
-        const d = day(s);
-        d.dayStart = start;
-        d.dayEnd = Math.max(end, start + 60);
-      }),
 
     addGoal: (name) =>
       set((s) => {

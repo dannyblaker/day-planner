@@ -103,7 +103,7 @@ test("opens the editor with enter and closes it with escape", async ({ page }) =
 test("opens help with ? and lists the shortcuts it implements", async ({ page }) => {
   await page.keyboard.press("?");
   await expect(page.getByText("Keyboard shortcuts")).toBeVisible();
-  for (const key of ["d", "b", "s", "v", "m", "u / ⌘Z"]) {
+  for (const key of ["d", "b", "s", "m", "u / ⌘Z"]) {
     await expect(page.locator("kbd", { hasText: new RegExp(`^${key}$`) }).first()).toBeVisible();
   }
   await page.keyboard.press("Escape");
@@ -120,15 +120,8 @@ test("focuses quick-add with n, and ⌘K from anywhere", async ({ page }) => {
   await expect(page.getByPlaceholder(/Add task/)).toBeFocused();
 });
 
-test("switches views with v", async ({ page }) => {
-  await page.keyboard.press("v");
-  await expect(page.getByText(/focus — one at a time/i)).toBeVisible();
-  await page.keyboard.press("v");
-  await expect(page.getByText(/day ends/)).toBeVisible();
-});
-
 test("shortcuts stay out of the way while typing", async ({ page }) => {
-  await page.getByPlaceholder(/Add task/).fill("dbsvx typing everything");
-  await expect(page.getByPlaceholder(/Add task/)).toHaveValue("dbsvx typing everything");
+  await page.getByPlaceholder(/Add task/).fill("dbsx typing everything");
+  await expect(page.getByPlaceholder(/Add task/)).toHaveValue("dbsx typing everything");
   await expect(page.getByText("Queue · 3")).toBeVisible();
 });

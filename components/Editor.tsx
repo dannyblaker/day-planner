@@ -1,11 +1,10 @@
 "use client";
 
-import { dependentsOf } from "@/lib/scheduler";
+import { dependentsOf } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { fmtTime, todayISO } from "@/lib/time";
-import { Priority } from "@/lib/types";
+import { todayISO } from "@/lib/time";
+import { PRIORITY_COLOR, Priority } from "@/lib/types";
 import DayPicker from "./DayPicker";
-import { PRIORITY_COLOR } from "./Timeline";
 import { useState } from "react";
 
 const field =
@@ -127,30 +126,6 @@ export default function Editor() {
         </select>
       </div>
 
-      <div className="flex gap-2 items-end">
-        <div className="flex-1">
-          <label className={label}>Fixed start (meetings)</label>
-          <input
-            type="time"
-            className={field}
-            value={task.fixedStart != null ? fmtTime(task.fixedStart) : ""}
-            onChange={(e) => {
-              if (!e.target.value) return updateTask(task.id, { fixedStart: null });
-              const [h, m] = e.target.value.split(":").map(Number);
-              updateTask(task.id, { fixedStart: h * 60 + (m || 0) });
-            }}
-          />
-        </div>
-        {task.fixedStart != null && (
-          <button
-            onClick={() => updateTask(task.id, { fixedStart: null })}
-            className="btn mb-0.5"
-          >
-            clear
-          </button>
-        )}
-      </div>
-
       <div className="flex gap-3">
         <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
           <input
@@ -224,7 +199,7 @@ export default function Editor() {
             title={
               moveDate === date
                 ? "that is the day it is already on"
-                : "move it there as it is, pinned time included"
+                : "move it there exactly as it is"
             }
           >
             move →
@@ -236,7 +211,7 @@ export default function Editor() {
         <button
           onClick={() => deferToNextDay(task.id)}
           className="btn flex-1"
-          title="didn't get to it — push to tomorrow and drop its pinned time (o)"
+          title="didn't get to it — push it to tomorrow (o)"
         >
           → tomorrow
         </button>

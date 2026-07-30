@@ -7,77 +7,33 @@ import GoalsPanel from "@/components/GoalsPanel";
 import HelpOverlay from "@/components/HelpOverlay";
 import QuickAdd from "@/components/QuickAdd";
 import TaskList from "@/components/TaskList";
-import Timeline from "@/components/Timeline";
 import TopBar from "@/components/TopBar";
 import UndoBar from "@/components/UndoBar";
-import { notify } from "@/lib/notify";
-import { scheduleDay } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
 import { toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
-import { fmtDateHuman, fmtTime, nowMinutes, todayISO } from "@/lib/time";
-import { Task } from "@/lib/types";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { todayISO } from "@/lib/time";
+import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
   usePlanSync();
   const day = useApp((s) => s.plan.days[s.date]);
-  const goals = useApp((s) => s.plan.goals);
-  const date = useApp((s) => s.date);
-  const selectedId = useApp((s) => s.selectedId);
   const loaded = useApp((s) => s.loaded);
-  const view = useApp((s) => s.view);
 
-  const [tick, setTick] = useState(0);
   const quickAddRef = useRef<HTMLInputElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
-  const notified = useRef<Set<string>>(new Set());
 
-  // reschedule every 20s so the plan reflows live as time passes
-  useEffect(() => {
-    const iv = setInterval(() => setTick((x) => x + 1), 20000);
-    const onVis = () => setTick((x) => x + 1);
-    document.addEventListener("visibilitychange", onVis);
-    return () => {
-      clearInterval(iv);
-      document.removeEventListener("visibilitychange", onVis);
-    };
-  }, []);
-
-  const isToday = date === todayISO();
-  const now = nowMinutes();
-  const slots = useMemo(
-    () => (day ? scheduleDay(day, isToday ? now : day.dayStart) : []),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [day, isToday, tick]
-  );
-
-  // notify shortly before fixed-time tasks start
-  useEffect(() => {
-    if (!isToday) return;
-    for (const s of slots) {
-      if (!s.fixed || s.task.status !== "todo") continue;
-      const key = `${date}:${s.task.id}`;
-      if (s.start - now <= 2 && s.start - now > -1 && !notified.current.has(key)) {
-        notified.current.add(key);
-        notify(`📌 ${fmtTime(s.start)} — ${s.task.title}`, "Starting now.");
-      }
-    }
-  }, [slots, isToday, now, date]);
-
-  // keyboard-driven navigation order: queue (by scheduled start), blocked, done
+  // keyboard-driven navigation order: queue, blocked, done — as the list shows it
   const navIds = useMemo(() => {
     if (!day) return [] as string[];
-    const slotOf = new Map(slots.map((s) => [s.task.id, s]));
-    const startOf = (t: Task) => slotOf.get(t.id)?.start ?? 9999;
     return [
       ...day.tasks
         .filter((t) => (t.status === "todo" || t.status === "active") && !t.blocked)
-        .sort((a, b) => startOf(a) - startOf(b)),
+        .sort((a, b) => a.order - b.order),
       ...day.tasks.filter((t) => t.blocked && t.status !== "done"),
       ...day.tasks.filter((t) => t.status === "done"),
     ].map((t) => t.id);
-  }, [day, slots]);
+  }, [day]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -207,9 +163,6 @@ export default function Home() {
         case "t":
           s.setDate(todayISO());
           break;
-        case "v":
-          s.setView(s.view === "timeline" ? "flow" : "timeline");
-          break;
         case "m":
           toggleTheme();
           break;
@@ -238,56 +191,18 @@ export default function Home() {
       <TopBar exportRef={exportRef} />
       <div className="flex flex-1 min-h-0">
         <aside className="w-80 shrink-0 border-r border-slate-800 flex flex-col gap-3 p-3 overflow-y-auto">
-          <CurrentTask slots={slots} />
+          <CurrentTask />
           <QuickAdd ref={quickAddRef} />
           <div className="flex-1">
-            <TaskList slots={slots} />
+            <TaskList />
           </div>
           <GoalsPanel />
         </aside>
 
         {/* min-w-0: the flow canvas is fixed-width, and without this `main`
             refuses to shrink below it and shoves the editor off-screen */}
-        <main
-          className={`flex-1 min-w-0 p-4 ${
-            view === "flow" ? "min-h-0 flex flex-col" : "overflow-y-auto"
-          }`}
-        >
-          {view === "timeline" ? (
-            <div ref={exportRef} className="bg-background p-2">
-              <div className="flex items-baseline justify-between mb-3 px-1">
-                <h2 className="text-sm font-medium text-slate-300">
-                  {fmtDateHuman(date)}
-                </h2>
-                <span className="text-[10px] text-slate-600">
-                  DayFlow · {date}
-                </span>
-              </div>
-              <Timeline
-                day={day}
-                slots={slots}
-                now={now}
-                goals={goals}
-                selectedId={selectedId}
-                onSelect={(id) => useApp.getState().select(id)}
-                isToday={isToday}
-                onReorder={(id, beforeId) =>
-                  useApp.getState().placeBefore(id, beforeId)
-                }
-                onSetFixedStart={(id, start) =>
-                  useApp.getState().updateTask(id, { fixedStart: start })
-                }
-                onToggleDone={(id) => useApp.getState().toggleDone(id)}
-                onEdit={(id) => {
-                  const s = useApp.getState();
-                  s.select(id);
-                  s.setEditorOpen(true);
-                }}
-              />
-            </div>
-          ) : (
-            <FlowView slots={slots} exportRef={exportRef} />
-          )}
+        <main className="flex-1 min-w-0 min-h-0 flex flex-col p-4">
+          <FlowView exportRef={exportRef} />
         </main>
 
         <Editor />
