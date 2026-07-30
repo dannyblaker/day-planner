@@ -474,13 +474,14 @@ describe("moving a task to another day", () => {
   });
 
   describe("undo", () => {
-    it("offers the move, naming both days", () => {
+    it("offers the move, naming both days and the links it cut", () => {
       app().moveTaskToDate("a", LATER);
       expect(app().lastMoved).toMatchObject({
         from: TODAY,
         to: LATER,
-        dependents: ["b"],
+        deps: { b: ["a"] },
       });
+      expect(app().lastMoved!.tasks.map((t) => t.title)).toEqual(["Alpha"]);
     });
 
     it("brings the task back with its state and its links", () => {
@@ -540,6 +541,101 @@ describe("moving a task to another day", () => {
       app().undoLast();
       expect(task("a")).toBeDefined();
     });
+  });
+});
+
+describe("moving a day's unfinished work", () => {
+  const LATER = "2026-08-05";
+  const moved = () => app().plan.days[LATER]?.tasks ?? [];
+  const movedTitles = () => moved().map((t) => t.title);
+  const dep = (title: string) =>
+    moved().find((t) => t.title === title)!.dependsOn;
+
+  beforeEach(() =>
+    load(
+      makeDay([
+        makeTask({ id: "done", title: "Shipped", status: "done" }),
+        makeTask({ id: "a", title: "Alpha", dependsOn: ["done"] }),
+        makeTask({ id: "b", title: "Beta", dependsOn: ["a"] }),
+        makeTask({
+          id: "c",
+          title: "Gamma",
+          blocked: "waiting on bob",
+          dependsOn: ["b"],
+        }),
+        makeTask({ id: "late", title: "Wrapped", status: "done", dependsOn: ["b"] }),
+      ])
+    )
+  );
+
+  it("takes everything unfinished and leaves the finished work behind", () => {
+    app().moveUnfinishedToDate(LATER);
+    expect(titles()).toEqual(["Shipped", "Wrapped"]);
+    expect(movedTitles()).toEqual(["Alpha", "Beta", "Gamma"]);
+  });
+
+  it("keeps the dependencies between the tasks that travel together", () => {
+    app().moveUnfinishedToDate(LATER);
+    expect(dep("Beta")).toEqual(["a"]);
+    expect(dep("Gamma")).toEqual(["b"]);
+  });
+
+  it("cuts only the links that would have crossed the day boundary", () => {
+    app().moveUnfinishedToDate(LATER);
+    expect(dep("Alpha")).toEqual([]); // it waited on work that stayed behind
+    expect(task("late")!.dependsOn).toEqual([]);
+  });
+
+  it("keeps the queue in the order it was in", () => {
+    app().setDate(LATER);
+    app().quickAdd("Already there");
+    app().setDate(TODAY);
+    app().moveTaskToDate("c", LATER); // Gamma goes on ahead of the others
+    app().moveUnfinishedToDate(LATER);
+    expect(movedTitles()).toEqual(["Already there", "Gamma", "Alpha", "Beta"]);
+    expect(moved().map((t) => t.order)).toEqual([1, 2, 3, 4]);
+  });
+
+  it("carries a blocker and a pinned time across", () => {
+    app().updateTask("b", { fixedStart: at(10) });
+    app().moveUnfinishedToDate(LATER);
+    expect(moved().find((t) => t.title === "Gamma")!.blocked).toBe("waiting on bob");
+    expect(moved().find((t) => t.title === "Beta")!.fixedStart).toBe(at(10));
+  });
+
+  it("banks the time on whatever was running", () => {
+    app().startTask("a");
+    vi.setSystemTime(new Date(2026, 6, 28, 9, 30, 0));
+    app().moveUnfinishedToDate(LATER);
+    expect(moved().find((t) => t.title === "Alpha")).toMatchObject({
+      status: "todo",
+      actualStart: null,
+      actualMinutes: 30,
+    });
+  });
+
+  it("does nothing when the day has no unfinished work left", () => {
+    app().moveUnfinishedToDate(LATER);
+    app().dismissMove();
+    app().moveUnfinishedToDate("2026-08-06");
+    expect(app().plan.days["2026-08-06"]).toBeUndefined();
+    expect(app().lastMoved).toBeNull();
+  });
+
+  it("puts the whole batch back on undo, links and all", () => {
+    app().moveUnfinishedToDate(LATER);
+    app().undoMove();
+    expect(titles().sort()).toEqual([
+      "Alpha",
+      "Beta",
+      "Gamma",
+      "Shipped",
+      "Wrapped",
+    ]);
+    expect(task("a")!.dependsOn).toEqual(["done"]);
+    expect(task("b")!.dependsOn).toEqual(["a"]);
+    expect(task("late")!.dependsOn).toEqual(["b"]);
+    expect(moved()).toEqual([]);
   });
 });
 

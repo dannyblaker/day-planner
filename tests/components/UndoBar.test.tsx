@@ -70,6 +70,21 @@ describe("a task sent to another day", () => {
     );
   });
 
+  it("counts them when a whole day's work travels together", () => {
+    seedStore(
+      makeDay([
+        makeTask({ id: "a", title: "Still going" }),
+        makeTask({ id: "b", title: "Also going" }),
+        makeTask({ id: "c", title: "Finished one", status: "done" }),
+      ])
+    );
+    render(<UndoBar />);
+    act(() => app().moveUnfinishedToDate(LATER));
+    expect(screen.getByRole("status")).toHaveTextContent(
+      `Moved 2 tasks to ${fmtDateHuman(LATER)}`
+    );
+  });
+
   it("brings it back on undo, and leaves the day it went to empty", async () => {
     const user = userEvent.setup();
     render(<UndoBar />);

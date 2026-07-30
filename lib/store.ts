@@ -78,13 +78,13 @@ interface ClearedBatch {
 }
 
 /** Snapshot of a cross-day move, kept only long enough to offer an undo. */
-interface MovedTask {
-  /** the task exactly as it was before the move */
-  task: Task;
+interface MovedBatch {
+  /** the tasks exactly as they were before the move */
+  tasks: Task[];
   from: string;
   to: string;
-  /** ids of tasks on `from` that depended on it */
-  dependents: string[];
+  /** links cut from the tasks that stayed behind: their id → the dep ids lost */
+  deps: Record<string, string[]>;
 }
 
 const ISO_DATE = /^\d{4}-\d{2}-\d{2}$/;
@@ -98,7 +98,7 @@ interface AppState {
   loaded: boolean;
   saving: boolean;
   lastCleared: ClearedBatch | null;
-  lastMoved: MovedTask | null;
+  lastMoved: MovedBatch | null;
   view: "timeline" | "flow";
   setView: (v: "timeline" | "flow") => void;
   /** assign flowchart positions to tasks that don't have one yet */
@@ -136,6 +136,8 @@ interface AppState {
   dismissUndo: () => void;
   /** move a task to any other day, keeping it as it is (pin included) */
   moveTaskToDate: (id: string, date: string) => void;
+  /** move the day's unfinished work to another day, dependencies and all */
+  moveUnfinishedToDate: (date: string) => void;
   undoMove: () => void;
   dismissMove: () => void;
   /** whichever of the two pending offers is on the table (the `u` key) */
@@ -163,72 +165,84 @@ interface MoveCtx {
   selectedId: string | null;
   editorOpen: boolean;
   lastCleared: ClearedBatch | null;
-  lastMoved: MovedTask | null;
+  lastMoved: MovedBatch | null;
 }
 
 /**
- * Take a task off the day on screen and append it to `date`.
+ * Take tasks off the day on screen and append them to `date`, in queue order.
  *
- * Dependencies are day-local, so links in both directions go (recorded, so the
- * undo can put them back). The two modes differ in how much of the task's own
- * state survives:
+ * Dependencies are day-local, so only the links *between the moved tasks*
+ * survive: anything that would cross the day boundary is cut, and recorded so
+ * the undo can put it back. Move the whole day and the graph arrives intact;
+ * move one task and it arrives on its own.
+ *
+ * The two modes differ in how much of a task's own state survives:
  * - "move": reschedule as-is — a pinned meeting keeps its time, a finished task
- *   stays finished. This is the general day-to-day move.
+ *   stays finished. A running timer is banked and paused either way.
  * - "defer": "I didn't get to this" — back to todo, and the pin is dropped
  *   because it was a time on the day being left behind.
  */
 function moveToDate(
   s: MoveCtx,
-  id: string,
+  ids: string[],
   date: string,
   mode: "move" | "defer"
 ) {
   if (!ISO_DATE.test(date) || date === s.date) return;
   const d = day(s);
-  const t = d.tasks.find((x) => x.id === id);
-  if (!t) return;
+  const moving = new Set(ids);
+  const leaving = d.tasks
+    .filter((t) => moving.has(t.id))
+    .sort((a, b) => a.order - b.order);
+  if (!leaving.length) return;
 
-  // plain copy, so the undo snapshot outlives the draft it came from
-  const before: Task = { ...t, dependsOn: [...t.dependsOn] };
-  if (t.status === "active") {
-    accumulate(t);
-    t.status = "todo";
-    t.actualStart = null;
-  }
+  // plain copies, so the undo snapshot outlives the drafts it came from
+  const before = leaving.map((t) => ({ ...t, dependsOn: [...t.dependsOn] }));
+
   let target = s.plan.days[date];
   if (!target) {
     target = emptyDay(date);
     s.plan.days[date] = target;
   }
   const orders = target.tasks.map((x) => x.order);
-  target.tasks.push({
-    ...t,
-    dependsOn: [],
-    // canvas coordinates belong to the day they were laid out on
-    flowX: null,
-    flowY: null,
-    order: (orders.length ? Math.max(...orders) : 0) + 1,
-    ...(mode === "defer"
-      ? { status: "todo" as const, actualStart: null, fixedStart: null }
-      : {}),
-  });
+  let order = orders.length ? Math.max(...orders) : 0;
 
-  d.tasks = d.tasks.filter((x) => x.id !== id);
-  const dependents: string[] = [];
-  for (const x of d.tasks) {
-    if (x.dependsOn.includes(id)) {
-      dependents.push(x.id);
-      x.dependsOn = x.dependsOn.filter((dep) => dep !== id);
+  for (const t of leaving) {
+    if (t.status === "active") {
+      accumulate(t);
+      t.status = "todo";
+      t.actualStart = null;
+    }
+    target.tasks.push({
+      ...t,
+      dependsOn: t.dependsOn.filter((dep) => moving.has(dep)),
+      // canvas coordinates belong to the day they were laid out on
+      flowX: null,
+      flowY: null,
+      order: ++order,
+      ...(mode === "defer"
+        ? { status: "todo" as const, actualStart: null, fixedStart: null }
+        : {}),
+    });
+  }
+
+  d.tasks = d.tasks.filter((t) => !moving.has(t.id));
+  const deps: Record<string, string[]> = {};
+  for (const t of d.tasks) {
+    const lost = t.dependsOn.filter((dep) => moving.has(dep));
+    if (lost.length) {
+      deps[t.id] = lost;
+      t.dependsOn = t.dependsOn.filter((dep) => !moving.has(dep));
     }
   }
 
-  if (s.selectedId === id) {
+  if (s.selectedId && moving.has(s.selectedId)) {
     s.selectedId = null;
     s.editorOpen = false;
   }
   // only one undo offer at a time
   s.lastCleared = null;
-  s.lastMoved = { task: before, from: s.date, to: date, dependents };
+  s.lastMoved = { tasks: before, from: s.date, to: date, deps };
 }
 
 function accumulate(t: Task) {
@@ -557,24 +571,39 @@ export const useApp = create<AppState>()(
     dismissUndo: () => set((s) => void (s.lastCleared = null)),
 
     moveTaskToDate: (id, date) =>
-      set((s) => moveToDate(s, id, date, "move")),
+      set((s) => moveToDate(s, [id], date, "move")),
 
-    /** Takes the task back to the day it came from, links included. */
+    moveUnfinishedToDate: (date) =>
+      set((s) =>
+        moveToDate(
+          s,
+          day(s)
+            .tasks.filter((t) => t.status !== "done")
+            .map((t) => t.id),
+          date,
+          "move"
+        )
+      ),
+
+    /** Takes the tasks back to the day they came from, links included. */
     undoMove: () =>
       set((s) => {
         const m = s.lastMoved;
         if (!m) return;
+        const ids = new Set(m.tasks.map((t) => t.id));
         const target = s.plan.days[m.to];
-        if (target) target.tasks = target.tasks.filter((t) => t.id !== m.task.id);
+        if (target) target.tasks = target.tasks.filter((t) => !ids.has(t.id));
         let src = s.plan.days[m.from];
         if (!src) {
           src = emptyDay(m.from);
           s.plan.days[m.from] = src;
         }
-        if (!src.tasks.some((t) => t.id === m.task.id)) src.tasks.push(m.task);
-        for (const id of m.dependents) {
+        const present = new Set(src.tasks.map((t) => t.id));
+        for (const t of m.tasks) if (!present.has(t.id)) src.tasks.push(t);
+        for (const [id, deps] of Object.entries(m.deps)) {
           const t = src.tasks.find((x) => x.id === id);
-          if (t && !t.dependsOn.includes(m.task.id)) t.dependsOn.push(m.task.id);
+          if (!t) continue;
+          for (const dep of deps) if (!t.dependsOn.includes(dep)) t.dependsOn.push(dep);
         }
         s.lastMoved = null;
       }),
@@ -587,7 +616,7 @@ export const useApp = create<AppState>()(
     },
 
     deferToNextDay: (id) =>
-      set((s) => moveToDate(s, id, addDaysISO(s.date, 1), "defer")),
+      set((s) => moveToDate(s, [id], addDaysISO(s.date, 1), "defer")),
 
     setDayBounds: (start, end) =>
       set((s) => {

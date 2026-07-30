@@ -77,7 +77,11 @@ export default function UndoBar() {
     return (
       <Bar>
         <span className="text-xs text-slate-300 truncate max-w-[34ch]">
-          Moved “{moved.task.title}” to {fmtDateHuman(moved.to)}
+          Moved{" "}
+          {moved.tasks.length === 1
+            ? `“${moved.tasks[0].title}”`
+            : `${moved.tasks.length} tasks`}{" "}
+          to {fmtDateHuman(moved.to)}
         </span>
         <button
           onClick={() => {

@@ -1,8 +1,9 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { fmtDur, fmtTime } from "@/lib/time";
+import { fmtDur, fmtTime, todayISO } from "@/lib/time";
 import { Goal, Slot, Task } from "@/lib/types";
+import DayPicker from "./DayPicker";
 import { PRIORITY_COLOR } from "./Timeline";
 import { useRef, useState } from "react";
 
@@ -120,11 +121,15 @@ function Row({
 
 export default function TaskList({ slots }: { slots: Slot[] }) {
   const day = useApp((s) => s.plan.days[s.date]);
+  const date = useApp((s) => s.date);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const placeBefore = useApp((s) => s.placeBefore);
   const clearDone = useApp((s) => s.clearDone);
+  const moveUnfinishedToDate = useApp((s) => s.moveUnfinishedToDate);
   const [showDone, setShowDone] = useState(true);
+  const [moveOpen, setMoveOpen] = useState(false);
+  const [moveDate, setMoveDate] = useState(todayISO());
   // drag & drop: id to insert before; null = end of queue; undefined = not dragging
   const [dropBefore, setDropBefore] = useState<string | null | undefined>(undefined);
   const dragId = useRef<string | null>(null);
@@ -137,14 +142,56 @@ export default function TaskList({ slots }: { slots: Slot[] }) {
     .sort((a, b) => startOf(a) - startOf(b));
   const blocked = day.tasks.filter((t) => t.blocked && t.status !== "done");
   const done = day.tasks.filter((t) => t.status === "done");
+  const unfinished = day.tasks.filter((t) => t.status !== "done");
   const goalOf = (t: Task) => goals.find((g) => g.id === t.goalId);
 
   return (
     <div className="space-y-3">
       <div>
-        <h3 className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1">
-          Queue · {queue.length}
-        </h3>
+        <div className="flex items-baseline gap-2 px-2 mb-1">
+          <h3 className="text-[10px] uppercase tracking-wider text-slate-500">
+            Queue · {queue.length}
+          </h3>
+          <div className="flex-1" />
+          {unfinished.length > 0 && (
+            <button
+              onClick={() => setMoveOpen(!moveOpen)}
+              aria-expanded={moveOpen}
+              className={`text-[10px] ${
+                moveOpen ? "text-indigo-300" : "text-slate-600 hover:text-indigo-300"
+              }`}
+              title="move this day's unfinished work to another day, dependencies and all"
+            >
+              move all →
+            </button>
+          )}
+        </div>
+        {moveOpen && (
+          <div className="px-2 pb-2">
+            <DayPicker
+              ariaLabel="Move all unfinished tasks to"
+              value={moveDate}
+              from={date}
+              onChange={setMoveDate}
+            >
+              <button
+                onClick={() => {
+                  moveUnfinishedToDate(moveDate);
+                  setMoveOpen(false);
+                }}
+                disabled={!moveDate || moveDate === date}
+                className="btn"
+                title={
+                  moveDate === date
+                    ? "that is the day they are already on"
+                    : "dependencies between them survive the move"
+                }
+              >
+                move {unfinished.length} →
+              </button>
+            </DayPicker>
+          </div>
+        )}
         <div
           className="space-y-0.5"
           onDragLeave={(e) => {

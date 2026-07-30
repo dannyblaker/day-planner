@@ -21,6 +21,53 @@ beforeEach(() => {
   vi.setSystemTime(new Date(2026, 6, 28, 9, 0, 0));
 });
 
+describe("moving the day's work", () => {
+  const dayWithWork = () =>
+    makeDay([
+      makeTask({ id: "a", title: "First" }),
+      makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
+      makeTask({ id: "d", title: "Finished thing", status: "done" }),
+    ]);
+
+  it("offers the move only while something is unfinished", () => {
+    renderList(makeDay([makeTask({ title: "Finished thing", status: "done" })]));
+    expect(
+      screen.queryByRole("button", { name: /move all/ })
+    ).not.toBeInTheDocument();
+  });
+
+  it("keeps the picker shut until asked, then aims at today", async () => {
+    const user = userEvent.setup();
+    renderList(dayWithWork());
+    expect(
+      screen.queryByLabelText("Move all unfinished tasks to")
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /move all/ }));
+    expect(screen.getByLabelText("Move all unfinished tasks to")).toHaveValue(
+      "2026-07-28"
+    );
+    // today is the day on screen, so there is nowhere to send them yet
+    expect(screen.getByRole("button", { name: /move 2/ })).toBeDisabled();
+  });
+
+  it("sends the unfinished tasks on together, dependencies intact", async () => {
+    const user = userEvent.setup();
+    renderList(dayWithWork());
+    await user.click(screen.getByRole("button", { name: /move all/ }));
+    await user.click(screen.getByRole("button", { name: "+1 week" }));
+    await user.click(screen.getByRole("button", { name: /move 2/ }));
+
+    const target = app().plan.days["2026-08-04"].tasks;
+    expect(target.map((t) => t.title)).toEqual(["First", "Second"]);
+    expect(target[1].dependsOn).toEqual(["a"]);
+    expect(app().plan.days["2026-07-28"].tasks.map((t) => t.title)).toEqual([
+      "Finished thing",
+    ]);
+    expect(screen.getByText(/Nothing queued/)).toBeInTheDocument();
+  });
+});
+
 describe("sections", () => {
   it("splits tasks into queue, blocked and done", () => {
     renderList(

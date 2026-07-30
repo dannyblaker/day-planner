@@ -1,4 +1,13 @@
-import { expect, flowNode, quickAdd, row, slot, test, todayISO } from "./fixtures";
+import {
+  expect,
+  flowNode,
+  quickAdd,
+  row,
+  slot,
+  test,
+  todayISO,
+  TOMORROW,
+} from "./fixtures";
 
 /** a week on from the pinned clock, which is what the editor's "+1 week" means */
 const NEXT_WEEK = todayISO(new Date(2026, 7, 4));
@@ -270,6 +279,30 @@ test.describe("moving between days", () => {
     await expect(row(page, "Leftovers")).toBeVisible();
     await planServer.settled();
     expect(planServer.titles()).toEqual(["Leftovers"]);
+  });
+
+  test("rolls the day's unfinished work forward in one go", async ({
+    page,
+    planServer,
+  }) => {
+    await quickAdd(page, "Draft the deck 1h", "Draft the deck");
+    await quickAdd(page, "Review it 30m >draft", "Review it");
+    await quickAdd(page, "Old news 15m", "Old news");
+    await page.getByRole("checkbox", { name: "Old news" }).click();
+
+    await page.getByRole("button", { name: "move all →" }).click();
+    await page.getByRole("button", { name: "next day" }).click();
+    await page.getByRole("button", { name: /move 2/ }).click();
+    await expect(page.getByText("Nothing queued")).toBeVisible();
+
+    await page.keyboard.press("]");
+    await expect(row(page, "Draft the deck")).toBeVisible();
+    // the link between them survived the move
+    await expect(row(page, "Review it").getByTitle("has dependencies")).toBeVisible();
+
+    await planServer.settled();
+    expect(planServer.titles()).toEqual(["Old news"]);
+    expect(planServer.titles(TOMORROW)).toEqual(["Draft the deck", "Review it"]);
   });
 
   test("takes a moved task back where it came from on undo", async ({ page }) => {

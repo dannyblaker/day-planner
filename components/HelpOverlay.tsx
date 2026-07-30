@@ -30,6 +30,7 @@ const SHORTCUTS: [string, string][] = [
   ["drag row (list)", "reorder the queue"],
   ["dbl-click task (any view)", "open the editor"],
   ["move to day (editor)", "send the task to any date"],
+  ["move all → (list)", "send the day's unfinished work to another date"],
   ["dbl-click canvas (flow)", "create task at that spot"],
   ["drag ○ → node (flow)", "draw a dependency arrow"],
   ["click arrow (flow)", "remove that dependency"],

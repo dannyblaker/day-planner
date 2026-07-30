@@ -2,8 +2,9 @@
 
 import { dependentsOf } from "@/lib/scheduler";
 import { useApp } from "@/lib/store";
-import { addDaysISO, fmtTime, todayISO } from "@/lib/time";
+import { fmtTime, todayISO } from "@/lib/time";
 import { Priority } from "@/lib/types";
+import DayPicker from "./DayPicker";
 import { PRIORITY_COLOR } from "./Timeline";
 import { useState } from "react";
 
@@ -210,15 +211,12 @@ export default function Editor() {
         <label className={label} htmlFor="move-to-date">
           Move to another day
         </label>
-        <div className="flex gap-1.5">
-          <input
-            id="move-to-date"
-            type="date"
-            className={field}
-            value={moveDate}
-            onChange={(e) => setMoveDate(e.target.value)}
-            onKeyDown={(e) => e.stopPropagation()}
-          />
+        <DayPicker
+          id="move-to-date"
+          value={moveDate}
+          from={date}
+          onChange={setMoveDate}
+        >
           <button
             onClick={() => moveTaskToDate(task.id, moveDate)}
             disabled={!moveDate || moveDate === date}
@@ -231,28 +229,7 @@ export default function Editor() {
           >
             move →
           </button>
-        </div>
-        <div className="flex gap-2 mt-1.5">
-          {(
-            [
-              ["today", todayISO()],
-              ["next day", addDaysISO(date, 1)],
-              ["+1 week", addDaysISO(date, 7)],
-            ] as const
-          ).map(([name, iso]) => (
-            <button
-              key={name}
-              onClick={() => setMoveDate(iso)}
-              className={`text-[10px] ${
-                moveDate === iso
-                  ? "text-indigo-300"
-                  : "text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              {name}
-            </button>
-          ))}
-        </div>
+        </DayPicker>
       </div>
 
       <div className="flex gap-2 pt-1">
