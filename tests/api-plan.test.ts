@@ -32,7 +32,7 @@ const put = (body: unknown) =>
   });
 
 beforeEach(async () => {
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "dayflow-route-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "concurrencyflow-route-"));
   delete process.env.DATABASE_URL;
   dbGetPlan.mockReset();
   dbPutPlan.mockReset();

@@ -45,7 +45,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
   return (
     <header className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/40 flex-wrap">
       <h1 className="text-sm font-semibold text-indigo-300 tracking-tight">
-        DayFlow
+        ConcurrencyFlow
       </h1>
 
       {/* what the board adds up to — the one number that used to be capacity */}

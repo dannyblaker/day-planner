@@ -2,13 +2,13 @@ services:
   db:
     image: postgres:16-alpine
     environment:
-      POSTGRES_USER: dayflow
-      POSTGRES_PASSWORD: dayflow
-      POSTGRES_DB: dayflow
+      POSTGRES_USER: concurrencyflow
+      POSTGRES_PASSWORD: concurrencyflow
+      POSTGRES_DB: concurrencyflow
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U dayflow -d dayflow"]
+      test: ["CMD-SHELL", "pg_isready -U concurrencyflow -d concurrencyflow"]
       interval: 3s
       timeout: 3s
       retries: 20
@@ -19,7 +19,7 @@ services:
     ports:
       - "3000:3000"
     environment:
-      DATABASE_URL: postgres://dayflow:dayflow@db:5432/dayflow
+      DATABASE_URL: postgres://concurrencyflow:concurrencyflow@db:5432/concurrencyflow
     depends_on:
       db:
         condition: service_healthy

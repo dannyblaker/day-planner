@@ -1,30 +1,25 @@
-# DayFlow
+# ConcurrencyFlow
 
-A keyboard-driven day planner built for one thing: **plan your day in 15 minutes, then let the schedule take care of itself.**
+A flowchart for planning work that runs alongside other work: **tasks are nodes, dependencies are arrows, and status follows the graph.**
 
-The core idea is that the timeline is *derived state*. You maintain a simple ordered queue of tasks; DayFlow continuously computes the schedule from the queue, the current time, your meetings, and your dependencies. Add a spontaneous task, run late, get blocked — everything downstream reflows automatically. There is no save button; every change autosaves.
+The core idea is that status is *derived state*. You don't set a task to "in progress" — you draw the dependencies, and everything whose prerequisites are finished is in progress, all of it at once. That set is the answer to the only question the board exists to answer: what can I run in parallel right now? Mark one thing done and its dependents move up on their own. There is no save button; every change autosaves.
+
+There is no clock in here. A dependency graph is a claim about order, not about when, so there are no working hours, no schedule, and no calendar — just the graph and what it implies.
 
 ## Features
 
-- **Auto-reflowing schedule** — flexible tasks pack around fixed-time meetings, from *now* onward. If you fall behind, the plan shifts with you.
-- **Spontaneous tasks** — add a task with `^` and it jumps to the front of the queue; the rest of the day shifts to make room.
-- **Dependencies** — task B can require task A to finish first (`>taskname` in quick-add, or checkboxes in the editor). Cycles are prevented.
-- **Concurrency** — mark a task parallel (`~`) and it moves to a background lane that overlaps focus work (CI runs, laundry, waiting on someone).
-- **Blockers** — mark a task blocked with a reason; it leaves the timeline and parks in a Blocked list. Dependents get flagged.
-- **Timers** — start/pause a per-task timer; actual time is tracked against planned, with an overrun alarm. The tab title shows the countdown.
-- **Notifications** — desktop notifications when fixed-time tasks start and when a timer overruns.
-- **Prioritisation** — P1–P4 with one-key assignment, plus one-key auto-sort of the queue by priority.
-- **Goals** — map tasks to goals (`#goal`); a panel shows how today's time is allocated per goal, planned vs. done.
-- **Capacity meter** — planned vs. available time with slack/overrun, always visible. Tasks that won't fit before day end are flagged red.
-- **Live share** — send your manager a read-only link (`Share live`) that polls the plan every 5 seconds.
-- **Export** — one click to PNG or PDF of the timeline, matching the theme you're in.
+- **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Auto-arrange lays the graph out by dependency depth.
+- **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: grey waiting, amber startable, green finished.
+- **Concurrency band** — drop a node below the ∥ divider and it runs concurrently with focus work (CI runs, laundry, waiting on someone). The divider sits inside the first screenful, because seeing what overlaps what is the point.
+- **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
+- **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
+- **Prioritisation** — P1–P4 with one-key assignment, shown as the node's left stripe, plus one-key auto-sort of the to-do queue by priority.
+- **Goals** — map tasks to goals (`#goal`); a panel shows work done against work planned per goal.
+- **Live share** — send someone a read-only link (`Share live`) that polls the plan every 5 seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
+- **Export** — one click to PNG or PDF of the canvas, matching the theme you're in.
 - **Light / dark theme** (`m`, or the ☀️/🌙 button) — follows your OS preference until you pick one; the choice is per-device and applied before first paint, so there's no flash on reload.
-- **Multi-day** — navigate days with `[` / `]`. Defer a task to tomorrow with `o`, or send it to any date from the editor's **Move to another day** picker (`today` / `next day` / `+1 week` shortcuts, aimed at today by default). A moved task keeps everything it had, pinned meeting time included; a defer means "didn't get to it", so it goes back to *to-do* and drops the pin. `Shift+O` pulls the selected task onto today — the quick way to sweep yesterday's leftovers forward.
-- **Roll a whole day forward** — `move all →` in the queue header sends the day's unfinished work to another date in one go. Finished tasks stay behind as that day's record, and because the tasks travel together their dependencies travel with them; only links to the work left behind are cut (and undo restores those too).
-- **Clear finished work** — `clear` on the Done list drops the day's completed tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
-- **Undo for anything that leaves the day** — clears and cross-day moves both raise the same transient bar: undo (or `u` / `⌘Z`) restores the task and the dependency links it left behind, and `go there →` jumps to the day it landed on.
-- **Drag & drop** — drag tasks on the timeline (or rows in the list) to reorder the queue; drag a 📌 pinned task to move its time (Shift = 5-min snap); Alt+drag any task to pin it at a specific time.
-- **Flowchart view** (`v`) — plan visually on a canvas: tasks are nodes, dependencies are arrows you draw by dragging from a node's ○ port. Double-click the canvas to create a task in place (quick-add syntax works), click an arrow to remove it, and drop a node into the ∥ swimlane to make it concurrent. Auto-arrange lays the graph out by dependency depth. Both views edit the same plan, so the timeline reflows as you sketch.
+- **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
+- **Keyboard-driven** — `j`/`k` walks the board in status order, and everything else is one key. Press `?`.
 
 ## Getting started
 
@@ -36,7 +31,7 @@ docker compose up -d
 
 Open http://localhost:3000. This runs the app plus a Postgres database; your plan lives in the `pgdata` named volume, so it survives restarts, rebuilds, and `docker compose down`. (`docker compose down -v` is the only thing that deletes it.) After pulling changes, rebuild with `docker compose up -d --build`.
 
-The live-share view works for anyone who can reach your machine — for manager sharing, give them your LAN address (`http://<your-ip>:3000/share/<token>`).
+The live-share view works for anyone who can reach your machine — give them your LAN address (`http://<your-ip>:3000/share/<token>`).
 
 ### Dev mode (no database needed)
 
@@ -58,63 +53,55 @@ npm run test:watch
 
 Two layers, split by what they can actually prove:
 
-- **`tests/`** — the derived-state core in isolation: the scheduler's packing, anchoring, dependency and lane rules; the quick-add grammar; every store action; the theme boot script; the debounced autosave; and the plan route against a temp directory and a stubbed Postgres.
-- **`e2e/`** — the app in a real browser: quick-add through to a reflowed timeline, the three done buttons, clear/undo, moving tasks between days, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), and the share link's read-only guarantee.
+- **`tests/`** — the derived-state core in isolation: how the graph turns dependencies into statuses, the depth layout, the quick-add grammar, every store action, the theme boot script, the debounced autosave, and the plan route against a temp directory and a stubbed Postgres.
+- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, marking work done and watching the frontier advance, clear/undo, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), and the share link's read-only guarantee.
 
-The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead. The clock is pinned to 08:00 on 2026-07-28, so schedules are deterministic rather than depending on when you run the suite.
+The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead.
 
-## The 15-minute morning flow
+## The planning flow
 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
-2. Add tokens as you type: `Write report 45m !1 #deep-work`, `Standup 15m @10am`, `CI run 45m ~`.
-3. Press `s` to sort by priority, then `Shift+J/K` to fine-tune order.
-4. Check the capacity meter — over capacity? Defer something with `o`.
-5. Press `Space` on the first task and go.
+2. Add tokens as you type: `Write report 45m !1 #deep-work`, `CI run 45m ~`.
+3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before.
+4. Press `✨ Auto-arrange`. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
+5. Finish something, mark it done, and watch the next column light up.
 
 ## Keyboard shortcuts
 
 | Key | Action |
 |---|---|
 | `n` / `c` / `⌘K` | quick-add task |
-| `j` / `k` | select next / previous |
-| `Shift+J` / `Shift+K` | move task down / up the queue |
+| `j` / `k` | select next / previous (in status order) |
+| `Shift+J` / `Shift+K` | move task down / up the to-do queue |
 | `Enter` / `e` | edit selected |
-| `Space` | start / pause timer |
-| `d` | toggle done |
+| `d` | toggle done — dependents become in-progress |
 | `b` | toggle blocked |
 | `1`–`4` | set priority |
-| `p` | toggle parallel lane |
+| `p` | toggle the concurrency band |
 | `+` / `-` | duration ±15m |
 | `s` | auto-sort by priority |
-| `o` | defer to tomorrow |
-| `Shift+O` | move to today |
 | `x` / `Del` | delete |
-| `u` / `⌘Z` | undo the last clear or move |
-| `[` / `]` | previous / next day |
-| `t` | today |
-| `v` | toggle timeline / flowchart view |
+| `u` / `⌘Z` | undo the last clear |
 | `m` | toggle light / dark theme |
 | `?` | help |
-| drag on timeline | reorder · move pinned task · Alt+drag to pin |
-| flow view | dbl-click: new task · drag ○→node: dependency · click arrow: remove · drop in ∥ band: concurrent |
+| canvas | dbl-click: new task · drag ○→node: dependency · click arrow: remove · drop in ∥ band: concurrent |
 
 ## Quick-add syntax
 
 ```
-Fix login bug 1h !1 #deep-work >deploy @2pm ~ *waiting-on-bob ^
+Fix login bug 1h !1 #deep-work >deploy ~ *waiting-on-bob ^
 ```
 
 | Token | Meaning |
 |---|---|
-| `45m` `1h` `1h30` | duration |
+| `45m` `1h` `1h30` | duration (a label — nothing schedules it) |
 | `!1`…`!4` | priority |
 | `#goal` | goal (created if new) |
-| `@2pm` `@14:30` | fixed start time (meeting) |
 | `>title` | depends on task whose title starts with… |
-| `~` | parallel / background |
+| `~` | concurrent / background |
 | `*reason` | blocked |
-| `^` | do next — everything else shifts |
+| `^` | front of the to-do queue |
 
 ## Stack
 
-Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON file behind an API route; the scheduler (`lib/scheduler.ts`) is a pure function from queue + time → timeline.
+Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON document behind an API route; `lib/graph.ts` is a pure function from tasks + dependencies → statuses, and `lib/flow.ts` from the same graph → canvas positions.

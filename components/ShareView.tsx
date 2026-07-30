@@ -64,7 +64,7 @@ export default function ShareView({ token }: { token: string }) {
   return (
     <div className="min-h-screen bg-background text-slate-300">
       <header className="flex items-center gap-3 px-5 py-3 border-b border-slate-800 sticky top-0 bg-background/95 backdrop-blur z-20 flex-wrap">
-        <h1 className="text-sm font-semibold text-indigo-300">DayFlow</h1>
+        <h1 className="text-sm font-semibold text-indigo-300">ConcurrencyFlow</h1>
         <span className="flex items-center gap-1.5 text-[11px] text-emerald-400">
           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
           live · read-only

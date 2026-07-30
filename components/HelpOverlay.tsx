@@ -34,7 +34,7 @@ const SYNTAX: [string, string][] = [
   [">design", "depends on task whose title starts with “design”"],
   ["~", "parallel / background task"],
   ["*waiting-on-bob", "blocked, with reason"],
-  ["^", "spontaneous: do next — everything else shifts"],
+  ["^", "front of the to-do queue"],
 ];
 
 const STATUSES: [string, string][] = [

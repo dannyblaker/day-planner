@@ -17,7 +17,7 @@ async function twoDoneOneLeft(page: import("@playwright/test").Page) {
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "DayFlow" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ConcurrencyFlow" })).toBeVisible();
   await twoDoneOneLeft(page);
 });
 

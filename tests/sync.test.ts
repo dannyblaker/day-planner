@@ -54,7 +54,7 @@ describe("loading", () => {
 
   it("falls back to localStorage when the server is unreachable", async () => {
     const cached = makePlan([makeTask({ title: "From the cache" })]);
-    localStorage.setItem("dayflow-plan", JSON.stringify(cached));
+    localStorage.setItem("concurrencyflow-plan", JSON.stringify(cached));
     fetchMock = vi.fn(async () => {
       throw new Error("offline");
     });
@@ -138,7 +138,7 @@ describe("saving", () => {
     await act(async () => {
       vi.advanceTimersByTime(DEBOUNCE);
     });
-    const cached = JSON.parse(localStorage.getItem("dayflow-plan")!);
+    const cached = JSON.parse(localStorage.getItem("concurrencyflow-plan")!);
     expect(cached.tasks[0].title).toBe("Something new");
   });
 

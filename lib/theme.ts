@@ -1,6 +1,6 @@
 export type Theme = "light" | "dark";
 
-const KEY = "dayflow-theme";
+const KEY = "concurrencyflow-theme";
 
 /**
  * Runs synchronously in <head>, before first paint: picks the saved theme (or

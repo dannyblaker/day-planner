@@ -5,12 +5,12 @@ const selected = (page: import("@playwright/test").Page) =>
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "DayFlow" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "ConcurrencyFlow" })).toBeVisible();
   await quickAdd(page, "First job 30m", "First job");
   await quickAdd(page, "Second job 30m", "Second job");
   await quickAdd(page, "Third job 30m", "Third job");
   // adding a task selects it — start each test from a clean slate instead
-  await page.getByRole("heading", { name: "DayFlow" }).click();
+  await page.getByRole("heading", { name: "ConcurrencyFlow" }).click();
   await page.keyboard.press("Escape");
   await expect(selected(page)).toHaveCount(0);
 });

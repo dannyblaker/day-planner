@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "DayFlow",
+  title: "ConcurrencyFlow",
   description:
-    "Keyboard-driven day planner with auto-reflowing schedule, dependencies, timers and live sharing",
+    "Plan concurrency: a dependency flowchart where task status follows the graph",
 };
 
 export default function RootLayout({
