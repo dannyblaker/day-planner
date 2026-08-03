@@ -1,4 +1,4 @@
-import { dependentsOf, flowDepths, statuses } from "@/lib/graph";
+import { cycleOf, dependentsOf, flowDepths, statuses } from "@/lib/graph";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeTask, resetFactory } from "./factory";
 
@@ -116,6 +116,46 @@ describe("flowDepths", () => {
       makeTask({ id: "b", dependsOn: ["a"] }),
     ];
     expect(() => flowDepths(tasks)).not.toThrow();
+  });
+});
+
+describe("cycleOf", () => {
+  it("says nothing about a graph that is fine", () => {
+    const tasks = [
+      makeTask({ id: "a" }),
+      makeTask({ id: "b", dependsOn: ["a"] }),
+      makeTask({ id: "c", dependsOn: ["a", "b"] }),
+    ];
+    expect(cycleOf(tasks)).toBeNull();
+  });
+
+  it("returns the loop, as a path that ends where it starts", () => {
+    const tasks = [
+      makeTask({ id: "a", dependsOn: ["c"] }),
+      makeTask({ id: "b", dependsOn: ["a"] }),
+      makeTask({ id: "c", dependsOn: ["b"] }),
+    ];
+    const cycle = cycleOf(tasks)!;
+    expect(cycle[0]).toBe(cycle[cycle.length - 1]);
+    expect(new Set(cycle)).toEqual(new Set(["a", "b", "c"]));
+  });
+
+  it("catches a task that depends on itself", () => {
+    expect(cycleOf([makeTask({ id: "a", dependsOn: ["a"] })])).toEqual(["a", "a"]);
+  });
+
+  it("does not mistake a diamond for a loop", () => {
+    const tasks = [
+      makeTask({ id: "a" }),
+      makeTask({ id: "b", dependsOn: ["a"] }),
+      makeTask({ id: "c", dependsOn: ["a"] }),
+      makeTask({ id: "d", dependsOn: ["b", "c"] }),
+    ];
+    expect(cycleOf(tasks)).toBeNull();
+  });
+
+  it("ignores a dependency on a task that no longer exists", () => {
+    expect(cycleOf([makeTask({ id: "a", dependsOn: ["ghost"] })])).toBeNull();
   });
 });
 

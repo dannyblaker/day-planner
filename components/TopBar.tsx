@@ -1,7 +1,7 @@
 "use client";
 
 import ThemeToggle from "@/components/ThemeToggle";
-import { exportPDF, exportPNG } from "@/lib/export";
+import { exportJSON, exportPDF, exportPNG } from "@/lib/export";
 import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { STATUS_COLOR, STATUS_LABEL, STATUS_ORDER } from "@/lib/types";
@@ -9,8 +9,9 @@ import { useState } from "react";
 
 export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLElement | null> }) {
   const { setHelpOpen, saving } = useApp();
-  const tasks = useApp((s) => s.plan.tasks);
-  const shareToken = useApp((s) => s.plan.shareToken);
+  const plan = useApp((s) => s.plan);
+  const tasks = plan.tasks;
+  const shareToken = plan.shareToken;
   const [copied, setCopied] = useState(false);
   const [exporting, setExporting] = useState(false);
 
@@ -84,6 +85,13 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
       </button>
       <button onClick={() => doExport("pdf")} className="btn" disabled={exporting}>
         PDF
+      </button>
+      <button
+        onClick={() => exportJSON(plan, "concurrencyflow")}
+        className="btn"
+        title="every task, dependency and derived status as JSON — the same document GET /api/export serves"
+      >
+        JSON
       </button>
       <ThemeToggle />
       <button onClick={() => setHelpOpen(true)} className="btn" title="shortcuts (?)">

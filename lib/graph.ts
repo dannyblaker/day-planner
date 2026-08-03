@@ -57,6 +57,42 @@ export function flowDepths(tasks: Task[]): Map<string, number> {
   return memo;
 }
 
+/**
+ * The first dependency cycle in the graph, as a path of ids that ends where it
+ * starts, or null when the graph is acyclic.
+ *
+ * The UI prevents cycles a link at a time, so it never needs this; the API
+ * accepts whole graphs at once and has to say which loop it refused.
+ */
+export function cycleOf(tasks: Task[]): string[] | null {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const done = new Set<string>();
+  const stack: string[] = [];
+  const onStack = new Set<string>();
+
+  const visit = (t: Task): string[] | null => {
+    if (done.has(t.id)) return null;
+    if (onStack.has(t.id)) return [...stack.slice(stack.indexOf(t.id)), t.id];
+    stack.push(t.id);
+    onStack.add(t.id);
+    for (const id of t.dependsOn) {
+      const dep = byId.get(id);
+      const cycle = dep && visit(dep);
+      if (cycle) return cycle;
+    }
+    stack.pop();
+    onStack.delete(t.id);
+    done.add(t.id);
+    return null;
+  };
+
+  for (const t of tasks) {
+    const cycle = visit(t);
+    if (cycle) return cycle;
+  }
+  return null;
+}
+
 /** ids of tasks that (transitively) depend on `id` — used to prevent dependency cycles. */
 export function dependentsOf(tasks: Task[], id: string): Set<string> {
   const result = new Set<string>();
