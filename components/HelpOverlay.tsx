@@ -11,7 +11,7 @@ const SHORTCUTS: [string, string][] = [
   ["d", "toggle done — dependents become in-progress"],
   ["b", "toggle blocked"],
   ["1 – 4", "set priority P1–P4"],
-  ["p", "toggle parallel (background lane)"],
+  ["p", "toggle parallel (background task)"],
   ["+ / -", "duration +15m / −15m"],
   ["s", "auto-sort queue by priority"],
   ["x / Del", "delete selected task"],
@@ -24,7 +24,6 @@ const SHORTCUTS: [string, string][] = [
   ["dbl-click canvas", "create task at that spot"],
   ["drag ○ → node", "draw a dependency arrow"],
   ["click arrow", "remove that dependency"],
-  ["drop node in ∥ band", "make it concurrent"],
 ];
 
 const SYNTAX: [string, string][] = [

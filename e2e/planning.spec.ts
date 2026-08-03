@@ -61,18 +61,12 @@ test.describe("the morning brain-dump", () => {
     await expect(flowNode(page, "Ship it").getByText(/waiting on legal/)).toBeVisible();
   });
 
-  test("drops background work into the concurrency band", async ({ page }) => {
+  test("marks background work concurrent on the one canvas", async ({ page }) => {
     await quickAdd(page, "Focus work 1h", "Focus work");
     await quickAdd(page, "CI pipeline 45m ~", "CI pipeline");
 
-    await expect(page.getByText(/tasks here run concurrently/)).toBeVisible();
     await expect(flowNode(page, "CI pipeline").getByTitle("concurrent")).toBeVisible();
     await expect(flowNode(page, "Focus work").getByTitle("concurrent")).toHaveCount(0);
-
-    // the ∥ node sits below the divider, the focus node above it
-    const ci = (await flowNode(page, "CI pipeline").boundingBox())!;
-    const focus = (await flowNode(page, "Focus work").boundingBox())!;
-    expect(ci.y).toBeGreaterThan(focus.y);
   });
 });
 

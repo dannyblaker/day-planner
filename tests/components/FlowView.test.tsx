@@ -33,10 +33,10 @@ describe("the canvas", () => {
     expect(within(node("Write report")).getByText("1h")).toBeInTheDocument();
   });
 
-  it("labels both bands", () => {
+  it("draws a single canvas, with no band divider", () => {
     renderFlow([makeTask({ title: "Anything" })]);
-    expect(screen.getByText(/focus — one at a time/i)).toBeInTheDocument();
-    expect(screen.getByText(/parallel \/ background/i)).toBeInTheDocument();
+    expect(screen.queryByText(/focus — one at a time/i)).not.toBeInTheDocument();
+    expect(screen.queryByText(/parallel \/ background/i)).not.toBeInTheDocument();
   });
 
   it("gives every node a position on first render", () => {

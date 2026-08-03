@@ -38,7 +38,6 @@ export default function FlowView({
         <span>double-click canvas: new task (quick-add syntax works)</span>
         <span>· drag ○ → node: dependency</span>
         <span>· click arrow: remove</span>
-        <span>· drop in ∥ band: concurrent</span>
       </div>
 
       <FlowCanvas
@@ -50,14 +49,12 @@ export default function FlowView({
           select(id);
           setEditorOpen(true);
         }}
-        onMove={(id, { x, y }, parallel) =>
-          updateTask(id, { flowX: x, flowY: y, parallel })
-        }
+        onMove={(id, { x, y }) => updateTask(id, { flowX: x, flowY: y })}
         onToggleDependency={toggleDependency}
         onToggleDone={toggleDone}
-        onCreate={(input, { x, y }, parallel) => {
+        onCreate={(input, { x, y }) => {
           const id = quickAdd(input);
-          if (id) updateTask(id, { flowX: x, flowY: y, parallel });
+          if (id) updateTask(id, { flowX: x, flowY: y });
         }}
         canvasRef={(el) => {
           if (exportRef) exportRef.current = el;

@@ -132,10 +132,7 @@ export const useApp = create<AppState>()(
         const depths = flowDepths(tasks);
         for (const t of missing) {
           const x = columnX(depths.get(t.id) || 0);
-          const bandTop = t.parallel ? FLOW.PAR_Y + 50 : 60;
-          const bandMax = t.parallel
-            ? FLOW.H - FLOW.NODE_H - 20
-            : FLOW.PAR_Y - FLOW.NODE_H - 20;
+          const maxY = FLOW.H - FLOW.NODE_H - 20;
           const taken = tasks
             .filter(
               (o) =>
@@ -144,11 +141,10 @@ export const useApp = create<AppState>()(
                 Math.abs(o.flowX - x) < FLOW.NODE_W
             )
             .map((o) => o.flowY ?? 0);
-          let y = bandTop;
-          while (taken.some((ty) => Math.abs(ty - y) < 90) && y < bandMax)
-            y += 100;
+          let y = 60;
+          while (taken.some((ty) => Math.abs(ty - y) < 90) && y < maxY) y += 100;
           t.flowX = x;
-          t.flowY = Math.min(y, bandMax);
+          t.flowY = Math.min(y, maxY);
         }
       }),
 

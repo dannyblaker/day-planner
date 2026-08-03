@@ -1,6 +1,6 @@
 "use client";
 
-import { FlowPos, arrangeByDepth, inParallelBand } from "@/lib/flow";
+import { FlowPos, arrangeByDepth } from "@/lib/flow";
 import { statuses } from "@/lib/graph";
 import { fmtDur } from "@/lib/format";
 import {
@@ -14,7 +14,7 @@ import {
 import { useRef, useState } from "react";
 import DoneButton from "./DoneButton";
 
-const { W, H, PAR_Y, NODE_W, NODE_H } = FLOW;
+const { W, H, NODE_W, NODE_H } = FLOW;
 
 interface DragNode {
   id: string;
@@ -35,13 +35,13 @@ interface Props {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   onEdit?: (id: string) => void;
-  /** a node was dragged: its new position, and the band it landed in */
-  onMove?: (id: string, pos: FlowPos, parallel: boolean) => void;
+  /** a node was dragged: its new position */
+  onMove?: (id: string, pos: FlowPos) => void;
   onToggleDependency?: (taskId: string, depId: string) => void;
   /** omitted by the read-only share view, which draws no done button */
   onToggleDone?: (id: string) => void;
   /** double-click on empty canvas: quick-add text, dropped at that spot */
-  onCreate?: (input: string, pos: FlowPos, parallel: boolean) => void;
+  onCreate?: (input: string, pos: FlowPos) => void;
   /** hands the canvas element out for PNG/PDF export */
   canvasRef?: (el: HTMLDivElement | null) => void;
 }
@@ -131,9 +131,7 @@ export default function FlowCanvas({
       suppressClick.current = true;
       setTimeout(() => (suppressClick.current = false), 50);
       const c = canvasPoint(ev.clientX, ev.clientY);
-      const p = clamp({ x: c.x - dx, y: c.y - dy });
-      // crossing into/out of the ∥ band toggles concurrency
-      onMove(t.id, p, inParallelBand(p.y));
+      onMove(t.id, clamp({ x: c.x - dx, y: c.y - dy }));
       setDragNode(null);
     };
     window.addEventListener("pointermove", move);
@@ -196,7 +194,7 @@ export default function FlowCanvas({
 
   const commitCreate = () => {
     if (onCreate && creating && createText.trim())
-      onCreate(createText, creating, inParallelBand(creating.y));
+      onCreate(createText, creating);
     setCreating(null);
   };
 
@@ -229,19 +227,6 @@ export default function FlowCanvas({
           backgroundSize: "24px 24px",
         }}
       >
-        {/* parallel swimlane */}
-        <div
-          className="absolute left-0 right-0 bottom-0 pointer-events-none border-t-2 border-dashed border-slate-700 bg-slate-900/40"
-          style={{ top: PAR_Y }}
-        >
-          <span className="absolute top-2 left-4 text-[11px] uppercase tracking-widest text-slate-600">
-            ∥ parallel / background — tasks here run concurrently
-          </span>
-        </div>
-        <span className="absolute top-2 left-4 text-[11px] uppercase tracking-widest text-slate-600 pointer-events-none">
-          focus — one at a time, in dependency order
-        </span>
-
         {/* dependency edges */}
         <svg
           className="absolute inset-0"

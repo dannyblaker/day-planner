@@ -1,4 +1,4 @@
-import { arrangeByDepth, columnX, inParallelBand } from "@/lib/flow";
+import { arrangeByDepth, columnX } from "@/lib/flow";
 import { FLOW } from "@/lib/types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeTask, resetFactory } from "./factory";
@@ -28,22 +28,15 @@ describe("arrangeByDepth", () => {
     );
   });
 
-  it("lays concurrent work out in the ∥ band and focus work above it", () => {
-    const layout = arrangeByDepth([
-      makeTask({ id: "focus" }),
-      makeTask({ id: "ci", parallel: true }),
-    ]);
-    expect(inParallelBand(layout.get("ci")!.y)).toBe(true);
-    expect(inParallelBand(layout.get("focus")!.y)).toBe(false);
-  });
-
-  it("stacks the two bands independently, so neither pushes the other down", () => {
+  it("stacks concurrent work in with the rest — one canvas, no bands", () => {
     const layout = arrangeByDepth([
       makeTask({ id: "f1", order: 1 }),
       makeTask({ id: "f2", order: 2 }),
       makeTask({ id: "ci", order: 3, parallel: true }),
     ]);
-    expect(layout.get("ci")!.y).toBe(FLOW.PAR_Y + 50);
+    const ys = ["f1", "f2", "ci"].map((id) => layout.get(id)!.y);
+    expect(ys).toEqual([...ys].sort((a, b) => a - b));
+    expect(ys[2] - ys[1]).toBe(ys[1] - ys[0]);
   });
 
   it("terminates on a cycle rather than hanging", () => {
@@ -52,12 +45,5 @@ describe("arrangeByDepth", () => {
       makeTask({ id: "b", dependsOn: ["a"] }),
     ];
     expect(arrangeByDepth(tasks).size).toBe(2);
-  });
-});
-
-describe("inParallelBand", () => {
-  it("counts a node whose middle crosses the divider", () => {
-    expect(inParallelBand(FLOW.PAR_Y - FLOW.NODE_H)).toBe(false);
-    expect(inParallelBand(FLOW.PAR_Y)).toBe(true);
   });
 });

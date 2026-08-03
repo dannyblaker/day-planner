@@ -381,10 +381,10 @@ describe("flowchart layout", () => {
     expect(task("a")).toMatchObject({ flowX: 999, flowY: 111 });
   });
 
-  it("drops parallel tasks into the background band", () => {
-    load([makeTask({ id: "ci", parallel: true })]);
+  it("places parallel tasks on the same canvas as everything else", () => {
+    load([makeTask({ id: "focus" }), makeTask({ id: "ci", parallel: true })]);
     app().ensureFlowPositions();
-    expect(task("ci")!.flowY!).toBeGreaterThanOrEqual(FLOW.PAR_Y);
+    expect(task("ci")!.flowY!).toBeLessThanOrEqual(FLOW.H - FLOW.NODE_H);
   });
 
   it("re-lays the whole graph by depth on auto-arrange", () => {

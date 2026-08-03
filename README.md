@@ -10,7 +10,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 
 - **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Auto-arrange lays the graph out by dependency depth.
 - **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: grey waiting, amber startable, green finished.
-- **Concurrency band** — drop a node below the ∥ divider and it runs concurrently with focus work (CI runs, laundry, waiting on someone). The divider sits inside the first screenful, because seeing what overlaps what is the point.
+- **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark — position is yours to arrange, not a lane to fall into.
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
 - **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
 - **Prioritisation** — P1–P4 with one-key assignment, shown as the node's left stripe, plus one-key auto-sort of the to-do queue by priority.
@@ -27,7 +27,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 ### Docker (recommended for daily use)
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
 Open http://localhost:3000. This runs the app plus a Postgres database; your plan lives in the `pgdata` named volume, so it survives restarts, rebuilds, and `docker compose down`. (`docker compose down -v` is the only thing that deletes it.) After pulling changes, rebuild with `docker compose up -d --build`.
@@ -162,14 +162,14 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `d` | toggle done — dependents become in-progress |
 | `b` | toggle blocked |
 | `1`–`4` | set priority |
-| `p` | toggle the concurrency band |
+| `p` | toggle concurrent / background |
 | `+` / `-` | duration ±15m |
 | `s` | auto-sort by priority |
 | `x` / `Del` | delete |
 | `u` / `⌘Z` | undo the last clear |
 | `m` | toggle light / dark theme |
 | `?` | help |
-| canvas | dbl-click: new task · drag ○→node: dependency · click arrow: remove · drop in ∥ band: concurrent |
+| canvas | dbl-click: new task · drag ○→node: dependency · click arrow: remove |
 
 ## Quick-add syntax
 

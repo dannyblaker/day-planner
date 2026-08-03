@@ -46,19 +46,10 @@ export const STATUS_COLOR: Record<TaskStatus, string> = {
   done: "var(--status-done)",
 };
 
-/**
- * Flowchart canvas geometry (shared by view + auto-layout).
- *
- * PAR_Y has to land inside the first screenful: the whole point of the canvas
- * is seeing what runs alongside what, and a divider you have to scroll to find
- * hides exactly that. It leaves room for six rows of focus work above it, which
- * is more than a day's worth in practice — the canvas scrolls for the rest.
- */
+/** Flowchart canvas geometry (shared by view + auto-layout). */
 export const FLOW = {
   W: 2400,
   H: 1200,
-  /** y where the parallel/background swimlane begins */
-  PAR_Y: 620,
   NODE_W: 192,
   NODE_H: 78,
 };
