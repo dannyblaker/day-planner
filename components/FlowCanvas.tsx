@@ -40,8 +40,13 @@ interface Props {
   onToggleDependency?: (taskId: string, depId: string) => void;
   /** omitted by the read-only share view, which draws no done button */
   onToggleDone?: (id: string) => void;
-  /** double-click on empty canvas: quick-add text, dropped at that spot */
-  onCreate?: (input: string, pos: FlowPos) => void;
+  /**
+   * A new task: quick-add text, dropped at that spot. `dependsOn` is set when
+   * the task was started from a node's port, and is the task it waits on.
+   */
+  onCreate?: (input: string, pos: FlowPos, dependsOn?: string) => void;
+  /** an outside request (the `a` key) to start a task depending on this one */
+  createFrom?: { sourceId: string; nonce: number } | null;
   /** hands the canvas element out for PNG/PDF export */
   canvasRef?: (el: HTMLDivElement | null) => void;
 }
@@ -62,6 +67,7 @@ export default function FlowCanvas({
   onToggleDependency,
   onToggleDone,
   onCreate,
+  createFrom,
   canvasRef: exposeCanvas,
 }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -70,7 +76,10 @@ export default function FlowCanvas({
   const [dragNode, setDragNode] = useState<DragNode | null>(null);
   const [tempEdge, setTempEdge] = useState<TempEdge | null>(null);
   const [hoverEdge, setHoverEdge] = useState<string | null>(null);
-  const [creating, setCreating] = useState<FlowPos | null>(null);
+  const [creating, setCreating] = useState<{
+    pos: FlowPos;
+    dependsOn?: string;
+  } | null>(null);
   const [createText, setCreateText] = useState("");
 
   const byId = new Map(tasks.map((t) => [t.id, t]));
@@ -99,6 +108,43 @@ export default function FlowCanvas({
     x: Math.max(0, Math.min(W - NODE_W, p.x)),
     y: Math.max(0, Math.min(H - NODE_H, p.y)),
   });
+
+  /** first free spot to the right of a node — where its next dependent goes */
+  const rightOf = (t: Task): FlowPos => {
+    const p = pos(t);
+    const x = p.x + NODE_W + 60;
+    const column = tasks
+      .filter((o) => o.id !== t.id)
+      .map(pos)
+      .filter((q) => Math.abs(q.x - x) < NODE_W);
+    let y = p.y;
+    while (column.some((q) => Math.abs(q.y - y) < NODE_H + 12) && y < H - NODE_H)
+      y += 100;
+    return { x, y };
+  };
+
+  /** open the inline input; `dependsOn` wires what it creates to a prerequisite */
+  const openCreate = (p: FlowPos, dependsOn?: string) => {
+    if (!onCreate) return;
+    setCreating({
+      pos: {
+        x: Math.max(0, Math.min(W - 260, p.x)),
+        y: Math.max(0, Math.min(H - 60, p.y)),
+      },
+      dependsOn,
+    });
+    setCreateText("");
+  };
+
+  // The `a` key, arriving as a prop: the same input, opened beside the task.
+  // Adjusted during render rather than in an effect, so the input is there in
+  // the pass that answers the keypress. The nonce is what makes it once-only.
+  const [servedRequest, setServedRequest] = useState<number | null>(null);
+  if (createFrom && createFrom.nonce !== servedRequest) {
+    setServedRequest(createFrom.nonce);
+    const t = byId.get(createFrom.sourceId);
+    if (t) openCreate(rightOf(t), t.id);
+  }
 
   const edgePath = (sx: number, sy: number, tx: number, ty: number) => {
     const c = Math.max(40, Math.abs(tx - sx) / 2);
@@ -139,29 +185,46 @@ export default function FlowCanvas({
   };
 
   // ── dependency drawing (drag from a node's ○ port) ─────────────
+  //
+  // Three endings, all of them the same sentence: something waits on this task.
+  // Let go over another node and that node waits on it; let go over empty
+  // canvas — or just click the port — and you get a new task that does.
   const onPortPointerDown = (e: React.PointerEvent, t: Task) => {
     if (!onToggleDependency || e.button !== 0) return;
     e.stopPropagation();
     e.preventDefault();
     const a = outAnchor(t);
+    const start = canvasPoint(e.clientX, e.clientY);
+    let moved = false;
     setTempEdge({ sourceId: t.id, sx: a.x, sy: a.y, tx: a.x, ty: a.y });
     const move = (ev: PointerEvent) => {
       const c = canvasPoint(ev.clientX, ev.clientY);
+      if (Math.abs(c.x - start.x) > 4 || Math.abs(c.y - start.y) > 4)
+        moved = true;
       setTempEdge((te) => (te ? { ...te, tx: c.x, ty: c.y } : te));
     };
     const up = (ev: PointerEvent) => {
       window.removeEventListener("pointermove", move);
       setTempEdge(null);
-      const el = document
-        .elementFromPoint(ev.clientX, ev.clientY)
-        ?.closest("[data-flow-node]");
-      const targetId = el?.getAttribute("data-flow-node");
-      if (targetId && targetId !== t.id) {
+      if (!moved) return openCreate(rightOf(t), t.id);
+
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      const targetId = under
+        ?.closest("[data-flow-node]")
+        ?.getAttribute("data-flow-node");
+      if (targetId) {
         const target = byId.get(targetId);
         // add-only: toggling an existing edge here would silently remove it
-        if (target && !target.dependsOn.includes(t.id))
+        if (targetId !== t.id && target && !target.dependsOn.includes(t.id))
           onToggleDependency(targetId, t.id);
+        return;
       }
+      // dropped on nothing: the arrow needs a task on the end of it. Only if
+      // that nothing is our own canvas — let go over the sidebar and it's a
+      // cancel, same as it looks.
+      if (!canvasRef.current?.contains(under)) return;
+      const c = canvasPoint(ev.clientX, ev.clientY);
+      openCreate({ x: c.x, y: c.y - NODE_H / 2 }, t.id);
     };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up, { once: true });
@@ -187,16 +250,19 @@ export default function FlowCanvas({
 
   const onCanvasDoubleClick = (e: React.MouseEvent) => {
     if (!onCreate || e.target !== e.currentTarget) return;
-    const c = canvasPoint(e.clientX, e.clientY);
-    setCreating({ x: Math.min(c.x, W - 260), y: Math.min(c.y, H - 60) });
-    setCreateText("");
+    openCreate(canvasPoint(e.clientX, e.clientY));
   };
 
   const commitCreate = () => {
     if (onCreate && creating && createText.trim())
-      onCreate(createText, creating);
+      onCreate(createText, creating.pos, creating.dependsOn);
     setCreating(null);
   };
+
+  // the not-yet-drawn arrow, held while you type the task on the end of it
+  const pendingSource = creating?.dependsOn
+    ? byId.get(creating.dependsOn)
+    : undefined;
 
   // ── edges ──────────────────────────────────────────────────────
   const edges: { key: string; from: Task; to: Task }[] = [];
@@ -386,7 +452,7 @@ export default function FlowCanvas({
                 <div
                   onPointerDown={(e) => onPortPointerDown(e, t)}
                   className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-slate-400 bg-background hover:border-indigo-400 hover:bg-indigo-950 cursor-crosshair"
-                  title="drag to another task: it will depend on this one"
+                  title="drag to another task, or click for a new one: it will depend on this one"
                   style={{ touchAction: "none" }}
                 />
               )}
@@ -394,22 +460,39 @@ export default function FlowCanvas({
           );
         })}
 
-        {/* temp edge while drawing a dependency */}
-        {tempEdge && (
+        {/* the arrow being drawn, or the one waiting on a task to be named */}
+        {(tempEdge || pendingSource) && (
           <svg
             className="absolute inset-0 pointer-events-none"
             width={W}
             height={H}
             style={{ zIndex: 40 }}
           >
-            <path
-              d={edgePath(tempEdge.sx, tempEdge.sy, tempEdge.tx, tempEdge.ty)}
-              style={{ stroke: "var(--edge-active)" }}
-              strokeWidth={1.5}
-              strokeDasharray="4 3"
-              fill="none"
-              markerEnd="url(#flow-arrow)"
-            />
+            {tempEdge && (
+              <path
+                d={edgePath(tempEdge.sx, tempEdge.sy, tempEdge.tx, tempEdge.ty)}
+                style={{ stroke: "var(--edge-active)" }}
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                fill="none"
+                markerEnd="url(#flow-arrow)"
+              />
+            )}
+            {pendingSource && creating && (
+              <path
+                d={edgePath(
+                  outAnchor(pendingSource).x,
+                  outAnchor(pendingSource).y,
+                  creating.pos.x,
+                  creating.pos.y + 17
+                )}
+                style={{ stroke: "var(--edge-active)" }}
+                strokeWidth={1.5}
+                strokeDasharray="4 3"
+                fill="none"
+                markerEnd="url(#flow-arrow)"
+              />
+            )}
           </svg>
         )}
 
@@ -425,9 +508,13 @@ export default function FlowCanvas({
               if (e.key === "Escape") setCreating(null);
             }}
             onBlur={() => setCreating(null)}
-            placeholder="New task…  45m !1 #goal"
+            placeholder={
+              pendingSource
+                ? `New task after “${pendingSource.title}”…`
+                : "New task…  45m !1 #goal"
+            }
             className="absolute z-40 w-60 bg-slate-800 border border-indigo-500 outline-none rounded-md px-2.5 py-1.5 text-[12px] text-slate-200 placeholder:text-slate-600 shadow-xl"
-            style={{ left: creating.x, top: creating.y }}
+            style={{ left: creating.pos.x, top: creating.pos.y }}
           />
         )}
       </div>

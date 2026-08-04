@@ -13,6 +13,7 @@ export default function FlowView({
   const tasks = useApp((s) => s.plan.tasks);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
+  const newTaskFrom = useApp((s) => s.newTaskFrom);
   const {
     select,
     setEditorOpen,
@@ -37,6 +38,7 @@ export default function FlowView({
         </button>
         <span>double-click canvas: new task (quick-add syntax works)</span>
         <span>· drag ○ → node: dependency</span>
+        <span>· click ○ or drag it to empty space: new dependent task</span>
         <span>· click arrow: remove</span>
       </div>
 
@@ -52,10 +54,14 @@ export default function FlowView({
         onMove={(id, { x, y }) => updateTask(id, { flowX: x, flowY: y })}
         onToggleDependency={toggleDependency}
         onToggleDone={toggleDone}
-        onCreate={(input, { x, y }) => {
+        onCreate={(input, { x, y }, dependsOn) => {
           const id = quickAdd(input);
-          if (id) updateTask(id, { flowX: x, flowY: y });
+          if (!id) return;
+          updateTask(id, { flowX: x, flowY: y });
+          // a new task has no dependents, so this can never close a loop
+          if (dependsOn) toggleDependency(id, dependsOn);
         }}
+        createFrom={newTaskFrom}
         canvasRef={(el) => {
           if (exportRef) exportRef.current = el;
         }}

@@ -76,6 +76,11 @@ interface AppState {
   loaded: boolean;
   saving: boolean;
   lastCleared: ClearedBatch | null;
+  /** a standing request for the canvas to open its new-task input, with the
+   *  new task depending on `sourceId`. The nonce is what makes a second press
+   *  of the same key on the same task a second request. */
+  newTaskFrom: { sourceId: string; nonce: number } | null;
+  requestNewTaskFrom: (sourceId: string) => void;
   /** assign flowchart positions to tasks that don't have one yet */
   ensureFlowPositions: () => void;
   /** re-layout the whole flowchart by dependency depth */
@@ -123,6 +128,12 @@ export const useApp = create<AppState>()(
     loaded: false,
     saving: false,
     lastCleared: null,
+    newTaskFrom: null,
+
+    requestNewTaskFrom: (sourceId) =>
+      set((s) => {
+        s.newTaskFrom = { sourceId, nonce: (s.newTaskFrom?.nonce ?? 0) + 1 };
+      }),
 
     ensureFlowPositions: () =>
       set((s) => {

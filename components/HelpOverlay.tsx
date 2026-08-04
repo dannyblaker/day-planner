@@ -5,6 +5,7 @@ import { STATUS_COLOR, TaskStatus } from "@/lib/types";
 
 const SHORTCUTS: [string, string][] = [
   ["n / c / ⌘K", "add task (quick-add)"],
+  ["a", "new task depending on the selected one"],
   ["j / k or ↓ / ↑", "select next / previous task"],
   ["Shift+J / Shift+K", "move task down / up the to-do queue"],
   ["Enter / e", "edit selected task"],
@@ -23,6 +24,8 @@ const SHORTCUTS: [string, string][] = [
   ["dbl-click task", "open the editor"],
   ["dbl-click canvas", "create task at that spot"],
   ["drag ○ → node", "draw a dependency arrow"],
+  ["drag ○ → empty space", "new task on the end of the arrow"],
+  ["click ○", "new task depending on that one"],
   ["click arrow", "remove that dependency"],
 ];
 

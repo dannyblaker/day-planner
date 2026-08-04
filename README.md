@@ -9,6 +9,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 ## Features
 
 - **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Auto-arrange lays the graph out by dependency depth.
+- **Grow the graph forwards** — an arrow that ends on nothing is a task you haven't named yet, so drag a ○ into empty space and it asks for the title, then draws the arrow to what you type. Clicking the ○ does the same beside the node, and `a` does it for whatever is selected — chains get built without leaving the keyboard.
 - **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: grey waiting, amber startable, green finished.
 - **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark — position is yours to arrange, not a lane to fall into.
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
@@ -63,7 +64,7 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
 2. Add tokens as you type: `Write report 45m !1 #deep-work`, `CI run 45m ~`.
-3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before.
+3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before — or into empty space, and name the task that follows it there.
 4. Press `✨ Auto-arrange`. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
 5. Finish something, mark it done, and watch the next column light up.
 
@@ -156,6 +157,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | Key | Action |
 |---|---|
 | `n` / `c` / `⌘K` | quick-add task |
+| `a` | new task depending on the selected one |
 | `j` / `k` | select next / previous (in status order) |
 | `Shift+J` / `Shift+K` | move task down / up the to-do queue |
 | `Enter` / `e` | edit selected |
@@ -169,7 +171,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `u` / `⌘Z` | undo the last clear |
 | `m` | toggle light / dark theme |
 | `?` | help |
-| canvas | dbl-click: new task · drag ○→node: dependency · click arrow: remove |
+| canvas | dbl-click: new task · drag ○→node: dependency · click ○ or drag it to empty space: new dependent task · click arrow: remove |
 
 ## Quick-add syntax
 

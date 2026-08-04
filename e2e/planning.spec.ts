@@ -155,6 +155,59 @@ test.describe("the flowchart", () => {
     expect(planServer.tasks().find((t) => t.title === "Second job")!.dependsOn).toEqual([]);
   });
 
+  test("drags an arrow into empty space and names the task on the end of it", async ({
+    page,
+    planServer,
+  }) => {
+    await quickAdd(page, "First job 30m", "First job");
+    await page.locator("body").click();
+
+    const source = flowNode(page, "First job");
+    const port = source.locator("div[title^='drag to another task']");
+    const portBox = (await port.boundingBox())!;
+
+    await page.mouse.move(portBox.x + portBox.width / 2, portBox.y + portBox.height / 2);
+    await page.mouse.down();
+    await page.mouse.move(portBox.x + 300, portBox.y + 160, { steps: 10 });
+    await page.mouse.up();
+
+    // nothing exists yet — the arrow is waiting on a title
+    await page.getByPlaceholder(/New task/).fill("Second job 20m");
+    await page.getByPlaceholder(/New task/).press("Enter");
+
+    await expect(flowNode(page, "Second job")).toBeVisible();
+    await planServer.settled();
+    const first = planServer.tasks().find((t) => t.title === "First job")!;
+    const second = planServer.tasks().find((t) => t.title === "Second job")!;
+    expect(second.dependsOn).toEqual([first.id]);
+    // dropped where it was let go, not back in a column
+    expect(Number(second.flowX)).toBeGreaterThan(Number(first.flowX));
+  });
+
+  test("creates a dependent task from the keyboard with a", async ({ page, planServer }) => {
+    await quickAdd(page, "First job 30m", "First job");
+    await page.locator("body").click();
+    await page.keyboard.press("j");
+    await page.keyboard.press("a");
+
+    await page.getByPlaceholder(/New task/).fill("Second job 20m");
+    await page.getByPlaceholder(/New task/).press("Enter");
+
+    // the new task is selected, so a again chains a third off the second
+    await page.keyboard.press("a");
+    await page.getByPlaceholder(/New task/).fill("Third job 20m");
+    await page.getByPlaceholder(/New task/).press("Enter");
+
+    await planServer.settled();
+    const id = (title: string) => planServer.tasks().find((t) => t.title === title)!.id;
+    expect(planServer.tasks().find((t) => t.title === "Second job")!.dependsOn).toEqual([
+      id("First job"),
+    ]);
+    expect(planServer.tasks().find((t) => t.title === "Third job")!.dependsOn).toEqual([
+      id("Second job"),
+    ]);
+  });
+
   test("opens the editor beside the canvas, not off-screen", async ({ page }) => {
     await quickAdd(page, "Write the report 30m", "Write the report");
     await page.locator("body").click();

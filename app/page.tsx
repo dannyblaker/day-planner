@@ -78,6 +78,14 @@ export default function Home() {
           e.preventDefault();
           quickAddRef.current?.focus();
           break;
+        case "a":
+          // a new task on the far end of a new arrow — the canvas asks for the
+          // title, so chains get built without leaving the keyboard
+          if (sel) {
+            e.preventDefault();
+            s.requestNewTaskFrom(sel);
+          }
+          break;
         case "j":
         case "ArrowDown":
           e.preventDefault();

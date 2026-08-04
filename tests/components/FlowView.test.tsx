@@ -1,6 +1,6 @@
 import FlowView from "@/components/FlowView";
 import { Task } from "@/lib/types";
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
@@ -119,5 +119,78 @@ describe("interaction", () => {
     const [a, b] = planTasks();
     expect(a.flowX).toBe(40);
     expect(b.flowX!).toBeGreaterThan(a.flowX!);
+  });
+});
+
+/**
+ * The arrow and the task on the end of it are the same gesture: every way of
+ * starting one asks for a title, and wires the dependency when you give it.
+ * (Dragging is only meaningful with real geometry — that half lives in e2e.)
+ */
+describe("growing the graph forwards", () => {
+  const port = (title: string) =>
+    within(node(title)).getByTitle(/drag to another task/);
+  const createInput = () => screen.getByPlaceholderText(/New task/);
+
+  it("asks for a new task when the port is clicked", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "First", flowX: 40, flowY: 60 })]);
+
+    await user.click(port("First"));
+    expect(createInput()).toHaveAttribute(
+      "placeholder",
+      expect.stringContaining("First")
+    );
+
+    await user.type(createInput(), "Second job 45m{Enter}");
+    const created = planTasks().find((t) => t.title === "Second job")!;
+    expect(created.dependsOn).toEqual(["a"]);
+    expect(created.duration).toBe(45);
+  });
+
+  it("puts the new task to the right of the one it waits on", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "First", flowX: 300, flowY: 200 })]);
+
+    await user.click(port("First"));
+    await user.type(createInput(), "Second job{Enter}");
+    const created = planTasks().find((t) => t.title === "Second job")!;
+    expect(created.flowX!).toBeGreaterThan(300);
+    expect(created.flowY).toBe(200);
+  });
+
+  it("creates nothing if the input is dismissed", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "First" })]);
+
+    await user.click(port("First"));
+    await user.type(createInput(), "Never mind{Escape}");
+    expect(planTasks()).toHaveLength(1);
+  });
+
+  it("opens the same input for the selected task on request", async () => {
+    const user = userEvent.setup();
+    renderFlow([
+      makeTask({ id: "a", title: "First" }),
+      makeTask({ id: "b", title: "Other" }),
+    ]);
+
+    act(() => app().requestNewTaskFrom("b"));
+    await user.type(createInput(), "Follow-up{Enter}");
+    expect(planTasks().find((t) => t.title === "Follow-up")!.dependsOn).toEqual([
+      "b",
+    ]);
+  });
+
+  it("reopens on a second request for the same task", async () => {
+    const user = userEvent.setup();
+    renderFlow([makeTask({ id: "a", title: "First" })]);
+
+    act(() => app().requestNewTaskFrom("a"));
+    await user.type(createInput(), "One{Enter}");
+    act(() => app().requestNewTaskFrom("a"));
+    await user.type(createInput(), "Two{Enter}");
+
+    expect(planTasks().map((t) => t.title)).toEqual(["First", "One", "Two"]);
   });
 });
