@@ -88,8 +88,27 @@ html {
      node's box is transparent, and only the crocodile in it should have one */
   --drag-filter: drop-shadow(0 7px 9px rgba(0, 0, 0, 0.55));
   --flow-dot: #22382c;
-  /* the water the board floats on: a scale lattice under the ripple dots */
-  --water-scale: rgba(122, 190, 150, 0.03);
+
+  /*
+   * The water the board floats on: `depth` is the still column, and the two
+   * blends say how the moving light sits on it. The textures themselves are
+   * further down, with .croc-surface.
+   */
+  --water-depth: radial-gradient(
+      110% 80% at 42% -25%,
+      rgba(46, 122, 102, 0.55),
+      transparent 62%
+    ),
+    linear-gradient(180deg, #10302a, #0a2220 55%, #061716);
+  --water-caustics: var(--caustics-pale);
+  --water-caustics-blend: screen;
+  --water-caustics-opacity: 0.1;
+  --water-emboss-blend: soft-light;
+  --water-emboss-opacity: 0.3;
+  --water-sheen: rgba(190, 255, 235, 0.05);
+  /* a ripple: pale on dark water, and never more than a suggestion */
+  --ripple-ink: rgb(196, 255, 236);
+  --ripple-peak: 0.3;
 
   /* flowchart dependency arrows */
   --edge: #8fb3a1;
@@ -134,7 +153,22 @@ html {
   --scrim: rgba(12, 32, 21, 0.35);
   --drag-filter: drop-shadow(0 7px 9px rgba(12, 32, 21, 0.28));
   --flow-dot: #cfdfd2;
-  --water-scale: rgba(31, 92, 58, 0.035);
+
+  /* shallow water over a pale bed: lit from above rather than glowing */
+  --water-depth: radial-gradient(
+      110% 80% at 42% -25%,
+      rgba(255, 255, 255, 0.5),
+      transparent 60%
+    ),
+    linear-gradient(180deg, #cfedec, #abdad7 55%, #92cac7);
+  --water-caustics: var(--caustics-deep);
+  --water-caustics-blend: multiply;
+  --water-caustics-opacity: 0.14;
+  --water-emboss-blend: soft-light;
+  --water-emboss-opacity: 0.55;
+  --water-sheen: rgba(255, 255, 255, 0.3);
+  --ripple-ink: rgb(255, 255, 255);
+  --ripple-peak: 0.75;
 
   --edge: #7f9d8b;
   --edge-dim: #c6d7cb;
@@ -313,25 +347,212 @@ body {
   stroke-width: 2.5;
 }
 
-/* The canvas: swamp water. Ripple dots over a scale lattice, both faint enough
-   that a node reads as sitting on top of it rather than in it. */
-.croc-water {
+/*
+ * The canvas, in both of its dresses.
+ *
+ * The dot grid belongs to both: it is the graph paper, and it is what tells you a
+ * node moved a little rather than not at all. Everything else — the water — is a
+ * layer under it, switched on by `data-canvas`.
+ */
+/* The graph paper, on its own layer above the water — a background on the board
+   itself would paint under the board's own children, water included. */
+.croc-water::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background-image: radial-gradient(
+    circle,
+    var(--flow-dot) 1px,
+    transparent 1px
+  );
+  background-size: 24px 24px;
+}
+/* and in water the board's own fill steps aside, so the pool shows through */
+:root[data-canvas="water"] .croc-water {
+  background-color: transparent;
+}
+
+/*
+ * What the water is made of, and none of it is a picture of water: two shaped
+ * fields of Perlin noise.
+ *
+ * `caustics` is the light that gathers on a shallow bottom. The trick is the tent
+ * curve on alpha — `tableValues="0 0 1 0 0"` peaks where the noise passes through
+ * its middle, so what survives is the *contours* of the noise rather than its
+ * hills: a net of thin filaments, which is what caustics actually look like.
+ *
+ * `swell-light` and `swell-dark` are one smooth noise field twice over, white and
+ * black. Offset against each other by a few pixels they emboss: highlight up-left,
+ * shadow down-right, a surface with a direction the light comes from. That is
+ * where the three dimensions come from.
+ *
+ * feDiffuseLighting would do the embossing in one pass and was the first thing
+ * tried. It cannot tile: computing a normal needs the neighbouring pixels, the
+ * tile has none past its edge, and every seam in the board showed as a hard line.
+ * Two offset copies of a `stitchTiles` noise have no such edge.
+ */
+:root {
+  /* pale filaments for deep water, dark ones for shallow: light gathers on a black
+     bottom and shadows on a bright one, and the same texture can't do both */
+  --caustics-pale: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'><filter id='cp' filterUnits='userSpaceOnUse' x='0' y='0' width='520' height='520'><feTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='2' seed='9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.66  0 0 0 0 1  0 0 0 0 0.92  1 0 0 0 0'/><feComponentTransfer><feFuncA type='table' tableValues='0 0 0 0 1 0 0 0 0'/></feComponentTransfer></filter><rect width='520' height='520' filter='url(%23cp)'/></svg>");
+  --caustics-deep: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='520' height='520'><filter id='cd' filterUnits='userSpaceOnUse' x='0' y='0' width='520' height='520'><feTurbulence type='fractalNoise' baseFrequency='0.015' numOctaves='2' seed='9' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0.03  0 0 0 0 0.2  0 0 0 0 0.18  1 0 0 0 0'/><feComponentTransfer><feFuncA type='table' tableValues='0 0 0 0 1 0 0 0 0'/></feComponentTransfer></filter><rect width='520' height='520' filter='url(%23cd)'/></svg>");
+  --water-swell-light: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='440'><filter id='l' filterUnits='userSpaceOnUse' x='0' y='0' width='440' height='440'><feTurbulence type='fractalNoise' baseFrequency='0.007' numOctaves='3' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 1.5 0 0 0 -0.6'/></filter><rect width='440' height='440' filter='url(%23l)'/></svg>");
+  --water-swell-dark: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='440' height='440'><filter id='d' filterUnits='userSpaceOnUse' x='0' y='0' width='440' height='440'><feTurbulence type='fractalNoise' baseFrequency='0.007' numOctaves='3' seed='4' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 1.5 0 0 0 -0.6'/></filter><rect width='440' height='440' filter='url(%23d)'/></svg>");
+}
+
+/*
+ * The surface: a still, lit pool. `isolation` keeps the blending inside the water
+ * so a node over it is untouched, `overflow` keeps the ripples inside the box, and
+ * it draws nothing you can click.
+ *
+ * It used to drift — the caustics travelling slowly across the bottom — and it was
+ * lovely for about a minute and tiring after that. Something moving under text you
+ * are reading all day pulls at the eye whatever it costs. So the pool holds still
+ * and the motion is rationed: one ring every ten seconds or so, from
+ * components/WaterSurface.tsx.
+ *
+ * It is *sticky*, and only as big as the window. The board is 3000×1500 and the
+ * first version covered all of it — blended layers over four and a half million
+ * pixels, which a browser rasterises as one group every frame. It cost enough that
+ * five of these animating side by side timed the end-to-end suite out. Sticky at
+ * the top-left of the scroll port is a third of the pixels, and it holds still
+ * while the board pans over it, which is also what water does.
+ *
+ * Holding still is also the cheapest thing it could possibly do: nothing here
+ * repaints between ripples, and a ripple is one small ring on the compositor.
+ */
+.croc-port {
+  container-type: size;
+}
+.croc-surface {
+  display: none;
+}
+:root[data-canvas="water"] .croc-surface {
+  display: block;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 0;
+  /* the window, and then — where the browser has container queries — the scroll
+     port itself, which on a screen with both side panels open is half as many
+     pixels again. An invalid declaration is dropped, so the first pair stands. */
+  width: 100vw;
+  height: 100vh;
+  width: 100cqw;
+  height: 100cqh;
+  overflow: hidden;
+  isolation: isolate;
+  pointer-events: none;
+  background: var(--water-depth);
+}
+:root[data-canvas="water"] .croc-surface::before,
+:root[data-canvas="water"] .croc-surface::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+}
+
+/* the light on the bottom, and a sheen three tiles wide lying across it */
+:root[data-canvas="water"] .croc-surface::before {
   background-image:
-    radial-gradient(circle, var(--flow-dot) 1px, transparent 1px),
-    repeating-linear-gradient(
-      45deg,
-      transparent 0 22px,
-      var(--water-scale) 22px 24px
-    ),
-    repeating-linear-gradient(
-      -45deg,
-      transparent 0 22px,
-      var(--water-scale) 22px 24px
+    var(--water-caustics),
+    linear-gradient(
+      104deg,
+      transparent 28%,
+      var(--water-sheen) 50%,
+      transparent 72%
     );
   background-size:
-    24px 24px,
-    auto,
-    auto;
+    520px 520px,
+    1560px 100%;
+  mix-blend-mode: var(--water-caustics-blend);
+  opacity: var(--water-caustics-opacity);
+}
+
+/*
+ * The swell: the same field lit and shadowed, four pixels apart, which is the
+ * shape of the bottom. It does not move, and not only to save the repaint — the
+ * bottom of a pool doesn't move. What moves is the light on it, and the parallax
+ * of the caustics travelling over a fixed relief is most of why this reads as
+ * water with a depth to it rather than as one drifting texture.
+ */
+:root[data-canvas="water"] .croc-surface::after {
+  background-image: var(--water-swell-light), var(--water-swell-dark);
+  background-size:
+    440px 440px,
+    440px 440px;
+  background-position:
+    -4px -4px,
+    4px 4px;
+  mix-blend-mode: var(--water-emboss-blend);
+  opacity: var(--water-emboss-opacity);
+}
+
+/*
+ * A ripple: a ring that opens, thins and goes. Two of them a moment apart, because
+ * one ring reads as a target and two read as water.
+ *
+ * Deliberately faint — this is meant to catch the eye about as much as something
+ * moving at the edge of a pond does, which is to say barely, and only if you happen
+ * to be looking that way.
+ */
+.croc-ripple {
+  position: absolute;
+  width: var(--ripple-size);
+  height: var(--ripple-size);
+  margin: calc(var(--ripple-size) / -2) 0 0 calc(var(--ripple-size) / -2);
+  border-radius: 50%;
+  border: 1px solid var(--ripple-ink);
+  opacity: 0;
+  pointer-events: none;
+  /* half a pixel of blur is the difference between a ring on water and a circle
+     drawn on the screen */
+  filter: blur(0.6px);
+  animation: croc-ripple 2.8s ease-out forwards;
+}
+.croc-ripple::after {
+  content: "";
+  position: absolute;
+  inset: 22%;
+  border-radius: 50%;
+  border: 1px solid var(--ripple-ink);
+  opacity: 0;
+  animation: croc-ripple 2.4s 0.35s ease-out forwards;
+}
+@keyframes croc-ripple {
+  from {
+    transform: scale(0.2);
+    opacity: 0;
+  }
+  30% {
+    opacity: var(--ripple-peak);
+  }
+  to {
+    transform: scale(1);
+    opacity: 0;
+  }
+}
+
+/* Being exported: cover the board rather than the window, and hold no ripples for
+   the frame. See overTheWholeBoard() in lib/export.ts. */
+:root[data-exporting] .croc-surface {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+}
+:root[data-exporting] .croc-ripple {
+  display: none;
+}
+
+/* WaterSurface asks the same question before it drops one; this is the belt to its
+   braces, for a preference that changes after the timer was set. */
+@media (prefers-reduced-motion: reduce) {
+  .croc-ripple,
+  .croc-ripple::after {
+    animation: none;
+  }
 }
 
 .kbd {
@@ -346,8 +567,8 @@ body {
   white-space: nowrap;
 }
 
-/* Theme toggle icon: swapped in CSS so the button renders identically on the
-   server and the client (no hydration mismatch, no flash). */
+/* Toggle icons: swapped in CSS so the buttons render identically on the server
+   and the client (no hydration mismatch, no flash). */
 .theme-when-light {
   display: none;
 }
@@ -355,6 +576,16 @@ body {
   display: inline;
 }
 :root[data-theme="light"] .theme-when-dark {
+  display: none;
+}
+
+.canvas-when-plain {
+  display: none;
+}
+:root[data-canvas="plain"] .canvas-when-plain {
+  display: inline;
+}
+:root[data-canvas="plain"] .canvas-when-water {
   display: none;
 }
 

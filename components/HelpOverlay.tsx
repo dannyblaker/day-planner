@@ -17,6 +17,7 @@ const SHORTCUTS: [string, string][] = [
   ["x / Del", "delete selected task"],
   ["u / ⌘Z", "undo the last clear"],
   ["m", "toggle light / dark theme"],
+  ["w", "toggle the animated water canvas"],
   ["?", "this help"],
   ["Esc", "close panels / deselect"],
   ["drag row (list)", "reorder the queue"],

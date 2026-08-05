@@ -3,6 +3,7 @@
 import { statuses } from "@/lib/graph";
 import { Plan, STATUS_COLOR } from "@/lib/types";
 import { useEffect, useState } from "react";
+import CanvasToggle from "./CanvasToggle";
 import FlowCanvas from "./FlowCanvas";
 import Logo from "./Logo";
 import ThemeToggle from "./ThemeToggle";
@@ -73,6 +74,7 @@ export default function ShareView({ token }: { token: string }) {
           live · read-only
         </span>
         <div className="flex-1" />
+        <CanvasToggle hint={false} />
         <ThemeToggle hint={false} />
         <span className="text-label text-slate-500">
           {done}/{total} done

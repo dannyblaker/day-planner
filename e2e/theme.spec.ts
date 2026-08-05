@@ -89,6 +89,62 @@ test.describe("persistence", () => {
   });
 });
 
+/**
+ * The canvas the flowchart floats on is a second per-device preference, stamped
+ * before first paint by the same script and stored by the same means.
+ */
+test.describe("the canvas", () => {
+  const canvasAttr = "html[data-canvas]";
+  const canvas = (page: import("@playwright/test").Page) =>
+    page.evaluate(() => document.documentElement.dataset.canvas);
+
+  test("is water until you say otherwise", async ({ page }) => {
+    await page.goto("/");
+    expect(await canvas(page)).toBe("water");
+    // the water is a real element, not a background on the board
+    await expect(page.locator(".croc-surface")).toBeVisible();
+  });
+
+  test("the w key and the top bar button both flip it", async ({ page }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /animated water/i }).first().click();
+    await expect(page.locator(canvasAttr)).toHaveAttribute("data-canvas", "plain");
+    await expect(page.locator(".croc-surface")).toBeHidden();
+
+    await page.locator("body").click();
+    await page.keyboard.press("w");
+    await expect(page.locator(canvasAttr)).toHaveAttribute("data-canvas", "water");
+  });
+
+  test("survives a reload, and is applied before the first paint", async ({ page }) => {
+    await page.addInitScript(() => {
+      document.addEventListener("DOMContentLoaded", () => {
+        (window as unknown as { __canvasAtParse?: string }).__canvasAtParse =
+          document.documentElement.dataset.canvas;
+      });
+    });
+
+    await page.goto("/");
+    await page.getByRole("button", { name: /animated water/i }).first().click();
+    await expect(page.locator(canvasAttr)).toHaveAttribute("data-canvas", "plain");
+
+    await page.reload();
+    expect(
+      await page.evaluate(
+        () => (window as unknown as { __canvasAtParse?: string }).__canvasAtParse
+      )
+    ).toBe("plain");
+    expect(await canvas(page)).toBe("plain");
+  });
+
+  test("is per-device, not part of the plan that gets shared", async ({ page, planServer }) => {
+    await page.goto("/");
+    await page.getByRole("button", { name: /animated water/i }).first().click();
+    await expect(page.locator(canvasAttr)).toHaveAttribute("data-canvas", "plain");
+    expect(JSON.stringify(planServer.current())).not.toContain("plain");
+  });
+});
+
 test.describe("the share page", () => {
   test.use({ colorScheme: "light" });
 

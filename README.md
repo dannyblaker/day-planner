@@ -22,6 +22,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **Live share** — send someone a read-only link (`Share live`) that polls the plan every 5 seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
 - **Export** — one click to PNG or PDF of the canvas, matching the theme you're in, or `JSON` for the whole graph as data: every task, every dependency, and the derived status.
 - **A real API** — read the plan, write it a task at a time, or fetch the lot and hand it back edited. Dependencies are checked on the way in, so nothing you can send closes a loop. See [The API](#the-api).
+- **The board floats on water** (`w`, or the 🌊 button) — the canvas is a pool: a still, lit bottom with caustics on it, so a task waiting its turn is a crocodile lying submerged and the ones you can start are the ones at the surface. Still, and then every ten seconds or so a ripple crosses it and is gone. It is two fields of Perlin noise shaped by SVG filters — no images, no canvas element, and nothing animating in between. Prefer a quiet grid? The button switches to one, and the choice is remembered per device.
 - **Light / dark theme** (`m`, or the ☀️/🌙 button) — swamp water at night or a bright riverbank; follows your OS preference until you pick one, and the choice is per-device and applied before first paint, so there's no flash on reload.
 - **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
 - **Keyboard-driven** — `j`/`k` walks the board in status order, and everything else is one key. Press `?`.
@@ -172,6 +173,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `x` / `Del` | delete |
 | `u` / `⌘Z` | undo the last clear |
 | `m` | toggle light / dark theme |
+| `w` | toggle the animated water canvas |
 | `?` | help |
 | canvas | dbl-click: new task · drag ○→node: dependency · click ○ or drag it to empty space: new dependent task · click arrow: remove |
 
@@ -197,6 +199,8 @@ Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to
 The API is three pure modules and a thin layer of routes: `lib/plan-ops.ts` is every write as a function from one plan to the next (and everything it refuses), `lib/plan-doc.ts` is the derived view the API hands out — shared with the browser's JSON button, so the download and the endpoint are the same document — and `lib/plan-store.ts` is the read-modify-write, queued so concurrent calls can't overwrite each other.
 
 The whole palette is one file: `app/globals.css` holds both themes as one set of variables, with the Tailwind ramp re-pointed onto a single green hue so every surface in the app is swamp water. A status publishes two colours and no more; the rectangle in the sidebar and the crocodile on the canvas each decide what to do with them.
+
+**The water is in there too.** `.croc-surface` in the same file is the pool, with the depth and the blending set per theme like everything else; `components/WaterSurface.tsx` drops the occasional ripple into it. Three things about it were learned the hard way and are worth not re-learning: `feDiffuseLighting` cannot tile (a normal needs neighbours the tile hasn't got, so every seam shows), `stitchTiles` stitches over the *filter region* rather than the tile unless you pin the region to it, and a blended layer the size of the whole board costs enough to notice — the surface is sticky and sized to the scroll port. The caustics used to drift, which looked lovely for a minute and was tiring after that; a still pool with a rationed ripple costs nothing between ripples and is easier to work over. No ripples at all for `prefers-reduced-motion`.
 
 **How big the app is, is one line.** `html { font-size }` in that same file sets it: every length in the app is in rem — the four named type sizes (`note` / `label` / `body` / `title`), Tailwind's spacing, the panel widths — so one percentage scales type, padding and panels together. Nudge it if the app is too small or too large for your screen. A task node is the one thing sized in pixels (`FLOW` in `lib/types.ts`, because the canvas stores positions in them), and the crocodile is a viewBox stretched to fit whatever that says.
 

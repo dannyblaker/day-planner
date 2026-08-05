@@ -1,5 +1,6 @@
 "use client";
 
+import CanvasToggle from "@/components/CanvasToggle";
 import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { exportJSON, exportPDF, exportPNG } from "@/lib/export";
@@ -95,6 +96,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
       >
         JSON
       </button>
+      <CanvasToggle />
       <ThemeToggle />
       <button onClick={() => setHelpOpen(true)} className="btn" title="shortcuts (?)">
         ?

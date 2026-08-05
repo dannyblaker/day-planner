@@ -9,6 +9,21 @@ const bg = () =>
     .getPropertyValue("--background")
     .trim() || "#0b1410";
 
+/**
+ * A picture of the board wants water across all of it, and on screen the water is
+ * only as big as the window (sticky, for the sake of the repaint — see
+ * globals.css). `data-exporting` spreads it over the whole canvas and stops it
+ * drifting, for exactly as long as the capture takes.
+ */
+async function overTheWholeBoard<T>(capture: () => Promise<T>): Promise<T> {
+  document.documentElement.dataset.exporting = "";
+  try {
+    return await capture();
+  } finally {
+    delete document.documentElement.dataset.exporting;
+  }
+}
+
 function download(dataUrl: string, filename: string) {
   const a = document.createElement("a");
   a.href = dataUrl;
@@ -33,13 +48,17 @@ export function exportJSON(plan: Plan, name: string) {
 
 export async function exportPNG(node: HTMLElement, name: string) {
   const { toPng } = await import("html-to-image");
-  const url = await toPng(node, { backgroundColor: bg(), pixelRatio: 2 });
+  const url = await overTheWholeBoard(() =>
+    toPng(node, { backgroundColor: bg(), pixelRatio: 2 })
+  );
   download(url, `${name}.png`);
 }
 
 export async function exportPDF(node: HTMLElement, name: string) {
   const { toPng } = await import("html-to-image");
-  const url = await toPng(node, { backgroundColor: bg(), pixelRatio: 2 });
+  const url = await overTheWholeBoard(() =>
+    toPng(node, { backgroundColor: bg(), pixelRatio: 2 })
+  );
   const img = new Image();
   await new Promise<void>((resolve, reject) => {
     img.onload = () => resolve();

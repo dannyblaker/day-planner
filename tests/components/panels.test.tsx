@@ -1,12 +1,14 @@
+import CanvasToggle from "@/components/CanvasToggle";
 import DoneButton from "@/components/DoneButton";
 import Editor from "@/components/Editor";
 import GoalsPanel from "@/components/GoalsPanel";
 import HelpOverlay from "@/components/HelpOverlay";
 import QuickAdd from "@/components/QuickAdd";
 import ThemeToggle from "@/components/ThemeToggle";
-import { currentTheme } from "@/lib/theme";
+import WaterSurface from "@/components/WaterSurface";
+import { currentCanvas, currentTheme } from "@/lib/theme";
 import { Task } from "@/lib/types";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { app, seedStore } from "../app-state";
@@ -47,6 +49,71 @@ describe("ThemeToggle", () => {
     unmount();
     render(<ThemeToggle hint={false} />);
     expect(screen.getByRole("button", { name: /toggle/i }).title).not.toContain("(m)");
+  });
+});
+
+describe("CanvasToggle", () => {
+  it("flips the canvas on click", async () => {
+    const user = userEvent.setup();
+    render(<CanvasToggle />);
+    expect(currentCanvas()).toBe("water");
+    await user.click(screen.getByRole("button", { name: /animated water/i }));
+    expect(currentCanvas()).toBe("plain");
+    await user.click(screen.getByRole("button", { name: /animated water/i }));
+    expect(currentCanvas()).toBe("water");
+  });
+
+  it("renders both glyphs, leaving the choice of which shows to CSS", () => {
+    render(<CanvasToggle />);
+    expect(document.querySelector(".canvas-when-water")).toBeInTheDocument();
+    expect(document.querySelector(".canvas-when-plain")).toBeInTheDocument();
+  });
+});
+
+/**
+ * The pool holds still; what moves is the odd ripple. Which means the interesting
+ * behaviour is all about *not* animating: not while the canvas is plain, and not for
+ * someone who asked for less motion.
+ */
+describe("WaterSurface", () => {
+  const ripples = () => document.querySelectorAll(".croc-ripple");
+  const root = () => document.documentElement;
+
+  beforeEach(() => {
+    root().dataset.canvas = "water";
+    // the shortest gap the component will pick, so the wait below is exact
+    vi.spyOn(Math, "random").mockReturnValue(0);
+  });
+
+  it("drops a ripple in, after a while", () => {
+    render(<WaterSurface />);
+    expect(ripples()).toHaveLength(0);
+    act(() => void vi.advanceTimersByTime(5100));
+    expect(ripples()).toHaveLength(1);
+  });
+
+  it("takes it away again", () => {
+    render(<WaterSurface />);
+    act(() => void vi.advanceTimersByTime(5100));
+    act(() => void vi.advanceTimersByTime(3100));
+    expect(ripples()).toHaveLength(0);
+  });
+
+  it("leaves a plain canvas alone", () => {
+    root().dataset.canvas = "plain";
+    render(<WaterSurface />);
+    act(() => void vi.advanceTimersByTime(30_000));
+    expect(ripples()).toHaveLength(0);
+  });
+
+  it("holds still for anyone who asked for less motion", () => {
+    vi.spyOn(window, "matchMedia").mockImplementation(
+      (query: string) =>
+        ({ matches: query.includes("reduced-motion"), media: query }) as MediaQueryList
+    );
+    render(<WaterSurface />);
+    act(() => void vi.advanceTimersByTime(30_000));
+    expect(ripples()).toHaveLength(0);
   });
 });
 

@@ -10,7 +10,7 @@ import TopBar from "@/components/TopBar";
 import UndoBar from "@/components/UndoBar";
 import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { toggleTheme } from "@/lib/theme";
+import { toggleCanvas, toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
 import { STATUS_ORDER, Task } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
@@ -136,6 +136,9 @@ export default function Home() {
           break;
         case "m":
           toggleTheme();
+          break;
+        case "w":
+          toggleCanvas();
           break;
         case "u":
           s.undoClear();

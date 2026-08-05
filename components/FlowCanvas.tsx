@@ -13,6 +13,7 @@ import {
 import { useRef, useState } from "react";
 import CrocShape, { BACK, DONE_AT } from "./CrocShape";
 import DoneButton from "./DoneButton";
+import WaterSurface from "./WaterSurface";
 
 const { W, H, NODE_W, NODE_H } = FLOW;
 
@@ -275,7 +276,9 @@ export default function FlowCanvas({
   return (
     <div
       ref={scrollRef}
-      className="flex-1 min-h-0 overflow-auto rounded-lg border border-slate-800"
+      /* a size container, so the water inside can be exactly the size of what
+         you can see of the board rather than of the window — see .croc-surface */
+      className="croc-port flex-1 min-h-0 overflow-auto rounded-lg border border-slate-800"
     >
       <div
         ref={(el) => {
@@ -287,6 +290,9 @@ export default function FlowCanvas({
         className="croc-water relative bg-background cursor-grab"
         style={{ width: W, height: H }}
       >
+        {/* the water, when the canvas is dressed as water — see globals.css */}
+        <WaterSurface />
+
         {/* dependency edges */}
         <svg
           className="absolute inset-0"
