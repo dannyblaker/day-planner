@@ -1,12 +1,8 @@
 <img src="public/logo.svg" alt="Concurrent Crocodiles" width="330" height="80">
 
-**A dependency flowchart for planning work that runs in parallel. Tasks are nodes, dependencies are arrows, and every other property of the board is derived from those two facts.**
+**An intuitive app that helps you plan task concurrency.**
 
-Status is not something you set. You declare the dependencies, and any task whose prerequisites are all complete is *in progress* — all such tasks at once. That set answers the question the board exists to answer: what can be started now, and how much of it simultaneously. Completing a task promotes whatever was waiting on it, with nothing else to update.
-
-Layout follows the same principle. Positions are neither stored nor dragged: the board arranges itself left to right by dependency depth and top to bottom by priority, and recomputes after every edit.
-
-There is no clock in the model. A dependency graph expresses order, not time, so the application has no schedule, no working hours and no calendar — only the graph and what it implies.
+Create tasks and their dependencies. Tasks auto-arrange as their priority and status changes. 
 
 ---
 
@@ -30,9 +26,9 @@ There is no clock in the model. A dependency graph expresses order, not time, so
 |---|---|
 | **Three statuses** | *In progress* — every prerequisite is complete, so the task is startable. *To do* — waiting on a prerequisite, or blocked. *Done* — the only status you assert. Nodes and list rows are coloured accordingly. |
 | **Self-arranging board** | Columns are dependency depth, rows are priority. Because layout is a pure function of the graph, the editor, the share view and an exported image all draw the same board. |
-| **Inherited urgency** | A prerequisite of urgent work is treated as urgent regardless of its own priority. Raising a task to P1 lifts the entire chain it depends on, so the path to important work reads across the top. |
+| **Inherited urgency** | Raising a task to P1 lifts the entire chain it depends on, so the path to important work reads across the top. |
 | **Animated transitions** | When the layout changes, nodes and arrows move to their new positions over approximately one second, which keeps a task trackable across a re-sort. Disabled under `prefers-reduced-motion`. |
-| **Cycle safety** | The editor disables any dependency that would close a loop, the API rejects one and names it, and every graph operation terminates on a cycle rather than recursing indefinitely. |
+
 
 ### Editing
 
