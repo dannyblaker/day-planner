@@ -1,7 +1,8 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 234 82" width="234" height="82" role="img" aria-label="Concurrent Crocodiles">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 104" width="300" height="104" role="img" aria-label="Concurrent Crocodiles">
   <title>Concurrent Crocodiles</title>
-  <!-- The full lockup: the mark, its wake, and the wordmark. The mark alone
-       lives in components/Logo.tsx (and, trimmed, in app/icon.svg).
+  <!-- One node, forking into two crocodiles that run at once: the smallest
+       instance of the board itself. The mark alone lives in components/Logo.tsx
+       and, simplified for 16px, in app/icon.svg.
 
        The wordmark defaults to a mid green that carries on a light page and on
        the swamp-dark one, and goes lighter where the viewer's dark mode is
@@ -14,56 +15,28 @@
     }
   </style>
 
-  <!-- the wake: three parallel lines, which is what the name is about -->
-  <g stroke="#2f8d7d" stroke-width="3" stroke-linecap="round" fill="none" opacity="0.9">
-    <path d="M12 58 h30" />
-    <path d="M18 66 h42" />
-    <path d="M14 74 h22" />
+  <g stroke="#2f8d7d" stroke-width="6" fill="none" stroke-linecap="round">
+    <path d="M14 52 C26 52 24 25 34 27" />
+    <path d="M14 52 C26 52 24 79 34 77" />
   </g>
+  <circle cx="12" cy="52" r="9.5" fill="#2f8d7d" />
 
-  <g transform="translate(6 4) scale(1.7)">
-    <path d="M8.5 16.2 C14 17.4 22 19.4 27.6 20.9
-             C26.6 17.6 26.8 14.4 27.9 11.5
-             C22 13.6 14 15 8.5 16.2 Z"
-          fill="#17280f" />
-    <ellipse cx="7" cy="15.6" rx="4.6" ry="5.4" fill="#3f7233" />
-    <path d="M5.4 17 C9.5 16.7 14.5 17.9 19.5 19.3
-             C23.5 20.4 26.8 21.3 28.6 21.8
-             C29.6 22.1 29.5 23.3 28.3 23.4
-             C25.5 23.3 21 22.6 16 21.6
-             C11 20.6 6.4 19.7 4.8 19.1 Z"
-          fill="#4c8438" />
-    <g fill="#f5f2e6">
-      <path d="M13.6 17.85 l1.8 0.4 l-0.6 -2.3 Z" />
-      <path d="M17.8 19 l1.8 0.45 l-0.6 -2.3 Z" />
-      <path d="M21.9 20.15 l1.8 0.45 l-0.6 -2.3 Z" />
-      <path d="M25.5 21.1 l1.8 0.45 l-0.6 -2.3 Z" />
-    </g>
-    <path d="M4.6 13.2 C5.6 10.8 8.2 10.2 10.4 11
-             C11 8.7 14 8.9 14.5 11.2
-             C19.5 11 25 9.8 29.3 8.1
-             C30 8.7 29.9 9.9 29 10.5
-             C24 12.6 17.5 14.4 11.5 15.2
-             C8 15.7 5.2 15.2 4.6 13.2 Z"
-          fill="#63a447" />
-    <g fill="#3f7233">
-      <path d="M17.4 11.35 l1.5 -0.15 l-0.6 -1.5 Z" />
-      <path d="M21.6 10.7 l1.5 -0.25 l-0.5 -1.5 Z" />
-    </g>
-    <g fill="#f5f2e6">
-      <path d="M14.6 14.6 l1.8 -0.35 l-0.6 2.3 Z" />
-      <path d="M18.8 13.75 l1.8 -0.4 l-0.6 2.3 Z" />
-      <path d="M22.9 12.6 l1.8 -0.45 l-0.6 2.3 Z" />
-      <path d="M26.4 11.5 l1.8 -0.5 l-0.6 2.3 Z" />
-    </g>
-    <ellipse cx="27.3" cy="9.4" rx="0.8" ry="0.6" fill="#2f5626" />
-    <circle cx="12.5" cy="11.3" r="1.8" fill="#f7c243" />
-    <ellipse cx="12.5" cy="11.3" rx="0.55" ry="1.2" fill="#14210f" />
+  <g transform="translate(34 27) rotate(-15) scale(3.1)">
+    <path d="M13.5 -3.6 h2 v-1.5 h-2 Z M18 -3.6 h2 v-1.5 h-2 Z M13.5 3.6 h2 v1.5 h-2 Z M18 3.6 h2 v1.5 h-2 Z" fill="#3f7233" />
+    <path d="M0 -0.6 L4 -0.6 L4 -1.5 L8 -1.5 L8 -2.5 L12 -2.5 L12 -3.6 L21 -3.6 L21 -3 L24 -3 L24 -2.2 L26.5 -2.2 L26.5 -1.4 L28 -1.4 L28 1.4 L26.5 1.4 L26.5 2.2 L24 2.2 L24 3 L21 3 L21 3.6 L12 3.6 L12 2.5 L8 2.5 L8 1.5 L4 1.5 L4 0.6 L0 0.6 Z" fill="#4c8438" />
+    <circle cx="22.4" cy="-1.9" r="0.85" fill="#f7c243" />
+    <circle cx="22.4" cy="1.9" r="0.85" fill="#f7c243" />
+  </g>
+  <g transform="translate(34 77) rotate(15) scale(3.1)">
+    <path d="M13.5 -3.6 h2 v-1.5 h-2 Z M18 -3.6 h2 v-1.5 h-2 Z M13.5 3.6 h2 v1.5 h-2 Z M18 3.6 h2 v1.5 h-2 Z" fill="#3f7233" />
+    <path d="M0 -0.6 L4 -0.6 L4 -1.5 L8 -1.5 L8 -2.5 L12 -2.5 L12 -3.6 L21 -3.6 L21 -3 L24 -3 L24 -2.2 L26.5 -2.2 L26.5 -1.4 L28 -1.4 L28 1.4 L26.5 1.4 L26.5 2.2 L24 2.2 L24 3 L21 3 L21 3.6 L12 3.6 L12 2.5 L8 2.5 L8 1.5 L4 1.5 L4 0.6 L0 0.6 Z" fill="#4c8438" />
+    <circle cx="22.4" cy="-1.9" r="0.85" fill="#f7c243" />
+    <circle cx="22.4" cy="1.9" r="0.85" fill="#f7c243" />
   </g>
 
   <g class="word" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
-     font-size="25" font-weight="700" letter-spacing="-0.6">
-    <text x="78" y="38">Concurrent</text>
-    <text x="78" y="66">Crocodiles</text>
+     font-size="27" font-weight="700" letter-spacing="-0.6">
+    <text x="140" y="47">Concurrent</text>
+    <text x="140" y="77">Crocodiles</text>
   </g>
 </svg>
