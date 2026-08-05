@@ -1,13 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 130" width="300" height="130" role="img" aria-label="Concurrent Crocodiles">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 80" width="330" height="80" role="img" aria-label="Concurrent Crocodiles">
   <title>Concurrent Crocodiles</title>
-  <!-- One node, forking into two crocodiles that run at once: the smallest
-       instance of the board itself. The mark alone lives in components/Logo.tsx
-       and, simplified for 16px, in app/icon.svg.
+  <!-- A task, and the work that starts when it is done: one crocodile seen from
+       above with dependency edges leaving its snout onto three nodes, which is
+       where they leave from in the app too. The mark alone lives in
+       components/Logo.tsx, and squared up for the tab in app/icon.svg.
 
-       The box has to hold the crocodiles' corners rather than their upright
-       height, because they are rotated: at this scale each one reaches about
-       36 units above and below its own midline, and that is what sets the 130.
-       Measure before changing the scale or the spread.
+       The mark is the 48×32 box of that component at 2.9×, so the drawing here
+       is the same drawing — change one and the others want the same change.
 
        The wordmark defaults to a mid green that carries on a light page and on
        the swamp-dark one, and goes lighter where the viewer's dark mode is
@@ -20,29 +19,34 @@
     }
   </style>
 
-  <g stroke="#2f8d7d" stroke-width="6" fill="none" stroke-linecap="round"
-     stroke-dasharray="0.1 8.5">
-    <path d="M14 65 C28 65 25 43 36 41" />
-    <path d="M14 65 C28 65 25 87 36 89" />
-  </g>
-  <circle cx="12" cy="65" r="9.5" fill="#2f8d7d" />
-
-  <g transform="translate(34 40) rotate(-15) scale(2.95)">
-    <path d="M13.5 -3.6 h2 v-1.5 h-2 Z M18 -3.6 h2 v-1.5 h-2 Z M13.5 3.6 h2 v1.5 h-2 Z M18 3.6 h2 v1.5 h-2 Z" fill="#3f7233" />
-    <path d="M0 -0.6 L4 -0.6 L4 -1.5 L8 -1.5 L8 -2.5 L12 -2.5 L12 -3.6 L21 -3.6 L21 -3 L24 -3 L24 -2.2 L26.5 -2.2 L26.5 -1.4 L28 -1.4 L28 1.4 L26.5 1.4 L26.5 2.2 L24 2.2 L24 3 L21 3 L21 3.6 L12 3.6 L12 2.5 L8 2.5 L8 1.5 L4 1.5 L4 0.6 L0 0.6 Z" fill="#4c8438" />
-    <circle cx="22.4" cy="-1.9" r="0.85" fill="#f7c243" />
-    <circle cx="22.4" cy="1.9" r="0.85" fill="#f7c243" />
-  </g>
-  <g transform="translate(34 90) rotate(15) scale(2.95)">
-    <path d="M13.5 -3.6 h2 v-1.5 h-2 Z M18 -3.6 h2 v-1.5 h-2 Z M13.5 3.6 h2 v1.5 h-2 Z M18 3.6 h2 v1.5 h-2 Z" fill="#3f7233" />
-    <path d="M0 -0.6 L4 -0.6 L4 -1.5 L8 -1.5 L8 -2.5 L12 -2.5 L12 -3.6 L21 -3.6 L21 -3 L24 -3 L24 -2.2 L26.5 -2.2 L26.5 -1.4 L28 -1.4 L28 1.4 L26.5 1.4 L26.5 2.2 L24 2.2 L24 3 L21 3 L21 3.6 L12 3.6 L12 2.5 L8 2.5 L8 1.5 L4 1.5 L4 0.6 L0 0.6 Z" fill="#4c8438" />
-    <circle cx="22.4" cy="-1.9" r="0.85" fill="#f7c243" />
-    <circle cx="22.4" cy="1.9" r="0.85" fill="#f7c243" />
+  <g transform="translate(6 -6.4) scale(2.9)">
+    <g stroke="#2f8d7d" stroke-width="2" fill="none" stroke-linecap="round"
+       stroke-dasharray="0.1 3.2">
+      <path d="M29.6 16 C34 16 38.6 7 41.1 7" />
+      <path d="M29.6 16 C34 16 39.8 16 42.3 16" />
+      <path d="M29.6 16 C34 16 38.6 25 41.1 25" />
+    </g>
+    <g fill="#2f8d7d">
+      <circle cx="43.6" cy="7" r="2" />
+      <circle cx="44.8" cy="16" r="2" />
+      <circle cx="43.6" cy="25" r="2" />
+    </g>
+    <g transform="translate(1 16)">
+      <g fill="#3f7233">
+        <path d="M0 0 L0 -1.9 L2.7 -1.9 L2.7 -0.9 L1.1 -0.9 L1.1 0 Z" transform="translate(17.6 -3.6)" />
+        <path d="M0 0 L0 -1.9 L2.7 -1.9 L2.7 -0.9 L1.1 -0.9 L1.1 0 Z" transform="translate(12.4 -3.6) scale(-1 1)" />
+        <path d="M0 0 L0 -1.9 L2.7 -1.9 L2.7 -0.9 L1.1 -0.9 L1.1 0 Z" transform="translate(17.6 3.6) scale(1 -1)" />
+        <path d="M0 0 L0 -1.9 L2.7 -1.9 L2.7 -0.9 L1.1 -0.9 L1.1 0 Z" transform="translate(12.4 3.6) scale(-1 -1)" />
+      </g>
+      <path d="M0 -0.6 L4 -0.6 L4 -1.5 L8 -1.5 L8 -2.5 L12 -2.5 L12 -3.6 L21 -3.6 L21 -3 L24 -3 L24 -2.2 L26.5 -2.2 L26.5 -1.4 L28 -1.4 L28 1.4 L26.5 1.4 L26.5 2.2 L24 2.2 L24 3 L21 3 L21 3.6 L12 3.6 L12 2.5 L8 2.5 L8 1.5 L4 1.5 L4 0.6 L0 0.6 Z" fill="#4c8438" />
+      <circle cx="22.4" cy="-1.9" r="0.9" fill="#f7c243" />
+      <circle cx="22.4" cy="1.9" r="0.9" fill="#f7c243" />
+    </g>
   </g>
 
   <g class="word" font-family="ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif"
      font-size="27" font-weight="700" letter-spacing="-0.6">
-    <text x="140" y="58">Concurrent</text>
-    <text x="140" y="88">Crocodiles</text>
+    <text x="166" y="33">Concurrent</text>
+    <text x="166" y="63">Crocodiles</text>
   </g>
 </svg>

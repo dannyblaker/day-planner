@@ -66,7 +66,7 @@ export default function ShareView({ token }: { token: string }) {
     <div className="min-h-screen bg-background text-slate-300">
       <header className="flex items-center gap-3 px-5 py-3 border-b border-slate-800 sticky top-0 bg-background/95 backdrop-blur z-20 flex-wrap">
         <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100">
-          <Logo className="w-6 h-6 shrink-0" />
+          <Logo className="w-9 h-6 shrink-0" />
           Concurrent Crocodiles
         </h1>
         <span className="flex items-center gap-1.5 text-label text-emerald-400">
