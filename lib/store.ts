@@ -107,6 +107,32 @@ function isPlan(p: unknown): p is Plan {
   return !!p && Array.isArray((p as Plan).tasks) && Array.isArray((p as Plan).goals);
 }
 
+/**
+ * A stored task as the model has it now, rebuilt field by field.
+ *
+ * Not fussiness: while a tab is open it holds the only copy of the plan and
+ * autosaves the whole document, so anything it loads it writes back. Keep a
+ * field the app has retired — a `duration`, a `parallel`, the `flowX` from when
+ * the board was arranged by hand — and the tab hands it straight back to the
+ * server for ever, and the document can never actually shed it. Reading is the
+ * one moment it can, so it does. The API does the same on its side; see
+ * normalizePlan().
+ */
+function fromStored(t: Task, i: number): Task {
+  return {
+    id: t.id,
+    title: t.title,
+    notes: t.notes,
+    priority: asPriority(t.priority),
+    goalId: t.goalId ?? null,
+    dependsOn: [...(t.dependsOn ?? [])],
+    blocked: t.blocked ?? null,
+    done: t.done === true,
+    order: t.order ?? i + 1,
+    createdAt: t.createdAt ?? 0,
+  };
+}
+
 export const useApp = create<AppState>()(
   immer((set, get) => ({
     plan: defaultPlan(),
@@ -125,11 +151,7 @@ export const useApp = create<AppState>()(
 
     load: (plan) =>
       set((s) => {
-        if (isPlan(plan)) {
-          s.plan = plan;
-          // a plan saved when the board had four priorities still opens
-          for (const t of s.plan.tasks) t.priority = asPriority(t.priority);
-        }
+        if (isPlan(plan)) s.plan = { ...plan, tasks: plan.tasks.map(fromStored) };
         s.loaded = true;
       }),
     setSaving: (v) => set((s) => void (s.saving = v)),

@@ -156,7 +156,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 
 **It is unauthenticated**, exactly as open as the app it edits. That is fine on a laptop and worth thinking about before you expose the port.
 
-**An open tab will overwrite you.** The browser autosaves its whole plan, so a change made through the API while a tab is open is lost the next time anything in that tab changes. Reload the tab after driving the API, or drive it with no tab open. (Concurrent API calls are safe: writes queue.)
+**An open tab will overwrite you.** The browser autosaves its whole plan, so a change made through the API while a tab is open is lost the next time anything in that tab changes. Reload the tab after driving the API, or drive it with no tab open. (Concurrent API calls are safe: writes queue.) What a tab will *not* overwrite you with is a field the app has retired: it rebuilds each task from the model on the way in, so a `duration` or a `parallel` in a stored document dies the first time it is opened rather than being handed back for ever.
 
 ## Keyboard shortcuts
 

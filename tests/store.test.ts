@@ -373,6 +373,44 @@ describe("loading", () => {
     expect(task("old")!.priority).toBe(3);
   });
 
+  /**
+   * The tab autosaves the whole document, so anything it loads it writes back:
+   * a retired field kept here would be handed to the server for ever, and the
+   * plan could never shed it. Reading is where it goes.
+   */
+  it("drops fields the model has retired rather than saving them back", () => {
+    const legacy = {
+      ...makeTask({ id: "old", title: "From an older build" }),
+      duration: 45,
+      parallel: true,
+      flowX: 300,
+      flowY: 120,
+    } as unknown as Task;
+    app().load(makePlan([legacy]));
+
+    const t = task("old")!;
+    expect(t).toMatchObject({ id: "old", title: "From an older build" });
+    for (const gone of ["duration", "parallel", "flowX", "flowY"])
+      expect(t).not.toHaveProperty(gone);
+  });
+
+  it("keeps everything the model does have", () => {
+    const full = makeTask({
+      id: "t",
+      title: "Ship it",
+      notes: "with care",
+      priority: 1,
+      goalId: "g1",
+      dependsOn: ["a"],
+      blocked: "waiting on legal",
+      done: true,
+      order: 7,
+      createdAt: 123,
+    });
+    app().load(makePlan([full]));
+    expect(task("t")).toEqual(full);
+  });
+
   it("keeps the seed rather than a stored plan of the wrong shape", () => {
     const seeded = app().plan;
     // e.g. the pre-flattening document, which had a days map instead of tasks
