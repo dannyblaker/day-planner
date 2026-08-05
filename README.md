@@ -1,60 +1,70 @@
 <img src="public/logo.svg" alt="Concurrent Crocodiles" width="330" height="80">
 
-**A flowchart for planning work that runs alongside other work. Tasks are nodes, dependencies are arrows, and everything else is derived from those two facts.**
+**A dependency flowchart for planning work that runs in parallel. Tasks are nodes, dependencies are arrows, and every other property of the board is derived from those two facts.**
 
-You never set a task to "in progress". You draw the dependencies, and every task whose prerequisites are finished is in progress — all of them at once. That set is the answer to the question the board exists to answer: *what can I start right now, and how much of it at the same time?* Mark one thing done and whatever was waiting on it surfaces on its own.
+Status is not something you set. You declare the dependencies, and any task whose prerequisites are all complete is *in progress* — all such tasks at once. That set answers the question the board exists to answer: what can be started now, and how much of it simultaneously. Completing a task promotes whatever was waiting on it, with nothing else to update.
 
-The same principle decides where things sit. Position isn't stored or dragged: the board lays itself out left to right by dependency depth and top to bottom by priority, and re-reads itself after every edit.
+Layout follows the same principle. Positions are neither stored nor dragged: the board arranges itself left to right by dependency depth and top to bottom by priority, and recomputes after every edit.
 
-There is no clock in here. A dependency graph is a claim about order, not about when — so there are no working hours, no schedule, and no calendar. Just the graph and what it implies.
+There is no clock in the model. A dependency graph expresses order, not time, so the application has no schedule, no working hours and no calendar — only the graph and what it implies.
 
 ---
 
 ## Contents
 
 - [Features](#features)
+- [Requirements](#requirements)
 - [Getting started](#getting-started)
-- [Using it](#using-it)
-- [The API](#the-api)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [HTTP API](#http-api)
 - [Architecture](#architecture)
-- [Tests](#tests)
+- [Project structure](#project-structure)
+- [Testing](#testing)
 
 ## Features
 
-**The graph decides everything**
+### Derived from the graph
 
-- **Three derived statuses.** *In progress* — every prerequisite is done, so it is startable now. *To do* — waiting on a prerequisite, or blocked. *Done* — the one part you assert. Nodes and list rows are coloured to match.
-- **A board that arranges itself.** Left to right by dependency depth, top to bottom by priority. There is nothing to place and nothing to tidy, and the layout is a pure function of the graph, so the app, the share view and an export all draw the same board.
-- **Inherited urgency.** A prerequisite of urgent work is urgent, whatever its own label says. Raise a task to P1 and the whole chain it waits on rises with it, so the path to what matters reads along the top.
-- **Movement you can follow.** When the layout changes, tasks swim to their new places over about a second, arrows included, so you can keep your eye on the one you were looking at. Nothing moves under `prefers-reduced-motion`.
-- **Cycle-safe.** The editor greys out any dependency that would close a loop, and every graph operation terminates on a cycle rather than hanging.
+| | |
+|---|---|
+| **Three statuses** | *In progress* — every prerequisite is complete, so the task is startable. *To do* — waiting on a prerequisite, or blocked. *Done* — the only status you assert. Nodes and list rows are coloured accordingly. |
+| **Self-arranging board** | Columns are dependency depth, rows are priority. Because layout is a pure function of the graph, the editor, the share view and an exported image all draw the same board. |
+| **Inherited urgency** | A prerequisite of urgent work is treated as urgent regardless of its own priority. Raising a task to P1 lifts the entire chain it depends on, so the path to important work reads across the top. |
+| **Animated transitions** | When the layout changes, nodes and arrows move to their new positions over approximately one second, which keeps a task trackable across a re-sort. Disabled under `prefers-reduced-motion`. |
+| **Cycle safety** | The editor disables any dependency that would close a loop, the API rejects one and names it, and every graph operation terminates on a cycle rather than recursing indefinitely. |
 
-**Working the board**
+### Editing
 
-- **Flowchart-first.** Double-click the canvas to create a task in place. Drag from a node's ○ port to another node to draw a dependency; click an arrow to remove it. Drag anywhere else to pan.
-- **Grow the graph forwards.** An arrow that ends on nothing is a task you haven't named yet: drag a ○ into empty space and it asks for a title, then draws the arrow to what you type. `a` does the same for the selected task, so chains get built without leaving the keyboard.
-- **Quick-add syntax.** `Fix login bug !1 #deep-work >deploy *waiting-on-bob` — priority, goal, dependency and blocker in one line. See [the table](#quick-add-syntax).
-- **Priorities P1–P3**, one key each, worn on the crocodile's tail. Also sorts the to-do queue, on `s`.
-- **Blockers.** A reason you can't start that the graph can't see. A blocked task is held at *to do* however clear its prerequisites are.
-- **Goals.** Map tasks to goals with `#goal`; a panel tracks how many of each goal's tasks are done.
-- **Keyboard-driven.** `f`/`g` walks the board the way the work runs — on from a task is whatever waits on it, so a chain is followed to its end before the next one starts. Everything else is one key. Press `?`.
+- **Canvas-first.** Double-click the canvas to create a task in place. Drag from a node's ○ port to another node to draw a dependency; click an arrow to remove it. Dragging anywhere else pans the board.
+- **Forward graph construction.** Dragging a ○ into empty space prompts for a title and then draws the arrow to the new task. The `a` key does the same for the selected task, so chains can be built without leaving the keyboard.
+- **Quick-add syntax.** `Fix login bug !1 #deep-work >deploy *waiting-on-bob` sets priority, goal, dependency and blocker in one line. See [Quick-add syntax](#quick-add-syntax).
+- **Priorities P1–P3**, one key each, shown on the crocodile's tail. `s` sorts the to-do queue by priority.
+- **Blockers.** An external reason a task cannot start. A blocked task is held at *to do* however clear its prerequisites are.
+- **Goals.** Tasks map to goals via `#goal`; a sidebar panel reports completion per goal.
+- **Keyboard operation.** `f` and `g` walk the board downstream along the arrows, so a chain is followed to its end before the next begins. Every other action is a single key; press `?` for the full list.
 
-**Keeping it clean**
+### Housekeeping
 
-- **Finished work sweeps itself away.** Mark a task done and a five-second countdown appears on it; let it run out and the task is deleted. Re-open it and the countdown stops — that is the undo, and why it is five seconds rather than one. A task with an arrow at either end waits for the rest of the work it is joined to, so a finished chain leaves together instead of stranding arrows that point at nothing. It only sweeps what it watched you finish, never what it found already finished. Toggle with 🧹.
-- **Clear finished work.** `clear` on the Done group drops the finished tasks; `u` or ⌘Z puts them back, dependency links included, without disturbing anything else you changed. This is the tool for a backlog the sweep never saw.
+- **Automatic sweep.** Completing a task starts a five-second countdown, after which the task is deleted. Reopening it cancels the countdown, which is the undo mechanism and the reason the interval is five seconds rather than one. A task connected to others waits for the whole run of joined work to finish, so a completed chain is removed together rather than leaving arrows pointing at nothing. Only work the application observed being completed is swept; work already complete at load is left alone. Toggle with 🧹.
+- **Bulk clear.** The `clear` control on the Done group removes completed tasks; `u` or ⌘Z restores them along with their dependency links, without disturbing unrelated edits made in the meantime. This is the tool for a backlog the sweep never saw.
 
-**Sharing and leaving**
+### Sharing and export
 
-- **Live share.** Send a read-only link that polls the plan every five seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
-- **Export.** One click to PNG or PDF of the canvas in the theme you're in, or JSON for the whole graph as data.
-- **A real API.** Read the plan, write it a task at a time, or fetch the lot and hand it back edited. See [The API](#the-api).
+- **Live share link.** A read-only view that polls the plan every five seconds. It renders no completion buttons, no ports and no clickable arrows.
+- **Image and document export.** PNG or PDF of the canvas in the current theme, or JSON of the entire graph.
+- **HTTP API.** Read the plan, modify it a task at a time, or fetch it whole and submit it back edited. See [HTTP API](#http-api).
 
-**Appearance**
+### Presentation
 
-- **A task is a crocodile** — not a card with a crocodile on it. The node *is* the animal, seen from above: its colour is its status, its tail is its priority, its eyes are open while there's work left in it and shut when it's done, and its jaws show teeth on the ones you can start right now. Press `?` for the legend.
-- **The board floats on water** (`w`). The canvas is a pool with a still, lit bottom, so a task waiting its turn is a crocodile lying submerged. Every ten seconds or so a ripple crosses it. It's two fields of Perlin noise shaped by SVG filters — no images and no canvas element. The button switches to a plain grid.
-- **Light and dark themes** (`m`). Follows your OS preference until you choose, then remembers per device and applies before first paint.
+- **Tasks are drawn as crocodiles**, seen from above, rather than as cards bearing a crocodile. Colour is status, the tail is priority, the eyes are open while work remains and closed when it is complete, and the jaws show teeth on startable tasks. `?` opens the legend.
+- **Water canvas** (`w`). The board floats on a still, lit pool, with a ripple crossing it every five to seventeen seconds. The surface is two fields of Perlin noise shaped by SVG filters — no raster images and no `<canvas>`. The toggle switches to a plain dot grid.
+- **Light and dark themes** (`m`). Follows the operating system preference until a choice is made, then persists per device and is applied before first paint.
+
+## Requirements
+
+- **Docker Compose**, or
+- **Node.js 20.9 or newer** for local development.
 
 ## Getting started
 
@@ -64,9 +74,9 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 docker compose up -d --build
 ```
 
-Open <http://localhost:3000>. This runs the app plus Postgres; your plan lives in the `pgdata` named volume, so it survives restarts, rebuilds and `docker compose down` (only `down -v` deletes it). After pulling changes, rebuild with the same command.
+The application is served at <http://localhost:3000>. Compose starts the app together with PostgreSQL 16; the plan is stored in the `pgdata` named volume and survives restarts, rebuilds and `docker compose down`. Only `docker compose down -v` removes it. Rebuild with the same command after pulling changes.
 
-The live-share view works for anyone who can reach your machine — give them `http://<your-ip>:3000/share/<token>`.
+The live-share view is reachable by anyone who can reach the host: `http://<host>:3000/share/<token>`.
 
 ### Local development
 
@@ -75,39 +85,61 @@ npm install
 npm run dev
 ```
 
-Without `DATABASE_URL` set the plan is stored in `data/plan.json`, with a localStorage fallback. Same app, file-backed instead of Postgres.
+Without `DATABASE_URL` the plan is stored in `data/plan.json`, with `localStorage` as a fallback when the server is unreachable.
 
-## Using it
+### Scripts
 
-A plan usually starts like this:
+| Command | Purpose |
+|---|---|
+| `npm run dev` | development server |
+| `npm run build` | production build |
+| `npm start` | serve the production build |
+| `npm run lint` | ESLint |
+| `npm test` | unit and component tests |
+| `npm run test:e2e` | end-to-end tests |
+| `npm run test:all` | both suites |
 
-1. Press `n` and brain-dump. The input stays focused, one task per Enter.
-2. Add tokens as you type: `Write report !1 #deep-work`, `Ship it *waiting-on-legal`.
-3. Draw the arrows — drag from a node's ○ port onto whatever it has to finish before, or into empty space to name the task that follows it there.
-4. Read the leftmost column. That is what you can start, and how much of it you can start at once.
-5. Set priorities with `1`–`3`. What matters rises to the top, and whatever it waits on rises with it.
-6. Mark things done and watch the next column light up — then watch the finished chain count itself down and leave.
+## Configuration
+
+| Variable | Default | Effect |
+|---|---|---|
+| `DATABASE_URL` | unset | When set, the plan is stored in PostgreSQL as a single JSONB document. When unset, it is stored in `data/plan.json`. |
+| `PORT` | `3000` | Port the production server binds to. |
+
+Theme, canvas style and sweep are per-device preferences held in `localStorage`, not part of the plan, and therefore not shared by a share link.
+
+## Usage
+
+A typical session:
+
+1. Press `n` and enter tasks in sequence. The input retains focus, one task per Enter.
+2. Add tokens inline as needed: `Write report !1 #deep-work`, `Ship it *waiting-on-legal`.
+3. Draw the dependencies — drag from a node's ○ port onto the task that must wait for it, or into empty space to name that task on the spot.
+4. Read the leftmost column. It lists what can be started now, and how much can be started concurrently.
+5. Set priorities with `1`–`3`. Important work rises to the top, and its prerequisites rise with it.
+6. Mark tasks complete; the next column becomes startable, and finished chains count down and remove themselves.
 
 ### Keyboard shortcuts
 
 | Key | Action |
 |---|---|
-| `n` / `c` / `⌘K` | quick-add task |
+| `n` · `c` · `⌘K` | quick-add task |
 | `a` | new task depending on the selected one |
-| `f` / `g` | focus previous / next task, downstream along the arrows |
-| `Shift+J` / `Shift+K` | move task down / up the to-do queue |
-| `Enter` / `e` | edit selected task |
+| `f` · `g` or `↑` · `↓` | focus previous / next task, downstream along the arrows |
+| `Shift+J` · `Shift+K` | move task down / up the to-do queue |
+| `Enter` · `e` | edit selected task |
 | `d` | toggle done |
 | `b` | toggle blocked |
-| `1`–`3` | set priority — the board re-sorts itself |
-| `s` | sort the queue by priority |
-| `x` / `Del` | delete |
-| `u` / `⌘Z` | undo the last clear |
+| `1`–`3` | set priority; the board re-sorts |
+| `s` | sort the to-do queue by priority |
+| `x` · `Del` | delete selected task |
+| `u` · `⌘Z` | undo the last bulk clear |
 | `m` | light / dark theme |
 | `w` | water / plain canvas |
-| `?` | help |
+| `?` | help overlay |
+| `Esc` | close panels, or deselect |
 
-On the canvas: double-click for a new task · drag ○ → node for a dependency · click ○ or drag it into empty space for a new dependent task · click an arrow to remove it · drag anywhere else to pan.
+Pointer actions on the canvas: double-click to create a task · drag ○ onto a node to add a dependency · click ○, or drag it into empty space, to create a dependent task · click an arrow to remove that dependency · drag elsewhere to pan.
 
 ### Quick-add syntax
 
@@ -118,60 +150,63 @@ Fix login bug !1 #deep-work >deploy *waiting-on-bob ^
 | Token | Meaning |
 |---|---|
 | `!1`…`!3` | priority |
-| `#goal` | goal, created if new |
-| `>title` | depends on the task whose title starts with… |
+| `#goal` | goal, created if it does not exist |
+| `>prefix` | depends on the task whose title starts with `prefix` |
 | `*reason` | blocked, with a reason |
-| `^` | front of the to-do queue |
+| `^` | insert at the front of the to-do queue |
 
-## The API
+Anything that is not a token becomes part of the title.
 
-Everything the app can do to a plan, over HTTP. `GET /api` lists the endpoints; `GET /api/export` is the whole plan as one JSON document.
+## HTTP API
 
-One rule shapes all of it: **status is derived and never stored.** You send `done`, `blocked` and `dependsOn`; you read `status`, `depth` and `dependents` back. Writing a status isn't something the API allows, because the graph already answers that question.
+Every operation the application performs on a plan is available over HTTP. `GET /api` lists the endpoints; `GET /api/export` returns the entire plan as one JSON document.
 
-Every reply is `{"ok": true, …}` or `{"ok": false, "error": …, "details": [...]}`, where `details` lists *everything* wrong with the request rather than the first thing. A rejected write changes nothing.
+One rule governs the whole surface: **status is derived and never stored.** Clients send `done`, `blocked` and `dependsOn`, and read `status`, `depth` and `dependents` back. Writing a status is not permitted, because the graph already determines it.
+
+Responses are `{"ok": true, …}` or `{"ok": false, "error": "…", "details": [...]}`, where `details` reports every problem with the request rather than the first one encountered. A rejected write changes nothing.
 
 ### Export
 
 ```bash
-curl localhost:3000/api/export                # goals, tasks, dependencies, derived state, totals
-curl -OJ localhost:3000/api/export?download=1 # as a file
-curl localhost:3000/api/export?format=plan    # the stored document, nothing derived
+curl localhost:3000/api/export                  # goals, tasks, dependencies, derived state, totals
+curl -OJ localhost:3000/api/export?download=1   # as a file attachment
+curl localhost:3000/api/export?pretty=0         # compact
+curl localhost:3000/api/export?format=plan      # the stored document, without derived fields
 ```
 
-The document carries the graph twice over — `dependsOn`/`dependents` on each task, and a flat `dependencies` edge list beside them — so you can read it whichever way suits. The `JSON` button in the app downloads the same document.
+The document expresses the graph twice — `dependsOn` and `dependents` on each task, plus a flat `dependencies` edge list — so it can be read whichever way suits the consumer. The application's `JSON` button downloads the identical document.
 
 ### Tasks
 
-| Endpoint | |
+| Endpoint | Description |
 |---|---|
 | `GET /api/tasks` | every task with its derived state, plus goals, edges and totals |
-| `POST /api/tasks` | create — one task, `{"tasks": [...]}`, or `{"quickAdd": ["Write report !1 #deep-work"]}` |
+| `POST /api/tasks` | create: one task, `{"tasks": [...]}`, or `{"quickAdd": ["Write report !1 #deep-work"]}` |
 | `PATCH /api/tasks` | update many: `{"tasks": [{"id": "a1b2", "done": true}]}` |
-| `PUT /api/tasks` | replace the whole list |
+| `PUT /api/tasks` | replace the entire list |
 | `DELETE /api/tasks` | `?ids=a,b` or `?done=true` |
-| `GET·PATCH·PUT·DELETE /api/tasks/{id}` | one task (`PUT` also clears what you leave out) |
-| `GET·POST·PUT·DELETE /api/tasks/{id}/dependencies` | the edges into and out of one task |
+| `GET` `PATCH` `PUT` `DELETE` `/api/tasks/{id}` | a single task; `PUT` also resets fields omitted from the request |
+| `GET` `POST` `PUT` `DELETE` `/api/tasks/{id}/dependencies` | the edges into and out of a single task |
 
-Filters on `GET`, all optional and all ANDed: `?status=in-progress,todo` · `?goal=deep-work` (or `?goal=none`) · `?q=text` · `?done=` · `?blocked=` · `?dependsOn={id}` · `?blocking={id}`. They narrow `tasks`; the goals, edges and totals always describe the whole plan.
+Filters on `GET /api/tasks`, all optional and combined with AND: `?status=in-progress,todo` · `?goal=deep-work` (or `?goal=none`) · `?q=text` · `?done=` · `?blocked=` · `?dependsOn={id}` · `?blocking={id}`. Filters narrow `tasks` only; the accompanying goals, edges and totals always describe the whole plan.
 
 ```bash
-# what can I start right now?
+# what can be started right now
 curl 'localhost:3000/api/tasks?status=in-progress' | jq '.tasks[].title'
 
-# add a task that waits for another
+# add a task that waits on another
 curl -X POST localhost:3000/api/tasks -H 'content-type: application/json' \
   -d '{"title": "Ship it", "priority": 1, "goal": "release", "dependsOn": ["a1b2"]}'
 
-# finish something — its dependents become in-progress on their own
+# complete a task; its dependents become in-progress automatically
 curl -X PATCH localhost:3000/api/tasks/a1b2 -H 'content-type: application/json' -d '{"done": true}'
 ```
 
-A task may name its goal in words (`"goal": "release"`), and it is created if new, exactly as `#release` does in quick-add.
+A task may name its goal in words (`"goal": "release"`), which creates the goal if it does not exist, exactly as `#release` does in quick-add.
 
 ### Batch and round trip
 
-`POST /api/batch` is the whole-plan door, and it is all-or-nothing: the edit is assembled and checked before anything is stored, so if any part is refused, none of it happened.
+`POST /api/batch` applies a complete set of changes atomically: the edit is assembled and validated before anything is stored, so if any part is rejected, none of it is applied.
 
 ```jsonc
 {
@@ -183,9 +218,9 @@ A task may name its goal in words (`"goal": "release"`), and it is created if ne
 }
 ```
 
-Because only the finished plan is judged, a batch may pass through states the graph would refuse on their own — adding an edge and cutting it again, or deleting a prerequisite along with the task that needed it.
+Because only the final plan is validated, a batch may pass through intermediate states the graph would otherwise reject — adding an edge and removing it again, or deleting a prerequisite together with the task that required it.
 
-The round trip is the other form: fetch everything, edit the array, hand it back.
+The round trip is the alternative form: fetch everything, edit the array, submit it back.
 
 ```bash
 curl -s localhost:3000/api/tasks | jq '{tasks}' > plan.json
@@ -193,47 +228,60 @@ $EDITOR plan.json
 curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @plan.json
 ```
 
-`PUT /api/tasks` (or `POST /api/batch` with a `tasks` key) treats the list as complete: ids it knows are updated, ids it doesn't are created, and **anything missing is deleted**. Derived fields are ignored on the way in, as are fields older versions of the app used to write, so a document exported by an earlier build still round-trips.
+`PUT /api/tasks` — and `POST /api/batch` with a `tasks` key — treats the submitted list as complete: known ids are updated, unknown ids are created, and **anything absent is deleted**. Derived fields are ignored on input, as are field names the model does not use, so any document this application has exported can be submitted back unmodified.
 
 ### Goals and import
 
-`GET·POST·PATCH·DELETE /api/goals` and `GET·PATCH·DELETE /api/goals/{id}`. Each goal reports how many tasks are mapped to it and how many of those are done. Deleting a goal unassigns its tasks — it never deletes work.
+`GET` `POST` `PATCH` `DELETE` `/api/goals` and `GET` `PATCH` `DELETE` `/api/goals/{id}`. Each goal reports how many tasks are mapped to it and how many are complete. Deleting a goal unassigns its tasks; it never deletes work.
 
-`POST /api/import` takes a document back: an export of this app's, or anything with the same `tasks` and `goals` shape. `?mode=merge` upserts by id instead of replacing, and a replace keeps the existing share token so links you've already sent still work.
+`POST /api/import` accepts a document — an export from this application, or anything with the same `tasks` and `goals` shape. The default mode replaces the plan; `?mode=merge` upserts by id instead. A replace retains the existing share token, so links already distributed continue to work.
 
-### Two things to know
+### Operational notes
 
-**It is unauthenticated**, exactly as open as the app it edits. Fine on a laptop; worth thinking about before exposing the port.
+**The API is unauthenticated**, and is exactly as accessible as the application it edits. This is appropriate for a local or trusted-network deployment and should be considered before exposing the port more widely.
 
-**An open tab will overwrite you.** The browser holds the plan and autosaves all of it, so a change made through the API while a tab is open is lost the next time anything in that tab changes. Reload the tab after driving the API, or drive it with no tab open. Concurrent API calls are safe — writes queue.
+**An open browser tab will overwrite API changes.** The browser holds the plan in memory and autosaves the whole document, so a change made through the API while a tab is open is lost the next time anything in that tab changes. Reload the tab after driving the API, or drive it with no tab open. Concurrent API calls are safe: writes are queued server-side.
 
 ## Architecture
 
-Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Persistence is a single JSON document behind an API route, in Postgres when `DATABASE_URL` is set and on disk when it isn't.
+Next.js 16 (App Router) · TypeScript · Tailwind CSS 4 · Zustand with Immer · html-to-image and jsPDF. Persistence is a single JSON document behind an API route, held in PostgreSQL when `DATABASE_URL` is set and on disk otherwise. The browser autosaves the whole plan on a 600 ms debounce.
 
-**The derived core is pure and lives in three files.** `lib/graph.ts` turns tasks and dependencies into statuses, inherited urgency, depths and the runs of finished work the sweep is allowed to take. `lib/flow.ts` turns those into canvas positions and the order the keyboard walks them in. `lib/parse.ts` is the quick-add grammar. None of them touch React, the network or the clock, which is why the same functions answer for the app, the share view and the API.
+**The derived core is pure and lives in three modules.** `lib/graph.ts` turns tasks and dependencies into statuses, inherited urgency, depths and the runs of completed work the sweep may remove. `lib/flow.ts` turns those into canvas positions and the order the keyboard traverses them. `lib/parse.ts` implements the quick-add grammar. None of them touch React, the network or the clock, which is why the same functions serve the editor, the share view and the API.
 
-**Nothing about where a task sits is stored.** The plan document has no coordinates in it. `lib/flow-motion.ts` is the one piece that isn't pure: given a new set of positions it hands back the ones in between, a frame at a time for a second. It tweens in React rather than in CSS because an SVG path can't transition and the arrows have to arrive with the nodes — so every frame is a render, and the edges are drawn from the same in-between positions.
+**No position is stored.** The plan document contains no coordinates. `lib/flow-motion.ts` is the one impure piece: given a new set of target positions it returns the intermediate ones, a frame at a time for one second. It interpolates in React rather than in CSS because an SVG path cannot be transitioned and the arrows must arrive with the nodes, so every frame is a render and the edges are drawn from the same intermediate positions.
 
-**The API is three modules and a thin layer of routes.** `lib/plan-ops.ts` is every write as a function from one plan to the next, and everything it refuses. `lib/plan-doc.ts` is the derived view handed out — shared with the browser's JSON button, so the download and the endpoint are byte-for-byte the same document. `lib/plan-store.ts` is the read-modify-write, queued so concurrent calls can't overwrite each other.
+**The API is three modules behind thin route handlers.** `lib/plan-ops.ts` implements every write as a function from one plan to the next, together with everything it refuses. `lib/plan-doc.ts` builds the derived view that is handed out, and is shared with the browser's JSON button so that the download and the endpoint return an identical document. `lib/plan-store.ts` performs the read-modify-write, queued so concurrent calls cannot overwrite one another.
 
-**One palette, one file.** `app/globals.css` holds both themes as a single set of variables, with the Tailwind ramp re-pointed onto one green hue. A status publishes two colours and no more; the row in the sidebar and the crocodile on the canvas each decide what to do with them. The water lives there too, as `.croc-surface`, with `components/WaterSurface.tsx` dropping the occasional ripple into it.
+**One palette in one file.** `app/globals.css` defines both themes as a single set of custom properties, with the Tailwind colour ramp re-pointed onto a single green hue. A status publishes two colours and nothing more; the sidebar row and the canvas crocodile each decide what to do with them. The water surface is defined there as `.croc-surface`, with `components/WaterSurface.tsx` emitting the occasional ripple.
 
-**How big the app is, is one line.** `html { font-size }` in that same file. Every length is in rem — the four named type sizes, the spacing, the panel widths — so one percentage scales type, padding and panels together. A task node is the one thing sized in pixels (`FLOW` in `lib/types.ts`), and the crocodile is a viewBox stretched to fit it.
+**Interface scale is a single declaration.** `html { font-size }` in the same file. Every length is expressed in rem — the four named type sizes, the spacing scale, the panel widths — so one percentage scales type, padding and panels together. The task node is the only element sized in pixels (`FLOW` in `lib/types.ts`), and the crocodile is a viewBox stretched to fit it.
 
-**The drawings.** `components/CrocShape.tsx` is a task: one outline, one leg drawn once and mirrored into four corners, and a torso that is the card. It takes its fill and outline by inheritance rather than by CSS rule, because html-to-image deep-clones an `<svg>` without inlining styles onto its children — a rule that renders on screen would export as a black silhouette. The mark is drawn three more times for the places a task node can't go: `components/Logo.tsx` in the app, `app/icon.svg` in the tab, and `public/logo.svg` for the lockup above.
+**The drawings.** `components/CrocShape.tsx` renders a task: one outline, one limb drawn once and mirrored into four corners, and a torso that serves as the card. It takes fill and stroke by inheritance rather than by CSS rule, because html-to-image deep-clones an `<svg>` without inlining styles onto its children — a rule that renders correctly on screen would export as a black silhouette. The mark is drawn separately for the contexts a task node cannot occupy: `components/Logo.tsx` in the application, `app/icon.svg` for the tab, and `public/logo.svg` for the lockup above.
 
-## Tests
+## Project structure
+
+```
+app/            routes, API handlers, global stylesheet
+  api/          the HTTP API
+  share/        the read-only share view
+components/     React components, including the crocodile and water rendering
+lib/            derived core, store, persistence, parsing, export
+tests/          unit and component tests (Vitest)
+e2e/            end-to-end tests (Playwright)
+data/           plan.json, when no database is configured (created at runtime)
+```
+
+## Testing
 
 ```bash
-npm test          # unit + component (Vitest, jsdom)
-npm run test:e2e  # end-to-end (Playwright, Chromium) — starts its own dev server
+npm test          # unit and component — Vitest, jsdom
+npm run test:e2e  # end-to-end — Playwright, Chromium; starts its own dev server
 npm run test:all  # both
 ```
 
-Two layers, split by what each can actually prove:
+The suites are split by what each can demonstrate:
 
-- **`tests/`** — the derived core in isolation: statuses from a graph, urgency travelling back down a chain, the layout and navigation order those produce, the quick-add grammar, every store action, the sweep's timing, and every API route against a temp directory and a stubbed Postgres — what they refuse as much as what they accept, and that a rejected write leaves the stored plan alone.
-- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, the frontier advancing as work is finished, the board re-sorting itself when a priority changes and taking a second over it, finished work counting itself down and going, dependency drawing, panning, keyboard-only operation, theming applied before first paint, the JSON download, and the share link's read-only guarantee.
+- **`tests/`** — the derived core in isolation: statuses computed from a graph, urgency propagating back along a chain, the resulting layout and navigation order, the quick-add grammar, every store action, the sweep's timing, and every API route against a temporary directory and a stubbed database — covering what they refuse as much as what they accept, and confirming that a rejected write leaves the stored plan untouched.
+- **`e2e/`** — the application in a browser: quick-add through to a rendered node, the frontier advancing as work is completed, the board re-sorting and animating on a priority change, completed work counting down and removing itself, dependency drawing, panning, keyboard-only operation, themes applied before first paint, the JSON download, and the share link's read-only guarantee.
 
-The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead.
+The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run reads or writes a real `data/plan.json`**; that route is covered by unit tests instead.
