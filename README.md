@@ -2,7 +2,7 @@
 
 **An intuitive app that helps you plan task concurrency.**
 
-Create tasks and their dependencies. Tasks auto-arrange as their priority and status changes. 
+Create tasks and their dependencies. Tasks auto-arrange as their priority and status change. 
 
 ---
 
