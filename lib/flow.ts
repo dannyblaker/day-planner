@@ -1,5 +1,5 @@
 import { flowDepths } from "./graph";
-import { Task } from "./types";
+import { FLOW, Task } from "./types";
 
 export interface FlowPos {
   x: number;
@@ -7,7 +7,10 @@ export interface FlowPos {
 }
 
 /** x of the column a task at this dependency depth belongs in. */
-export const columnX = (depth: number) => 40 + depth * 250;
+export const columnX = (depth: number) => 40 + depth * (FLOW.NODE_W + 60);
+
+/** y of the nth task stacked in one column. Derived, so a node can grow. */
+export const rowY = (i: number) => 40 + i * (FLOW.NODE_H + 28);
 
 /**
  * Lay the whole graph out left-to-right by dependency depth, stacking each
@@ -27,7 +30,7 @@ export function arrangeByDepth(tasks: Task[]): Map<string, FlowPos> {
   for (const t of sorted) {
     const depth = depths.get(t.id) || 0;
     const i = (counters[depth] = (counters[depth] ?? -1) + 1);
-    out.set(t.id, { x: columnX(depth), y: 60 + i * 100 });
+    out.set(t.id, { x: columnX(depth), y: rowY(i) });
   }
   return out;
 }

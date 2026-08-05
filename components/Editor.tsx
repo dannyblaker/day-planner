@@ -10,8 +10,8 @@ import {
 } from "@/lib/types";
 
 const field =
-  "w-full bg-slate-800 border border-slate-700 focus:border-lagoon-500 outline-none rounded px-2 py-1.5 text-[13px] text-slate-200";
-const label = "text-[10px] uppercase tracking-wider text-slate-500 mb-1 block";
+  "w-full bg-slate-800 border border-slate-700 focus:border-lagoon-500 outline-none rounded px-2 py-1.5 text-body text-slate-200";
+const label = "text-note uppercase tracking-wider text-slate-500 mb-1 block";
 
 export default function Editor() {
   const tasks = useApp((s) => s.plan.tasks);
@@ -34,12 +34,12 @@ export default function Editor() {
   return (
     <aside className="w-72 shrink-0 border-l border-slate-800 bg-slate-900/60 p-3 overflow-y-auto space-y-3">
       <div className="flex items-center justify-between">
-        <h2 className="text-[10px] uppercase tracking-wider text-slate-500">
+        <h2 className="text-note uppercase tracking-wider text-slate-500">
           Edit task
         </h2>
         <button
           onClick={() => setEditorOpen(false)}
-          className="text-slate-500 hover:text-slate-300 text-sm"
+          className="text-slate-500 hover:text-slate-300 text-title"
           title="close (esc)"
         >
           ✕
@@ -48,10 +48,10 @@ export default function Editor() {
 
       {/* Status is read-only on purpose: it follows the graph, and the one
           thing you decide — whether this is finished — is the button below. */}
-      <div className={`rounded-md border px-2.5 py-2 status-${status}`}>
+      <div className={`rounded-md border px-2.5 py-2 card-skin status-${status}`}>
         <div className="flex items-center justify-between gap-2">
           <span
-            className="text-[11px] font-medium uppercase tracking-wider"
+            className="text-label font-medium uppercase tracking-wider"
             style={{ color: STATUS_COLOR[status] }}
           >
             {STATUS_LABEL[status]}
@@ -64,7 +64,7 @@ export default function Editor() {
             {task.done ? "↺ reopen" : "✓ mark done"}
           </button>
         </div>
-        <p className="text-[10px] text-slate-500 mt-1">
+        <p className="text-note text-slate-500 mt-1">
           {task.done
             ? "Finished — whatever depends on this is free to start."
             : task.blocked
@@ -119,7 +119,7 @@ export default function Editor() {
               <button
                 key={p}
                 onClick={() => updateTask(task.id, { priority: p })}
-                className={`flex-1 text-xs py-1.5 rounded border ${
+                className={`flex-1 text-label py-1.5 rounded border ${
                   task.priority === p
                     ? "border-slate-400 bg-slate-700"
                     : "border-slate-700 bg-slate-800 hover:bg-slate-700"
@@ -152,7 +152,7 @@ export default function Editor() {
       </div>
 
       <div className="flex gap-3">
-        <label className="flex items-center gap-1.5 text-xs text-slate-300 cursor-pointer">
+        <label className="flex items-center gap-1.5 text-label text-slate-300 cursor-pointer">
           <input
             type="checkbox"
             checked={!!task.parallel}
@@ -185,7 +185,7 @@ export default function Editor() {
               return (
                 <label
                   key={o.id}
-                  className={`flex items-center gap-1.5 text-[11px] ${
+                  className={`flex items-center gap-1.5 text-label ${
                     disabled
                       ? "text-slate-700 cursor-not-allowed"
                       : "text-slate-300 cursor-pointer"
@@ -210,7 +210,7 @@ export default function Editor() {
       <div className="flex pt-1">
         <button
           onClick={() => deleteTask(task.id)}
-          className="text-xs px-2 py-1 rounded border border-red-900 text-red-400 hover:bg-red-950"
+          className="text-label px-2 py-1 rounded border border-red-900 text-red-400 hover:bg-red-950"
         >
           delete
         </button>

@@ -32,7 +32,7 @@ export default function FlowView({
 
   return (
     <div className="h-full flex flex-col">
-      <div className="flex items-center gap-3 px-1 pb-2 text-[11px] text-slate-500 flex-wrap">
+      <div className="flex items-center gap-3 px-1 pb-2 text-label text-slate-500 flex-wrap">
         <button onClick={autoArrangeFlow} className="btn">
           🐊 Auto-arrange
         </button>

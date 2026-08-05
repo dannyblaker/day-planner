@@ -28,7 +28,7 @@ export default function UndoBar() {
       className="fixed bottom-4 left-1/2 -translate-x-1/2 z-40 flex items-center gap-3
         rounded-lg border border-slate-700 bg-slate-900 px-3 py-2 shadow-xl"
     >
-      <span className="text-xs text-slate-300">
+      <span className="text-label text-slate-300">
         Cleared {n} done task{n === 1 ? "" : "s"}
       </span>
       <button onClick={undoClear} className="btn" title="restore them (u)">
@@ -37,7 +37,7 @@ export default function UndoBar() {
       <button
         onClick={dismissUndo}
         aria-label="Dismiss"
-        className="text-slate-500 hover:text-slate-300 text-xs leading-none"
+        className="text-slate-500 hover:text-slate-300 text-label leading-none"
       >
         ✕
       </button>

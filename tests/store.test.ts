@@ -1,3 +1,4 @@
+import { columnX } from "@/lib/flow";
 import { useApp } from "@/lib/store";
 import { FLOW, Plan, Task } from "@/lib/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -396,9 +397,9 @@ describe("flowchart layout", () => {
       ]
     );
     app().autoArrangeFlow();
-    expect(task("a")!.flowX).toBe(40);
-    expect(task("b")!.flowX).toBe(290);
-    expect(task("c")!.flowX).toBe(540);
+    expect(task("a")!.flowX).toBe(columnX(0));
+    expect(task("b")!.flowX).toBe(columnX(1));
+    expect(task("c")!.flowX).toBe(columnX(2));
   });
 
   it("stacks tasks at the same depth without overlapping", () => {

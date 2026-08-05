@@ -2,7 +2,7 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { arrangeByDepth, columnX } from "./flow";
+import { arrangeByDepth, columnX, rowY } from "./flow";
 import { dependentsOf, flowDepths } from "./graph";
 import { parseQuickAdd } from "./parse";
 import { FLOW, GOAL_COLORS, Goal, Plan, Priority, Task } from "./types";
@@ -152,8 +152,17 @@ export const useApp = create<AppState>()(
                 Math.abs(o.flowX - x) < FLOW.NODE_W
             )
             .map((o) => o.flowY ?? 0);
-          let y = 60;
-          while (taken.some((ty) => Math.abs(ty - y) < 90) && y < maxY) y += 100;
+          // the same rows auto-arrange uses, and the same clearance the canvas
+          // uses when it drops a new dependent beside its prerequisite: a node
+          // is as tall as the crocodile drawn in it, so none of this can be a
+          // number typed in by hand
+          let row = 0;
+          let y = rowY(row);
+          while (
+            taken.some((ty) => Math.abs(ty - y) < FLOW.NODE_H + 12) &&
+            y < maxY
+          )
+            y = rowY(++row);
           t.flowX = x;
           t.flowY = Math.min(y, maxY);
         }

@@ -46,14 +46,14 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
 
   return (
     <header className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/40 flex-wrap">
-      <h1 className="flex items-center gap-2 text-sm font-semibold text-slate-100 tracking-tight">
+      <h1 className="flex items-center gap-2 text-title font-semibold text-slate-100 tracking-tight">
         <Logo className="w-6 h-6 shrink-0" />
         Concurrent Crocodiles
       </h1>
 
       {/* what the board adds up to — the one number that used to be capacity */}
       <div
-        className="flex items-center gap-2.5 text-[11px] px-2 py-1 rounded-md border border-slate-700 bg-slate-800/60"
+        className="flex items-center gap-2.5 text-label px-2 py-1 rounded-md border border-slate-700 bg-slate-800/60"
         title="every status is derived from the dependency graph"
       >
         {counts.map(({ status, n }) => (
@@ -72,7 +72,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
       <div className="flex-1" />
 
       <span
-        className={`text-[10px] transition-opacity ${
+        className={`text-note transition-opacity ${
           saving ? "text-amber-400" : "text-slate-600"
         }`}
       >

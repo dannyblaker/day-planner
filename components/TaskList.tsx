@@ -38,7 +38,9 @@ function Row({
         setEditorOpen(true);
       }}
       className={`group croc-hide flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border ${
-        selected ? "border-lagoon-400/70 bg-lagoon-950/40" : `status-${status}`
+        selected
+          ? "border-lagoon-400/70 bg-lagoon-950/40"
+          : `card-skin status-${status}`
       } ${done ? "opacity-60" : ""}`}
     >
       <button
@@ -49,7 +51,7 @@ function Row({
         role="checkbox"
         aria-checked={done}
         aria-label={task.title}
-        className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center text-[9px] ${
+        className={`w-4 h-4 shrink-0 rounded-full border flex items-center justify-center text-note ${
           done
             ? "bg-emerald-500/80 border-emerald-500 text-slate-950"
             : "border-slate-500 hover:border-emerald-400"
@@ -65,13 +67,13 @@ function Row({
       />
       <div className="min-w-0 flex-1">
         <div
-          className={`text-[13px] truncate ${
+          className={`text-body truncate ${
             done ? "line-through text-slate-500" : "text-slate-200"
           }`}
         >
           {task.title}
         </div>
-        <div className="text-[10px] text-slate-500 flex gap-1.5 items-center flex-wrap">
+        <div className="text-note text-slate-500 flex gap-1.5 items-center flex-wrap">
           <span>{fmtDur(task.duration)}</span>
           {task.parallel && <span title="runs in parallel">∥</span>}
           {task.dependsOn.length > 0 && (
@@ -99,7 +101,7 @@ function Row({
             toggleDone(task.id);
           }}
           title={done ? "reopen (d)" : "mark done (d)"}
-          className="text-[10px] px-1.5 py-0.5 rounded bg-slate-700 hover:bg-emerald-600 text-slate-200"
+          className="text-note px-1.5 py-0.5 rounded bg-slate-700 hover:bg-emerald-600 text-slate-200"
         >
           {done ? "↺ reopen" : "✓ done"}
         </button>
@@ -147,7 +149,7 @@ export default function TaskList() {
               <button
                 onClick={isDone ? () => setShowDone(!showDone) : undefined}
                 disabled={!isDone}
-                className={`text-[10px] uppercase tracking-wider ${
+                className={`text-note uppercase tracking-wider ${
                   isDone ? "hover:text-slate-300" : "cursor-default"
                 }`}
                 style={{ color: STATUS_COLOR[status] }}
@@ -159,7 +161,7 @@ export default function TaskList() {
               {isDone && (
                 <button
                   onClick={clearDone}
-                  className="text-[10px] text-slate-600 hover:text-red-400"
+                  className="text-note text-slate-600 hover:text-red-400"
                   title="drop the finished tasks off the board (undoable)"
                 >
                   clear
@@ -233,7 +235,7 @@ export default function TaskList() {
       })}
 
       {tasks.length === 0 && (
-        <p className="text-xs text-slate-600 px-2">
+        <p className="text-label text-slate-600 px-2">
           Empty swamp — press <kbd className="kbd">n</kbd> to put a crocodile in
           it.
         </p>

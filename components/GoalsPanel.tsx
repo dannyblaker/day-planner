@@ -21,13 +21,13 @@ export default function GoalsPanel() {
 
   return (
     <div>
-      <h3 className="text-[10px] uppercase tracking-wider text-slate-500 px-2 mb-1.5">
+      <h3 className="text-note uppercase tracking-wider text-slate-500 px-2 mb-1.5">
         Goals — work mapped, done vs. planned
       </h3>
       <div className="space-y-1.5 px-2">
         {stats.map(({ goal, planned, done, count }) => (
           <div key={goal.id} className="group">
-            <div className="flex items-center gap-1.5 text-[11px]">
+            <div className="flex items-center gap-1.5 text-label">
               <span
                 className="w-2 h-2 rounded-full shrink-0"
                 style={{ backgroundColor: goal.color }}
@@ -38,7 +38,7 @@ export default function GoalsPanel() {
               </span>
               <button
                 onClick={() => deleteGoal(goal.id)}
-                className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 text-[10px]"
+                className="opacity-0 group-hover:opacity-100 text-slate-600 hover:text-red-400 text-note"
                 title="delete goal"
               >
                 ✕
@@ -57,7 +57,7 @@ export default function GoalsPanel() {
           </div>
         ))}
         {unmapped > 0 && (
-          <p className="text-[10px] text-slate-600">
+          <p className="text-note text-slate-600">
             {unmapped} task{unmapped > 1 ? "s" : ""} not mapped to a goal
           </p>
         )}
@@ -72,7 +72,7 @@ export default function GoalsPanel() {
             e.stopPropagation();
           }}
           placeholder="+ new goal"
-          className="w-full bg-transparent border-b border-slate-800 focus:border-lagoon-500 outline-none px-0.5 py-1 text-[11px] text-slate-300 placeholder:text-slate-600"
+          className="w-full bg-transparent border-b border-slate-800 focus:border-lagoon-500 outline-none px-0.5 py-1 text-label text-slate-300 placeholder:text-slate-600"
         />
       </div>
     </div>

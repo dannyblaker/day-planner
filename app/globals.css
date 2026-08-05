@@ -14,7 +14,37 @@
  * in the app is tinted the colour of the water a crocodile waits in.
  */
 
+/*
+ * One knob for how big the app is. Every length in here and in the components is
+ * in rem — Tailwind's spacing scale, its widths, and the four type sizes below —
+ * so this percentage sets the size of the whole interface, type and padding and
+ * panel widths together. A percentage rather than a pixel value, so anyone who
+ * has told their browser to use bigger text still gets it.
+ */
+html {
+  font-size: 112.5%;
+}
+
 @theme {
+  /*
+   * The type scale, and all of it: four sizes, named for the job they do rather
+   * than for how many pixels they used to be. The app had five hardcoded pixel
+   * sizes between 9px and 14px, which is both too many to tell apart and too
+   * small to read — and being pixels, none of them answered to the knob above.
+   *
+   * `note` is the small print (durations, group headings, hints), `label` is
+   * everything you click or a node is titled with, `body` is what you type into,
+   * and `title` is a panel heading.
+   */
+  --text-note: 0.68rem;
+  --text-note--line-height: 1.35;
+  --text-label: 0.78rem;
+  --text-label--line-height: 1.4;
+  --text-body: 0.86rem;
+  --text-body--line-height: 1.45;
+  --text-title: 0.95rem;
+  --text-title--line-height: 1.3;
+
   /*
    * `lagoon` is the interactive accent — selection, focus, the arrow you are
    * dragging. It is a colour no *status* uses: the board already spends grey on
@@ -54,7 +84,9 @@
 
   /* chrome that isn't part of a Tailwind ramp */
   --scrim: rgba(4, 14, 9, 0.62);
-  --drag-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  /* a dragged node casts its shadow through a filter, not a box-shadow: the
+     node's box is transparent, and only the crocodile in it should have one */
+  --drag-filter: drop-shadow(0 7px 9px rgba(0, 0, 0, 0.55));
   --flow-dot: #22382c;
   /* the water the board floats on: a scale lattice under the ripple dots */
   --water-scale: rgba(122, 190, 150, 0.03);
@@ -90,18 +122,8 @@
   --status-done-border: #0b5f45;
   --status-done-bg: #03251c33;
 
-  /* crocodile hide: the lattice printed on every task card */
+  /* crocodile hide: the lattice printed on every task row */
   --hide-line: rgba(146, 214, 170, 0.04);
-  /* teeth, on the cards you can actually start */
-  --tooth: #e8e4d2;
-
-  /*
-   * The two shapes the cards are trimmed with. A crocodile's scutes are rounded
-   * keels, not spikes — drawn sharp they read as a torn ticket stub, so the
-   * ridge is domed and only the teeth are pointed.
-   */
-  --scute-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='5'><path d='M0 5 C4.5 -1 13.5 -1 18 5 Z' fill='%23fff'/></svg>");
-  --tooth-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='7'><path d='M2.5 0 L11.5 0 L7 7 Z' fill='%23fff'/></svg>");
 }
 
 :root[data-theme="light"] {
@@ -110,7 +132,7 @@
   --background: #f6faf4;
 
   --scrim: rgba(12, 32, 21, 0.35);
-  --drag-shadow: 0 8px 24px rgba(12, 32, 21, 0.18);
+  --drag-filter: drop-shadow(0 7px 9px rgba(12, 32, 21, 0.28));
   --flow-dot: #cfdfd2;
   --water-scale: rgba(31, 92, 58, 0.035);
 
@@ -138,7 +160,6 @@
   --status-done-bg: #f0fdf6;
 
   --hide-line: rgba(31, 92, 58, 0.05);
-  --tooth: #c08d1c;
 
   /* structural ramp — inverted */
   --color-slate-50: oklch(13.5% 0.03 152);
@@ -186,8 +207,8 @@ body {
 }
 
 .btn {
-  font-size: 11px;
-  padding: 4px 8px;
+  font-size: var(--text-label);
+  padding: 0.25rem 0.5rem;
   border-radius: 6px;
   border: 1px solid var(--color-slate-700);
   background: color-mix(in oklab, var(--color-slate-800) 60%, transparent);
@@ -203,25 +224,31 @@ body {
   cursor: default;
 }
 
-/* Status skins, shared by the flowchart nodes and the sidebar rows so the two
-   never disagree about what colour a status is. `background-color`, not
-   `background`: the shorthand would wipe out the hide lattice underneath.
-   Each also publishes its border colour as `--node-accent`, which is what the
-   scute ridge on a flowchart node is painted with. */
+/*
+ * A status doesn't paint anything by itself — it publishes the two colours the
+ * status *is*, and the thing being drawn decides what to do with them. That is
+ * how one status can skin a rectangle in the sidebar and fill a crocodile on the
+ * canvas without the two ever disagreeing about what colour a status is.
+ */
 .status-todo {
-  border-color: var(--status-todo-border);
-  background-color: var(--status-todo-bg);
   --node-accent: var(--status-todo-border);
+  --node-fill: var(--status-todo-bg);
 }
 .status-in-progress {
-  border-color: var(--status-progress-border);
-  background-color: var(--status-progress-bg);
   --node-accent: var(--status-progress-border);
+  --node-fill: var(--status-progress-bg);
 }
 .status-done {
-  border-color: var(--status-done-border);
-  background-color: var(--status-done-bg);
   --node-accent: var(--status-done-border);
+  --node-fill: var(--status-done-bg);
+}
+
+/* The rectangular reading of a status: list rows, the editor's status box, the
+   legend in the help overlay. `background-color`, not `background`: the
+   shorthand would wipe out the hide lattice underneath. */
+.card-skin {
+  border-color: var(--node-accent);
+  background-color: var(--node-fill);
 }
 
 /*
@@ -244,47 +271,46 @@ body {
 }
 
 /*
- * Scutes: the ridge of bony plates along a crocodile's back, here along the top
- * edge of every node on the canvas, in the colour of the status. Drawn as a
- * masked strip so the zigzag follows the theme without a second asset.
+ * The crocodile a task is drawn as. The silhouette is an SVG (see
+ * components/CrocShape.tsx) laid over the node box, taking its fill and its
+ * outline from the status published above; the box behind it keeps the pointer,
+ * so the whole rectangle stays draggable and droppable even though only part of
+ * it is crocodile.
+ *
+ * Every colour is set here, on the <svg> itself, and inherited by the shapes
+ * inside it — `fill`, `stroke` and `color` are all inherited properties. That is
+ * not a stylistic choice: html-to-image deep-clones an <svg> natively without
+ * inlining any styles onto its children, so a rule like `.croc-body { fill: … }`
+ * exists on screen and vanishes from the PNG, which comes out as black
+ * silhouettes. Styles on the <svg> element *are* inlined, and inheritance
+ * carries them the rest of the way. Anything that needs a different colour from
+ * its parent says so as a presentation attribute in CrocShape.tsx, because
+ * attributes survive the clone too.
  */
-.croc-node::before {
-  content: "";
+.croc-shape {
   position: absolute;
-  left: -1px;
-  right: -1px;
-  top: -5px;
-  height: 5px;
-  background-color: var(--node-accent, var(--color-slate-600));
-  -webkit-mask-image: var(--scute-mask);
-  mask-image: var(--scute-mask);
-  -webkit-mask-size: 18px 5px;
-  mask-size: 18px 5px;
-  -webkit-mask-repeat: repeat-x;
-  mask-repeat: repeat-x;
+  inset: 0;
   pointer-events: none;
+  fill: var(--node-fill);
+  stroke: var(--node-accent);
+  stroke-width: 1.5;
+  /* mitred, not rounded: the corners are the point of a blocky crocodile */
+  stroke-linejoin: miter;
+  /* currentColor is the priority accent, worn on the tail */
+  color: var(--croc-tail-fill, var(--node-accent));
 }
 
-/*
- * Teeth, and only on the nodes you can start right now. The gold column is the
- * answer to the question the board exists to answer, so it is the one that
- * bites: nothing waiting and nothing finished grows them.
- */
-.croc-node.status-in-progress::after {
-  content: "";
-  position: absolute;
-  left: 6px;
-  right: 6px;
-  bottom: -6px;
-  height: 7px;
-  background-color: var(--tooth);
-  -webkit-mask-image: var(--tooth-mask);
-  mask-image: var(--tooth-mask);
-  -webkit-mask-size: 14px 7px;
-  mask-size: 14px 7px;
-  -webkit-mask-repeat: repeat-x;
-  mask-repeat: repeat-x;
-  pointer-events: none;
+/* Concurrent work is dashed, as it always has been — now it is the outline of
+   the animal rather than the border of a box. */
+.croc-node.is-parallel .croc-shape {
+  stroke-dasharray: 5 3;
+}
+
+/* Selected: the outline goes lagoon and thickens. A ring would draw the box, and
+   the box is not the shape any more. */
+.croc-node.is-selected .croc-shape {
+  stroke: var(--edge-active);
+  stroke-width: 2.5;
 }
 
 /* The canvas: swamp water. Ripple dots over a scale lattice, both faint enough
@@ -310,8 +336,8 @@ body {
 
 .kbd {
   font-family: var(--font-geist-mono), monospace;
-  font-size: 10px;
-  padding: 1px 5px;
+  font-size: var(--text-note);
+  padding: 0.06rem 0.3rem;
   border-radius: 4px;
   border: 1px solid var(--color-slate-600);
   border-bottom-width: 2px;

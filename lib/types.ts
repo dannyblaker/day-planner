@@ -46,12 +46,20 @@ export const STATUS_COLOR: Record<TaskStatus, string> = {
   done: "var(--status-done)",
 };
 
-/** Flowchart canvas geometry (shared by view + auto-layout). */
+/**
+ * Flowchart canvas geometry (shared by view + auto-layout).
+ *
+ * A node is the size it is because a crocodile is drawn in it: long enough for a
+ * snout at one end and a tail at the other, and tall enough for four legs, with
+ * the flat of its back left over for the label. It is close to the size of the
+ * plain card it replaced because the crocodile is built out of blocks rather than
+ * curves, and blocks stay legible small. See components/CrocShape.tsx.
+ */
 export const FLOW = {
-  W: 2400,
-  H: 1200,
-  NODE_W: 192,
-  NODE_H: 78,
+  W: 3000,
+  H: 1500,
+  NODE_W: 300,
+  NODE_H: 104,
 };
 
 export interface Goal {

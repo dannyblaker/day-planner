@@ -12,6 +12,7 @@ import {
   Task,
 } from "@/lib/types";
 import { useRef, useState } from "react";
+import CrocShape, { BACK, DONE_AT } from "./CrocShape";
 import DoneButton from "./DoneButton";
 
 const { W, H, NODE_W, NODE_H } = FLOW;
@@ -119,7 +120,7 @@ export default function FlowCanvas({
       .filter((q) => Math.abs(q.x - x) < NODE_W);
     let y = p.y;
     while (column.some((q) => Math.abs(q.y - y) < NODE_H + 12) && y < H - NODE_H)
-      y += 100;
+      y += NODE_H + 28;
     return { x, y };
   };
 
@@ -387,60 +388,79 @@ export default function FlowCanvas({
                   : undefined
               }
               title={`${t.title} — ${STATUS_LABEL[status]}`}
-              className={`group croc-node croc-hide absolute z-10 rounded-lg border px-2.5 py-1.5 select-none status-${status} ${
+              className={`group croc-node absolute z-10 select-none status-${status} ${
                 onMove ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
               } ${done ? "opacity-60" : ""} ${
                 // dashed all round marks the concurrent lane, as it always has
-                t.parallel ? "border-dashed" : ""
-              } ${selectedId === t.id ? "ring-2 ring-lagoon-400" : ""}`}
+                t.parallel ? "is-parallel" : ""
+              } ${selectedId === t.id ? "is-selected" : ""}`}
               style={{
                 left: p.x,
                 top: p.y,
                 width: NODE_W,
                 height: NODE_H,
-                borderLeftWidth: 3,
-                borderLeftColor: done ? DONE_COLOR : PRIORITY_COLOR[t.priority],
-                borderLeftStyle: "solid",
                 touchAction: "none",
                 zIndex: dragging ? 30 : 10,
-                boxShadow: dragging ? "var(--drag-shadow)" : undefined,
+                filter: dragging ? "var(--drag-filter)" : undefined,
+                ["--croc-tail-fill" as string]: done
+                  ? DONE_COLOR
+                  : PRIORITY_COLOR[t.priority],
               }}
             >
+              <CrocShape status={status} done={done} />
+
+              {/* the label, on the flat of its back */}
               <div
-                className={`text-[11px] font-medium truncate ${
-                  done ? "line-through text-slate-500" : "text-slate-100"
-                }`}
+                className="absolute overflow-hidden"
+                style={{
+                  left: BACK.left,
+                  right: BACK.right,
+                  top: BACK.top,
+                  bottom: BACK.bottom,
+                }}
               >
-                {status === "in-progress" && (
-                  <span title="in progress">🐊 </span>
-                )}
-                {t.title}
-              </div>
-              <div className="text-[9px] text-slate-400 flex gap-1.5 items-center mt-0.5 flex-wrap">
-                <span>{fmtDur(t.duration)}</span>
-                {t.parallel && <span title="concurrent">∥</span>}
-                {t.blocked && (
-                  <span className="text-red-400 truncate" title={t.blocked}>
-                    ⛔ {t.blocked}
-                  </span>
-                )}
-              </div>
-              {goal && (
                 <div
-                  className="text-[9px] px-1 rounded-full inline-block mt-0.5 truncate max-w-full"
-                  style={{
-                    backgroundColor: goal.color + "33",
-                    color: goal.color,
-                  }}
+                  className={`text-label font-medium truncate ${
+                    done ? "line-through text-slate-500" : "text-slate-100"
+                  }`}
                 >
-                  {goal.name}
+                  {t.title}
                 </div>
-              )}
+                {/* one line, goal included: a crocodile's back is only so long,
+                    and a third row of small print runs off the end of it */}
+                <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5">
+                  <span className="shrink-0">{fmtDur(t.duration)}</span>
+                  {t.parallel && (
+                    <span className="shrink-0" title="concurrent">
+                      ∥
+                    </span>
+                  )}
+                  {goal && (
+                    <span
+                      className="px-1 rounded-full truncate min-w-0"
+                      style={{
+                        backgroundColor: goal.color + "33",
+                        color: goal.color,
+                      }}
+                    >
+                      {goal.name}
+                    </span>
+                  )}
+                  {t.blocked && (
+                    <span
+                      className="text-red-400 truncate min-w-0"
+                      title={t.blocked}
+                    >
+                      ⛔ {t.blocked}
+                    </span>
+                  )}
+                </div>
+              </div>
               {onToggleDone && (
                 <DoneButton
                   done={done}
                   onToggle={() => onToggleDone(t.id)}
-                  className="right-1.5 bottom-1.5"
+                  style={{ right: DONE_AT.right, bottom: DONE_AT.bottom }}
                 />
               )}
               {/* out-port: drag to another node to create a dependency */}
@@ -509,7 +529,7 @@ export default function FlowCanvas({
                 ? `New task after “${pendingSource.title}”…`
                 : "New task…  45m !1 #goal"
             }
-            className="absolute z-40 w-60 bg-slate-800 border border-lagoon-500 outline-none rounded-md px-2.5 py-1.5 text-[12px] text-slate-200 placeholder:text-slate-600 shadow-xl"
+            className="absolute z-40 w-60 bg-slate-800 border border-lagoon-500 outline-none rounded-md px-2.5 py-1.5 text-label text-slate-200 placeholder:text-slate-600 shadow-xl"
             style={{ left: creating.pos.x, top: creating.pos.y }}
           />
         )}
