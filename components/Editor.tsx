@@ -3,8 +3,8 @@
 import { dependentsOf, statusOf } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import {
+  PRIORITIES,
   PRIORITY_COLOR,
-  Priority,
   STATUS_COLOR,
   STATUS_LABEL,
 } from "@/lib/types";
@@ -98,7 +98,7 @@ export default function Editor() {
       <div>
         <label className={label}>Priority</label>
         <div className="flex gap-1">
-          {([1, 2, 3, 4] as Priority[]).map((p) => (
+          {PRIORITIES.map((p) => (
             <button
               key={p}
               onClick={() => updateTask(task.id, { priority: p })}

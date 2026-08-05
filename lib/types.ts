@@ -1,4 +1,20 @@
-export type Priority = 1 | 2 | 3 | 4;
+/**
+ * Three levels, because a fourth was one nobody meant. P4 was where work went
+ * to be forgotten politely — and on a board that now sorts itself top to bottom
+ * by priority, a level that means "never" is just a longer canvas.
+ */
+export type Priority = 1 | 2 | 3;
+export const PRIORITIES: Priority[] = [1, 2, 3];
+
+/**
+ * Anything into a priority the app still has. A plan written when there were
+ * four of them opens rather than showing a level that no longer exists: the P4
+ * becomes a P3. The level went away; the task didn't.
+ */
+export const asPriority = (v: number | null | undefined): Priority =>
+  v == null || Number.isNaN(v)
+    ? 3
+    : (Math.min(3, Math.max(1, Math.round(v))) as Priority);
 export type TaskStatus = "todo" | "in-progress" | "done";
 
 export interface Task {
@@ -19,9 +35,6 @@ export interface Task {
   parallel?: boolean;
   order: number;
   createdAt: number;
-  /** position on the flowchart canvas */
-  flowX?: number | null;
-  flowY?: number | null;
 }
 
 export const STATUS_LABEL: Record<TaskStatus, string> = {
@@ -45,7 +58,7 @@ export const STATUS_COLOR: Record<TaskStatus, string> = {
 };
 
 /**
- * Flowchart canvas geometry (shared by view + auto-layout).
+ * Flowchart canvas geometry (shared by the view and the layout).
  *
  * A node is the size it is because a crocodile is drawn in it: long enough for a
  * snout at one end and a tail at the other, and tall enough for four legs, with
@@ -84,7 +97,6 @@ export const PRIORITY_COLOR: Record<number, string> = {
   1: "var(--prio-1)",
   2: "var(--prio-2)",
   3: "var(--prio-3)",
-  4: "var(--prio-4)",
 };
 export const DONE_COLOR = "var(--prio-done)";
 

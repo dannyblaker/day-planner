@@ -1,7 +1,6 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { useEffect } from "react";
 import FlowCanvas from "./FlowCanvas";
 
 /** The editable flowchart: FlowCanvas wired to the store, plus its toolbar. */
@@ -14,29 +13,14 @@ export default function FlowView({
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const newTaskFrom = useApp((s) => s.newTaskFrom);
-  const {
-    select,
-    setEditorOpen,
-    updateTask,
-    toggleDependency,
-    toggleDone,
-    quickAdd,
-    ensureFlowPositions,
-    autoArrangeFlow,
-  } = useApp();
-
-  const missingPos = tasks.filter((t) => t.flowX == null).length;
-  useEffect(() => {
-    if (missingPos > 0) ensureFlowPositions();
-  }, [missingPos, ensureFlowPositions]);
+  const { select, setEditorOpen, toggleDependency, toggleDone, quickAdd } =
+    useApp();
 
   return (
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-1 pb-2 text-label text-slate-500 flex-wrap">
-        <button onClick={autoArrangeFlow} className="btn">
-          🐊 Auto-arrange
-        </button>
-        <span>double-click canvas: new task (quick-add syntax works)</span>
+        <span>the board arranges itself: order left to right, priority top to bottom</span>
+        <span>· double-click canvas: new task (quick-add syntax works)</span>
         <span>· drag ○ → node: dependency</span>
         <span>· click ○ or drag it to empty space: new dependent task</span>
         <span>· click arrow: remove</span>
@@ -51,13 +35,11 @@ export default function FlowView({
           select(id);
           setEditorOpen(true);
         }}
-        onMove={(id, { x, y }) => updateTask(id, { flowX: x, flowY: y })}
         onToggleDependency={toggleDependency}
         onToggleDone={toggleDone}
-        onCreate={(input, { x, y }, dependsOn) => {
+        onCreate={(input, dependsOn) => {
           const id = quickAdd(input);
           if (!id) return;
-          updateTask(id, { flowX: x, flowY: y });
           // a new task has no dependents, so this can never close a loop
           if (dependsOn) toggleDependency(id, dependsOn);
         }}

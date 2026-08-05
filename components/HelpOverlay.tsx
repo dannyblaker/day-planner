@@ -11,7 +11,7 @@ const SHORTCUTS: [string, string][] = [
   ["Enter / e", "edit selected task"],
   ["d", "toggle done — dependents become in-progress"],
   ["b", "toggle blocked"],
-  ["1 – 4", "set priority P1–P4"],
+  ["1 – 3", "set priority P1–P3 — the board re-sorts itself"],
   ["p", "toggle concurrent (a crocodile that swims on its own)"],
   ["s", "auto-sort queue by priority"],
   ["x / Del", "delete selected task"],
@@ -22,7 +22,8 @@ const SHORTCUTS: [string, string][] = [
   ["Esc", "close panels / deselect"],
   ["drag row (list)", "reorder the queue"],
   ["dbl-click task", "open the editor"],
-  ["dbl-click canvas", "create task at that spot"],
+  ["dbl-click canvas", "create task"],
+  ["drag canvas", "pan the board — nothing on it is placed by hand"],
   ["drag ○ → node", "draw a dependency arrow"],
   ["drag ○ → empty space", "new task on the end of the arrow"],
   ["click ○", "new task depending on that one"],
@@ -30,7 +31,7 @@ const SHORTCUTS: [string, string][] = [
 ];
 
 const SYNTAX: [string, string][] = [
-  ["!1 … !4", "priority (P1 = do or die)"],
+  ["!1 … !3", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
   [">design", "depends on task whose title starts with “design”"],
   ["~", "concurrent / background task"],
@@ -41,7 +42,7 @@ const SYNTAX: [string, string][] = [
 /** What the drawing of a task says, part by part. See CrocShape.tsx. */
 const ANATOMY: [string, string][] = [
   ["colour", "its status — murky waiting, gold startable, green finished"],
-  ["tail tip", "priority: P1 red through P4 grey"],
+  ["tail tip", "priority: P1 red, P2 amber, P3 blue"],
   ["eyes", "open while there is work left in it; shut when it's done"],
   ["teeth", "showing on the ones you can start right now"],
   ["dashed outline", "concurrent — it swims on its own"],

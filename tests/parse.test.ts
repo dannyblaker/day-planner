@@ -49,13 +49,18 @@ describe("what used to be a duration", () => {
 });
 
 describe("priority", () => {
-  it.each([1, 2, 3, 4] as const)("reads !%d", (p) => {
+  it.each([1, 2, 3] as const)("reads !%d", (p) => {
     expect(parse(`Task !${p}`).priority).toBe(p);
   });
 
   it("ignores out-of-range priorities and keeps them as text", () => {
     expect(parse("Task !5")).toMatchObject({ priority: 3, title: "Task !5" });
     expect(parse("Task !0")).toMatchObject({ priority: 3, title: "Task !0" });
+  });
+
+  /** P4 went the way of the duration token: what it wrote is now just text. */
+  it("keeps !4 in the title, now that there is no P4", () => {
+    expect(parse("Task !4")).toMatchObject({ priority: 3, title: "Task !4" });
   });
 });
 

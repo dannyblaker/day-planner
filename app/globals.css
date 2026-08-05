@@ -84,9 +84,6 @@ html {
 
   /* chrome that isn't part of a Tailwind ramp */
   --scrim: rgba(4, 14, 9, 0.62);
-  /* a dragged node casts its shadow through a filter, not a box-shadow: the
-     node's box is transparent, and only the crocodile in it should have one */
-  --drag-filter: drop-shadow(0 7px 9px rgba(0, 0, 0, 0.55));
   --flow-dot: #22382c;
 
   /*
@@ -116,11 +113,10 @@ html {
   --edge-active: #2fd0c0;
   --edge-hover: #f87171;
 
-  /* priority accents (left border of a task, dot in the list) */
+  /* priority accents (the dipped tail of a crocodile, the dot in the list) */
   --prio-1: #f87171;
   --prio-2: #f7c243;
   --prio-3: #4dc9e8;
-  --prio-4: #93b3a2;
   --prio-done: #4d6857;
 
   /*
@@ -151,7 +147,6 @@ html {
   --background: #f6faf4;
 
   --scrim: rgba(12, 32, 21, 0.35);
-  --drag-filter: drop-shadow(0 7px 9px rgba(12, 32, 21, 0.28));
   --flow-dot: #cfdfd2;
 
   /* shallow water over a pale bed: lit from above rather than glowing */
@@ -178,7 +173,6 @@ html {
   --prio-1: #dc2626;
   --prio-2: #b07d16;
   --prio-3: #0e7c99;
-  --prio-4: #5c7a68;
   --prio-done: #c6d7cb;
 
   --status-todo: #5c7a68;

@@ -1,4 +1,5 @@
 import FlowView from "@/components/FlowView";
+import { MOVE_MS } from "@/lib/flow-motion";
 import { Task } from "@/lib/types";
 import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -14,6 +15,17 @@ function renderFlow(tasks: Task[]) {
 const planTasks = () => app().plan.tasks;
 const node = (title: string) =>
   screen.getByText(title).closest("[data-flow-node]") as HTMLElement;
+/** where a node has come to rest, once the move is over */
+const at = (title: string) => {
+  const el = node(title);
+  return { x: parseFloat(el.style.left), y: parseFloat(el.style.top) };
+};
+/** let a move play out — see useFlowMotion */
+const settle = async () => {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(MOVE_MS + 100);
+  });
+};
 
 beforeEach(() => {
   resetFactory();
@@ -39,9 +51,14 @@ describe("the canvas", () => {
     expect(screen.queryByText(/parallel \/ background/i)).not.toBeInTheDocument();
   });
 
-  it("gives every node a position on first render", () => {
-    renderFlow([makeTask({ id: "a" }), makeTask({ id: "b" })]);
-    expect(planTasks().every((t) => t.flowX != null && t.flowY != null)).toBe(true);
+  it("lays every node out on first render, without storing anything", () => {
+    renderFlow([
+      makeTask({ id: "a", title: "First" }),
+      makeTask({ id: "b", title: "Second", dependsOn: ["a"] }),
+    ]);
+    expect(at("First").x).toBeGreaterThan(0);
+    expect(at("Second").x).toBeGreaterThan(at("First").x);
+    expect(planTasks().some((t) => "flowX" in t)).toBe(false);
   });
 
   it("draws an arrow per dependency", () => {
@@ -107,18 +124,72 @@ describe("interaction", () => {
     expect(planTasks().find((t) => t.id === "b")!.dependsOn).toEqual([]);
   });
 
-  it("re-lays the graph on auto-arrange", async () => {
-    const user = userEvent.setup();
-    renderFlow(
-      [
-        makeTask({ id: "a", title: "First", flowX: 900, flowY: 900 }),
-        makeTask({ id: "b", title: "Second", dependsOn: ["a"], flowX: 10, flowY: 10 }),
-      ]
-    );
-    await user.click(screen.getByRole("button", { name: /auto-arrange/i }));
-    const [a, b] = planTasks();
-    expect(a.flowX).toBe(40);
-    expect(b.flowX!).toBeGreaterThan(a.flowX!);
+  it("has no arrange button left to press", () => {
+    renderFlow([makeTask({ title: "Anything" })]);
+    expect(
+      screen.queryByRole("button", { name: /auto-arrange/i })
+    ).not.toBeInTheDocument();
+  });
+});
+
+/**
+ * The board is a picture of the graph, so an edit to the graph is an edit to the
+ * picture — no gesture in between, and no jump cut either.
+ */
+describe("arranging itself", () => {
+  it("lifts a task up the board when its priority goes up", async () => {
+    renderFlow([
+      makeTask({ id: "a", title: "First", priority: 2, order: 1 }),
+      makeTask({ id: "b", title: "Second", priority: 3, order: 2 }),
+    ]);
+    const [top, bottom] = [at("First").y, at("Second").y];
+    expect(bottom).toBeGreaterThan(top);
+
+    act(() => app().setPriority("b", 1));
+    await settle();
+
+    // they have traded rows, and the P1 is the one on top
+    expect(at("Second").y).toBe(top);
+    expect(at("First").y).toBe(bottom);
+  });
+
+  it("takes a whole second over it, rather than cutting", async () => {
+    renderFlow([
+      makeTask({ id: "a", title: "First", priority: 2, order: 1 }),
+      makeTask({ id: "b", title: "Second", priority: 3, order: 2 }),
+    ]);
+    const [top, bottom] = [at("First").y, at("Second").y];
+
+    act(() => app().setPriority("b", 1));
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(MOVE_MS / 2);
+    });
+
+    // halfway there: between where it was and where it is going, at neither end
+    const y = at("Second").y;
+    expect(y).toBeLessThan(bottom);
+    expect(y).toBeGreaterThan(top);
+  });
+
+  it("drags the prerequisites of an urgent task up with it", async () => {
+    renderFlow([
+      makeTask({ id: "busy", title: "Busywork", priority: 2, order: 1 }),
+      makeTask({ id: "dull", title: "Dull but needed", priority: 3, order: 2 }),
+      makeTask({ id: "big", title: "The big one", priority: 3, order: 3, dependsOn: ["dull"] }),
+    ]);
+    expect(at("Dull but needed").y).toBeGreaterThan(at("Busywork").y);
+
+    act(() => app().setPriority("big", 1));
+    await settle();
+
+    expect(at("Dull but needed").y).toBeLessThan(at("Busywork").y);
+  });
+
+  it("puts a new task in the column its dependency earns it", async () => {
+    renderFlow([makeTask({ id: "a", title: "First" })]);
+    act(() => app().quickAdd("Second >First"));
+    await settle();
+    expect(at("Second").x).toBeGreaterThan(at("First").x);
   });
 });
 
@@ -134,7 +205,7 @@ describe("growing the graph forwards", () => {
 
   it("asks for a new task when the port is clicked", async () => {
     const user = userEvent.setup();
-    renderFlow([makeTask({ id: "a", title: "First", flowX: 40, flowY: 60 })]);
+    renderFlow([makeTask({ id: "a", title: "First" })]);
 
     await user.click(port("First"));
     expect(createInput()).toHaveAttribute(
@@ -150,13 +221,13 @@ describe("growing the graph forwards", () => {
 
   it("puts the new task to the right of the one it waits on", async () => {
     const user = userEvent.setup();
-    renderFlow([makeTask({ id: "a", title: "First", flowX: 300, flowY: 200 })]);
+    renderFlow([makeTask({ id: "a", title: "First" })]);
 
     await user.click(port("First"));
     await user.type(createInput(), "Second job{Enter}");
-    const created = planTasks().find((t) => t.title === "Second job")!;
-    expect(created.flowX!).toBeGreaterThan(300);
-    expect(created.flowY).toBe(200);
+    await settle();
+    expect(at("Second job").x).toBeGreaterThan(at("First").x);
+    expect(at("Second job").y).toBe(at("First").y);
   });
 
   it("creates nothing if the input is dismissed", async () => {

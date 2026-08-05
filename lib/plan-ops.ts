@@ -1,6 +1,6 @@
 import { cycleOf } from "./graph";
 import { parseQuickAdd } from "./parse";
-import { GOAL_COLORS, Goal, Plan, Priority, Task } from "./types";
+import { GOAL_COLORS, Goal, Plan, Task, asPriority } from "./types";
 
 /**
  * Every write the API can make to a plan, as pure functions.
@@ -84,7 +84,7 @@ export function normalizePlan(raw: unknown): Plan {
       id: typeof t.id === "string" ? t.id : newId(),
       title: typeof t.title === "string" ? t.title : "",
       notes: typeof t.notes === "string" ? t.notes : undefined,
-      priority: (num(t.priority) ?? 3) as Priority,
+      priority: asPriority(num(t.priority)),
       goalId: typeof t.goalId === "string" ? t.goalId : null,
       dependsOn: (Array.isArray(t.dependsOn) ? t.dependsOn : []).filter(
         (d): d is string => typeof d === "string"
@@ -94,8 +94,6 @@ export function normalizePlan(raw: unknown): Plan {
       parallel: t.parallel === true ? true : undefined,
       order: num(t.order) ?? i + 1,
       createdAt: num(t.createdAt) ?? 0,
-      flowX: num(t.flowX),
-      flowY: num(t.flowY),
     }));
   return {
     goals,
@@ -126,8 +124,6 @@ const WRITABLE = new Set([
   "parallel",
   "order",
   "createdAt",
-  "flowX",
-  "flowY",
 ]);
 
 /**
@@ -143,7 +139,7 @@ const DERIVED = new Set(["status", "depth", "dependents", "goalName"]);
  * document exported before one of them went away still round-trips through PUT
  * instead of failing on a field the app itself put there.
  */
-const RETIRED = new Set(["duration"]);
+const RETIRED = new Set(["duration", "flowX", "flowY"]);
 
 export function asObject(v: unknown, label: string): Bag {
   if (!v || typeof v !== "object" || Array.isArray(v))
@@ -213,11 +209,13 @@ function coerceTask(
     else t.notes = bag.notes;
   }
 
+  // 4 is taken but not kept: the board had a P4 once, and a document written
+  // then is still a document this API promises to accept. It comes in as a P3.
   if ("priority" in bag) {
     const v = num(bag.priority);
     if (v == null || ![1, 2, 3, 4].includes(v))
-      p.add(`${label}: priority must be 1, 2, 3 or 4`);
-    else t.priority = v as Priority;
+      p.add(`${label}: priority must be 1, 2 or 3`);
+    else t.priority = asPriority(v);
   }
 
   // `goal` names a goal (creating it if new, as `#goal` does in quick-add);
@@ -278,16 +276,6 @@ function coerceTask(
     const v = num(bag[key]);
     if (v == null) p.add(`${label}: ${key} must be a number`);
     else t[key] = v;
-  }
-
-  for (const key of ["flowX", "flowY"] as const) {
-    if (!(key in bag)) continue;
-    if (bag[key] == null) t[key] = null;
-    else {
-      const v = num(bag[key]);
-      if (v == null) p.add(`${label}: ${key} must be a number, or null`);
-      else t[key] = v;
-    }
   }
 
   return t;

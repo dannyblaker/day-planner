@@ -219,11 +219,37 @@ describe("POST /api/tasks", () => {
   it("accepts a field the plan has since retired, and drops it", async () => {
     const { tasks } = await routes();
     const res = await tasks.POST(
-      req("/api/tasks", "POST", { title: "From an old export", duration: 45 })
+      req("/api/tasks", "POST", {
+        title: "From an old export",
+        duration: 45,
+        flowX: 300,
+        flowY: 120,
+      })
     );
     expect(res.status).toBe(201);
     const t = (await stored()).tasks.find((t) => t.title === "From an old export")!;
     expect(t).not.toHaveProperty("duration");
+    // canvas positions went the same way: the board arranges itself now
+    expect(t).not.toHaveProperty("flowX");
+  });
+
+  /** There were four priorities once. A P4 from back then comes in as a P3. */
+  it("takes a priority the app no longer has and folds it into the lowest", async () => {
+    const { tasks } = await routes();
+    const res = await tasks.POST(
+      req("/api/tasks", "POST", { title: "An old P4", priority: 4 })
+    );
+    expect(res.status).toBe(201);
+    expect((await stored()).tasks.find((t) => t.title === "An old P4")!.priority).toBe(3);
+  });
+
+  it("still refuses a priority that was never a priority", async () => {
+    const { tasks } = await routes();
+    const res = await tasks.POST(req("/api/tasks", "POST", { title: "x", priority: 5 }));
+    expect(res.status).toBe(400);
+    expect((await json(res)).details).toEqual([
+      "tasks[0]: priority must be 1, 2 or 3",
+    ]);
   });
 
   it("refuses a dependency on a task that does not exist, and writes nothing", async () => {

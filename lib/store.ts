@@ -2,10 +2,9 @@
 
 import { create } from "zustand";
 import { immer } from "zustand/middleware/immer";
-import { arrangeByDepth, columnX, rowY } from "./flow";
-import { dependentsOf, flowDepths } from "./graph";
+import { dependentsOf } from "./graph";
 import { parseQuickAdd } from "./parse";
-import { FLOW, GOAL_COLORS, Goal, Plan, Priority, Task } from "./types";
+import { GOAL_COLORS, Goal, Plan, Priority, Task, asPriority } from "./types";
 
 const uid = () => crypto.randomUUID().slice(0, 8);
 
@@ -48,7 +47,7 @@ function defaultPlan(): Plan {
       mk(
         {
           title: "Press ? for shortcuts — try adding a task with N",
-          priority: 4,
+          priority: 3,
           goalId: goals[1].id,
         },
         4
@@ -78,10 +77,6 @@ interface AppState {
    *  of the same key on the same task a second request. */
   newTaskFrom: { sourceId: string; nonce: number } | null;
   requestNewTaskFrom: (sourceId: string) => void;
-  /** assign flowchart positions to tasks that don't have one yet */
-  ensureFlowPositions: () => void;
-  /** re-layout the whole flowchart by dependency depth */
-  autoArrangeFlow: () => void;
 
   load: (plan: Plan | null) => void;
   setSaving: (v: boolean) => void;
@@ -131,53 +126,13 @@ export const useApp = create<AppState>()(
         s.newTaskFrom = { sourceId, nonce: (s.newTaskFrom?.nonce ?? 0) + 1 };
       }),
 
-    ensureFlowPositions: () =>
-      set((s) => {
-        const tasks = s.plan.tasks;
-        const missing = tasks.filter((t) => t.flowX == null || t.flowY == null);
-        if (!missing.length) return;
-        const depths = flowDepths(tasks);
-        for (const t of missing) {
-          const x = columnX(depths.get(t.id) || 0);
-          const maxY = FLOW.H - FLOW.NODE_H - 20;
-          const taken = tasks
-            .filter(
-              (o) =>
-                o.id !== t.id &&
-                o.flowX != null &&
-                Math.abs(o.flowX - x) < FLOW.NODE_W
-            )
-            .map((o) => o.flowY ?? 0);
-          // the same rows auto-arrange uses, and the same clearance the canvas
-          // uses when it drops a new dependent beside its prerequisite: a node
-          // is as tall as the crocodile drawn in it, so none of this can be a
-          // number typed in by hand
-          let row = 0;
-          let y = rowY(row);
-          while (
-            taken.some((ty) => Math.abs(ty - y) < FLOW.NODE_H + 12) &&
-            y < maxY
-          )
-            y = rowY(++row);
-          t.flowX = x;
-          t.flowY = Math.min(y, maxY);
-        }
-      }),
-
-    autoArrangeFlow: () =>
-      set((s) => {
-        const layout = arrangeByDepth(s.plan.tasks);
-        for (const t of s.plan.tasks) {
-          const p = layout.get(t.id);
-          if (!p) continue;
-          t.flowX = p.x;
-          t.flowY = p.y;
-        }
-      }),
-
     load: (plan) =>
       set((s) => {
-        if (isPlan(plan)) s.plan = plan;
+        if (isPlan(plan)) {
+          s.plan = plan;
+          // a plan saved when the board had four priorities still opens
+          for (const t of s.plan.tasks) t.priority = asPriority(t.priority);
+        }
         s.loaded = true;
       }),
     setSaving: (v) => set((s) => void (s.saving = v)),

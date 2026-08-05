@@ -1,6 +1,5 @@
-import { columnX } from "@/lib/flow";
 import { useApp } from "@/lib/store";
-import { FLOW, Plan, Task } from "@/lib/types";
+import { Plan, Task } from "@/lib/types";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { resetStore } from "./app-state";
 import { makePlan, makeTask, resetFactory } from "./factory";
@@ -354,54 +353,6 @@ describe("clearing finished work", () => {
 
 });
 
-describe("flowchart layout", () => {
-  it("gives every task a position, keeping dependents to the right", () => {
-    load(
-      [
-        makeTask({ id: "a" }),
-        makeTask({ id: "b", dependsOn: ["a"] }),
-      ]
-    );
-    app().ensureFlowPositions();
-    expect(task("a")!.flowX).toBe(40);
-    expect(task("b")!.flowX!).toBeGreaterThan(task("a")!.flowX!);
-    expect(tasks().every((t) => t.flowY != null)).toBe(true);
-  });
-
-  it("leaves positions that already exist alone", () => {
-    load([makeTask({ id: "a", flowX: 999, flowY: 111 })]);
-    app().ensureFlowPositions();
-    expect(task("a")).toMatchObject({ flowX: 999, flowY: 111 });
-  });
-
-  it("places parallel tasks on the same canvas as everything else", () => {
-    load([makeTask({ id: "focus" }), makeTask({ id: "ci", parallel: true })]);
-    app().ensureFlowPositions();
-    expect(task("ci")!.flowY!).toBeLessThanOrEqual(FLOW.H - FLOW.NODE_H);
-  });
-
-  it("re-lays the whole graph by depth on auto-arrange", () => {
-    load(
-      [
-        makeTask({ id: "a", flowX: 999, flowY: 999 }),
-        makeTask({ id: "b", dependsOn: ["a"], flowX: 0, flowY: 0 }),
-        makeTask({ id: "c", dependsOn: ["b"] }),
-      ]
-    );
-    app().autoArrangeFlow();
-    expect(task("a")!.flowX).toBe(columnX(0));
-    expect(task("b")!.flowX).toBe(columnX(1));
-    expect(task("c")!.flowX).toBe(columnX(2));
-  });
-
-  it("stacks tasks at the same depth without overlapping", () => {
-    load([makeTask({ id: "a" }), makeTask({ id: "b" })]);
-    app().autoArrangeFlow();
-    expect(task("a")!.flowX).toBe(task("b")!.flowX);
-    expect(task("a")!.flowY).not.toBe(task("b")!.flowY);
-  });
-});
-
 describe("loading", () => {
   it("takes a plan from the server and marks itself ready", () => {
     app().load(makePlan([makeTask({ title: "From the server" })]));
@@ -414,6 +365,13 @@ describe("loading", () => {
     app().load(null);
     expect(app().loaded).toBe(true);
     expect(app().plan).toBe(seeded);
+  });
+
+  it("opens a plan saved when there were four priorities", () => {
+    app().load(
+      makePlan([makeTask({ id: "old", priority: 4 as unknown as 3 })])
+    );
+    expect(task("old")!.priority).toBe(3);
   });
 
   it("keeps the seed rather than a stored plan of the wrong shape", () => {

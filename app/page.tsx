@@ -12,7 +12,7 @@ import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
 import { toggleCanvas, toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
-import { STATUS_ORDER, Task } from "@/lib/types";
+import { Priority, STATUS_ORDER, Task } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
@@ -124,8 +124,7 @@ export default function Home() {
         case "1":
         case "2":
         case "3":
-        case "4":
-          if (sel) s.setPriority(sel, parseInt(e.key) as 1 | 2 | 3 | 4);
+          if (sel) s.setPriority(sel, parseInt(e.key) as Priority);
           break;
         case "s":
           s.autoSort();

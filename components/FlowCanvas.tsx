@@ -1,6 +1,7 @@
 "use client";
 
-import { FlowPos, arrangeByDepth } from "@/lib/flow";
+import { FlowPos, layoutFlow } from "@/lib/flow";
+import { useFlowMotion } from "@/lib/flow-motion";
 import { statuses } from "@/lib/graph";
 import {
   DONE_COLOR,
@@ -10,18 +11,13 @@ import {
   STATUS_LABEL,
   Task,
 } from "@/lib/types";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import CrocShape, { BACK, DONE_AT } from "./CrocShape";
 import DoneButton from "./DoneButton";
 import WaterSurface from "./WaterSurface";
 
 const { W, H, NODE_W, NODE_H } = FLOW;
 
-interface DragNode {
-  id: string;
-  x: number;
-  y: number;
-}
 interface TempEdge {
   sourceId: string;
   sx: number;
@@ -36,16 +32,15 @@ interface Props {
   selectedId?: string | null;
   onSelect?: (id: string) => void;
   onEdit?: (id: string) => void;
-  /** a node was dragged: its new position */
-  onMove?: (id: string, pos: FlowPos) => void;
   onToggleDependency?: (taskId: string, depId: string) => void;
   /** omitted by the read-only share view, which draws no done button */
   onToggleDone?: (id: string) => void;
   /**
-   * A new task: quick-add text, dropped at that spot. `dependsOn` is set when
-   * the task was started from a node's port, and is the task it waits on.
+   * A new task: quick-add text. `dependsOn` is set when the task was started
+   * from a node's port, and is the task it waits on. Where on the canvas it was
+   * typed doesn't come along, because the layout decides where it goes.
    */
-  onCreate?: (input: string, pos: FlowPos, dependsOn?: string) => void;
+  onCreate?: (input: string, dependsOn?: string) => void;
   /** an outside request (the `a` key) to start a task depending on this one */
   createFrom?: { sourceId: string; nonce: number } | null;
   /** hands the canvas element out for PNG/PDF export */
@@ -56,7 +51,10 @@ interface Props {
  * The flowchart itself: tasks as nodes, dependencies as arrows.
  *
  * Purely props-driven, and read-only when the editing callbacks are omitted —
- * which is how the share view reuses it without a store behind it.
+ * which is how the share view reuses it without a store behind it. That includes
+ * where everything is: positions are a function of the tasks (see layoutFlow),
+ * so the same graph draws the same board here, in the share view and in an
+ * export, and nothing has to be stored or kept in step.
  */
 export default function FlowCanvas({
   tasks,
@@ -64,7 +62,6 @@ export default function FlowCanvas({
   selectedId,
   onSelect,
   onEdit,
-  onMove,
   onToggleDependency,
   onToggleDone,
   onCreate,
@@ -74,7 +71,6 @@ export default function FlowCanvas({
   const canvasRef = useRef<HTMLDivElement | null>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const suppressClick = useRef(false);
-  const [dragNode, setDragNode] = useState<DragNode | null>(null);
   const [tempEdge, setTempEdge] = useState<TempEdge | null>(null);
   const [hoverEdge, setHoverEdge] = useState<string | null>(null);
   const [creating, setCreating] = useState<{
@@ -83,16 +79,16 @@ export default function FlowCanvas({
   } | null>(null);
   const [createText, setCreateText] = useState("");
 
-  const byId = new Map(tasks.map((t) => [t.id, t]));
-  const statusOfId = statuses(tasks);
-  // only consulted for nodes that have no stored position of their own
-  const fallback = arrangeByDepth(tasks);
+  // Everything derived from the graph is memoised on the tasks, because a move
+  // renders this component every frame for a second: the positions change, the
+  // graph behind them doesn't.
+  const byId = useMemo(() => new Map(tasks.map((t) => [t.id, t])), [tasks]);
+  const statusOfId = useMemo(() => statuses(tasks), [tasks]);
 
-  const pos = (t: Task): FlowPos => {
-    if (dragNode?.id === t.id) return { x: dragNode.x, y: dragNode.y };
-    if (t.flowX != null && t.flowY != null) return { x: t.flowX, y: t.flowY };
-    return fallback.get(t.id) ?? { x: 0, y: 0 };
-  };
+  // where the graph says everything belongs, and where it has got to on the way
+  const layout = useFlowMotion(useMemo(() => layoutFlow(tasks), [tasks]));
+
+  const pos = (t: Task): FlowPos => layout.get(t.id) ?? { x: 0, y: 0 };
   const outAnchor = (t: Task) => {
     const p = pos(t);
     return { x: p.x + NODE_W, y: p.y + NODE_H / 2 };
@@ -105,12 +101,11 @@ export default function FlowCanvas({
     const r = canvasRef.current!.getBoundingClientRect();
     return { x: clientX - r.left, y: clientY - r.top };
   };
-  const clamp = (p: FlowPos): FlowPos => ({
-    x: Math.max(0, Math.min(W - NODE_W, p.x)),
-    y: Math.max(0, Math.min(H - NODE_H, p.y)),
-  });
-
-  /** first free spot to the right of a node — where its next dependent goes */
+  /**
+   * First free spot to the right of a node: where the input asking for its next
+   * dependent opens. Only the input goes there — the task it names is placed by
+   * the layout, in the column its new dependency earns it.
+   */
   const rightOf = (t: Task): FlowPos => {
     const p = pos(t);
     const x = p.x + NODE_W + 60;
@@ -150,39 +145,6 @@ export default function FlowCanvas({
   const edgePath = (sx: number, sy: number, tx: number, ty: number) => {
     const c = Math.max(40, Math.abs(tx - sx) / 2);
     return `M ${sx} ${sy} C ${sx + c} ${sy}, ${tx - c} ${ty}, ${tx} ${ty}`;
-  };
-
-  // ── node dragging ──────────────────────────────────────────────
-  const onNodePointerDown = (e: React.PointerEvent, t: Task) => {
-    if (!onMove || e.button !== 0) return;
-    e.stopPropagation();
-    const start = canvasPoint(e.clientX, e.clientY);
-    const p0 = pos(t);
-    const dx = start.x - p0.x;
-    const dy = start.y - p0.y;
-    let started = false;
-    const move = (ev: PointerEvent) => {
-      const c = canvasPoint(ev.clientX, ev.clientY);
-      if (
-        !started &&
-        Math.abs(c.x - start.x) < 4 &&
-        Math.abs(c.y - start.y) < 4
-      )
-        return;
-      started = true;
-      setDragNode({ id: t.id, ...clamp({ x: c.x - dx, y: c.y - dy }) });
-    };
-    const up = (ev: PointerEvent) => {
-      window.removeEventListener("pointermove", move);
-      if (!started) return;
-      suppressClick.current = true;
-      setTimeout(() => (suppressClick.current = false), 50);
-      const c = canvasPoint(ev.clientX, ev.clientY);
-      onMove(t.id, clamp({ x: c.x - dx, y: c.y - dy }));
-      setDragNode(null);
-    };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up, { once: true });
   };
 
   // ── dependency drawing (drag from a node's ○ port) ─────────────
@@ -232,8 +194,12 @@ export default function FlowCanvas({
   };
 
   // ── canvas panning + double-click create ───────────────────────
+  //
+  // The board pans from anywhere, crocodiles included: nothing on it is dragged
+  // into place any more, so pressing on a node and moving can only mean "shift
+  // the water". The port is the exception, and says so by stopping the event.
   const onCanvasPointerDown = (e: React.PointerEvent) => {
-    if (e.target !== e.currentTarget || e.button !== 0) return;
+    if (e.button !== 0) return;
     const sc = scrollRef.current;
     if (!sc) return;
     const sx = e.clientX,
@@ -241,10 +207,17 @@ export default function FlowCanvas({
       sl = sc.scrollLeft,
       st = sc.scrollTop;
     const move = (ev: PointerEvent) => {
+      // a pan that began on a node is not a click on that node
+      if (Math.abs(ev.clientX - sx) > 4 || Math.abs(ev.clientY - sy) > 4)
+        suppressClick.current = true;
       sc.scrollLeft = sl - (ev.clientX - sx);
       sc.scrollTop = st - (ev.clientY - sy);
     };
-    const up = () => window.removeEventListener("pointermove", move);
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      if (suppressClick.current)
+        setTimeout(() => (suppressClick.current = false), 50);
+    };
     window.addEventListener("pointermove", move);
     window.addEventListener("pointerup", up, { once: true });
   };
@@ -256,7 +229,7 @@ export default function FlowCanvas({
 
   const commitCreate = () => {
     if (onCreate && creating && createText.trim())
-      onCreate(createText, creating.pos, creating.dependsOn);
+      onCreate(createText, creating.dependsOn);
     setCreating(null);
   };
 
@@ -266,12 +239,16 @@ export default function FlowCanvas({
     : undefined;
 
   // ── edges ──────────────────────────────────────────────────────
-  const edges: { key: string; from: Task; to: Task }[] = [];
-  for (const t of tasks)
-    for (const depId of t.dependsOn) {
-      const dep = byId.get(depId);
-      if (dep) edges.push({ key: `${depId}->${t.id}`, from: dep, to: t });
-    }
+  // which pairs are joined is graph, not geometry; only the path is redrawn
+  const edges = useMemo(() => {
+    const out: { key: string; from: Task; to: Task }[] = [];
+    for (const t of tasks)
+      for (const depId of t.dependsOn) {
+        const dep = byId.get(depId);
+        if (dep) out.push({ key: `${depId}->${t.id}`, from: dep, to: t });
+      }
+    return out;
+  }, [tasks, byId]);
 
   return (
     <div
@@ -370,12 +347,10 @@ export default function FlowCanvas({
           const goal = goals.find((g) => g.id === t.goalId);
           const status = statusOfId.get(t.id)!;
           const done = status === "done";
-          const dragging = dragNode?.id === t.id;
           return (
             <div
               key={t.id}
               data-flow-node={t.id}
-              onPointerDown={(e) => onNodePointerDown(e, t)}
               onClick={
                 onSelect
                   ? (e) => {
@@ -393,9 +368,9 @@ export default function FlowCanvas({
                   : undefined
               }
               title={`${t.title} — ${STATUS_LABEL[status]}`}
-              className={`group croc-node absolute z-10 select-none status-${status} ${
-                onMove ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
-              } ${done ? "opacity-60" : ""} ${
+              className={`group croc-node absolute z-10 select-none cursor-grab status-${status} ${
+                done ? "opacity-60" : ""
+              } ${
                 // dashed all round marks the concurrent lane, as it always has
                 t.parallel ? "is-parallel" : ""
               } ${selectedId === t.id ? "is-selected" : ""}`}
@@ -405,8 +380,6 @@ export default function FlowCanvas({
                 width: NODE_W,
                 height: NODE_H,
                 touchAction: "none",
-                zIndex: dragging ? 30 : 10,
-                filter: dragging ? "var(--drag-filter)" : undefined,
                 ["--croc-tail-fill" as string]: done
                   ? DONE_COLOR
                   : PRIORITY_COLOR[t.priority],

@@ -1,4 +1,4 @@
-import { cycleOf, dependentsOf, flowDepths, statuses } from "@/lib/graph";
+import { cycleOf, dependentsOf, flowDepths, statuses, urgencies } from "@/lib/graph";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeTask, resetFactory } from "./factory";
 
@@ -173,5 +173,53 @@ describe("dependentsOf", () => {
   it("returns nothing for a task nobody depends on", () => {
     const tasks = [makeTask({ id: "a" }), makeTask({ id: "b" })];
     expect(dependentsOf(tasks, "a").size).toBe(0);
+  });
+});
+
+describe("urgencies", () => {
+  it("gives a task its own priority when nothing waits on it", () => {
+    const u = urgencies([makeTask({ id: "a", priority: 3 })]);
+    expect(u.get("a")).toBe(3);
+  });
+
+  it("hands a task the priority of the most urgent thing waiting on it", () => {
+    const u = urgencies([
+      makeTask({ id: "dull", priority: 3 }),
+      makeTask({ id: "meh", priority: 3, dependsOn: ["dull"] }),
+      makeTask({ id: "urgent", priority: 1, dependsOn: ["dull"] }),
+    ]);
+    expect(u.get("dull")).toBe(1);
+    expect(u.get("meh")).toBe(3);
+  });
+
+  it("carries urgency the whole way down a chain", () => {
+    const u = urgencies([
+      makeTask({ id: "a", priority: 3 }),
+      makeTask({ id: "b", priority: 3, dependsOn: ["a"] }),
+      makeTask({ id: "c", priority: 2, dependsOn: ["b"] }),
+    ]);
+    expect(u.get("a")).toBe(2);
+    expect(u.get("b")).toBe(2);
+  });
+
+  it("never lowers a task below its own priority", () => {
+    const u = urgencies([
+      makeTask({ id: "a", priority: 1 }),
+      makeTask({ id: "b", priority: 3, dependsOn: ["a"] }),
+    ]);
+    expect(u.get("a")).toBe(1);
+  });
+
+  it("terminates on a cycle rather than hanging", () => {
+    const u = urgencies([
+      makeTask({ id: "a", priority: 2, dependsOn: ["b"] }),
+      makeTask({ id: "b", priority: 3, dependsOn: ["a"] }),
+    ]);
+    expect(u.size).toBe(2);
+  });
+
+  it("ignores a dependent that no longer exists", () => {
+    const u = urgencies([makeTask({ id: "a", priority: 3, dependsOn: ["ghost"] })]);
+    expect(u.get("a")).toBe(3);
   });
 });

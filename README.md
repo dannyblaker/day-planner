@@ -10,14 +10,16 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 
 ## Features
 
-- **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Auto-arrange lays the graph out by dependency depth.
+- **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Drag anywhere else — the water or a crocodile — to move the view.
+- **The board arranges itself** — there is nothing to place and nothing to tidy. Position is derived, like status: left to right by dependency depth, top to bottom by priority, and every edit re-reads it. A crocodile that has somewhere new to be swims there over about a second, arrows and all, so you can follow the one you were looking at instead of re-finding it on a board that changed while you blinked. Nothing moves at all under `prefers-reduced-motion`.
+- **Urgency is inherited** — a P1 five prerequisites deep drags the whole chain up with it, because a prerequisite of urgent work is urgent whatever its own label says. Raise a task's priority and you watch the work it is waiting on rise with it.
 - **Grow the graph forwards** — an arrow that ends on nothing is a task you haven't named yet, so drag a ○ into empty space and it asks for the title, then draws the arrow to what you type. Clicking the ○ does the same beside the node, and `a` does it for whatever is selected — chains get built without leaving the keyboard.
 - **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: murky green waiting, gold startable, green finished.
 - **A task is a crocodile** — not a card with a crocodile on it: the node *is* the animal, seen from above and built out of right angles, and every part of it says something. Its colour is its status, its tail is its priority, its outline goes dashed when the work is concurrent, its eyes are open while there is anything left in it and shut when it's done, and its jaws show teeth on the ones you can start right now. Its back is the card, and it is card-sized: as many tasks on screen as the plain rectangles it replaced. Press `?` for the legend.
-- **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark — position is yours to arrange, not a lane to fall into.
+- **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark, and sorted in with everything else — a mark on the animal, not a lane to fall into.
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
 - **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
-- **Prioritisation** — P1–P4 with one-key assignment, shown as the node's left stripe, plus one-key auto-sort of the to-do queue by priority.
+- **Prioritisation** — P1, P2, P3, one key each, worn on the crocodile's tail. There were four levels once; P4 was where work went to be forgotten politely, and on a board that sorts itself by priority a level meaning "never" is just a longer canvas. Priority also sorts the to-do queue, on `s`.
 - **Goals** — map tasks to goals (`#goal`); a panel shows how many of each goal's tasks are done against how many are mapped to it.
 - **Live share** — send someone a read-only link (`Share live`) that polls the plan every 5 seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
 - **Export** — one click to PNG or PDF of the canvas, matching the theme you're in, or `JSON` for the whole graph as data: every task, every dependency, and the derived status.
@@ -59,8 +61,8 @@ npm run test:watch
 
 Two layers, split by what they can actually prove:
 
-- **`tests/`** — the derived-state core in isolation: how the graph turns dependencies into statuses, the depth layout, the quick-add grammar, every store action, the theme boot script, the debounced autosave, and every API route against a temp directory and a stubbed Postgres — what they refuse as much as what they accept, and that a rejected write leaves the stored plan alone.
-- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, marking work done and watching the frontier advance, clear/undo, flowchart drag and dependency drawing, keyboard-only operation, theming (including that the choice is applied *before first paint*), the JSON download, and the share link's read-only guarantee.
+- **`tests/`** — the derived-state core in isolation: how the graph turns dependencies into statuses, how urgency travels back down a chain, the layout those two produce, the quick-add grammar, every store action, the theme boot script, the debounced autosave, and every API route against a temp directory and a stubbed Postgres — what they refuse as much as what they accept, and that a rejected write leaves the stored plan alone.
+- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, marking work done and watching the frontier advance, clear/undo, dependency drawing, the board re-sorting itself when a priority changes (and taking a second over it), panning, keyboard-only operation, theming (including that the choice is applied *before first paint*), the JSON download, and the share link's read-only guarantee.
 
 The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead.
 
@@ -69,8 +71,9 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
 2. Add tokens as you type: `Write report !1 #deep-work`, `CI run ~`.
 3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before — or into empty space, and name the task that follows it there.
-4. Press `🐊 Auto-arrange`. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
-5. Finish something, mark it done, and watch the next column light up.
+4. Watch it lay itself out. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
+5. Set priorities with `1`–`3`. What matters rises to the top of the board, and whatever it is waiting on rises with it.
+6. Finish something, mark it done, and watch the next column light up.
 
 ## The API
 
@@ -142,7 +145,7 @@ $EDITOR plan.json
 curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @plan.json
 ```
 
-`PUT /api/tasks` (or `POST /api/batch` with a `tasks` key) treats the list as complete: ids it knows are updated, ids it doesn't are created, and **anything missing is deleted**. Derived fields are ignored on the way in, so what `GET` handed you goes straight back.
+`PUT /api/tasks` (or `POST /api/batch` with a `tasks` key) treats the list as complete: ids it knows are updated, ids it doesn't are created, and **anything missing is deleted**. Derived fields are ignored on the way in, so what `GET` handed you goes straight back — and so are fields the plan has since retired (`duration`, and the `flowX`/`flowY` from when the board had to be arranged by hand), so a document exported by an older build still round-trips. A `priority` of 4 is likewise taken and stored as a 3, since P4 was a level this app itself used to write.
 
 ### Goals, import
 
@@ -167,7 +170,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `Enter` / `e` | edit selected |
 | `d` | toggle done — dependents become in-progress |
 | `b` | toggle blocked |
-| `1`–`4` | set priority |
+| `1`–`3` | set priority — the board re-sorts itself |
 | `p` | toggle concurrent / background |
 | `s` | auto-sort by priority |
 | `x` / `Del` | delete |
@@ -175,7 +178,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `m` | toggle light / dark theme |
 | `w` | toggle the animated water canvas |
 | `?` | help |
-| canvas | dbl-click: new task · drag ○→node: dependency · click ○ or drag it to empty space: new dependent task · click arrow: remove |
+| canvas | dbl-click: new task · drag ○→node: dependency · click ○ or drag it to empty space: new dependent task · click arrow: remove · drag anywhere else: pan |
 
 ## Quick-add syntax
 
@@ -185,7 +188,7 @@ Fix login bug !1 #deep-work >deploy ~ *waiting-on-bob ^
 
 | Token | Meaning |
 |---|---|
-| `!1`…`!4` | priority |
+| `!1`…`!3` | priority |
 | `#goal` | goal (created if new) |
 | `>title` | depends on task whose title starts with… |
 | `~` | concurrent / background |
@@ -194,7 +197,9 @@ Fix login bug !1 #deep-work >deploy ~ *waiting-on-bob ^
 
 ## Stack
 
-Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON document behind an API route; `lib/graph.ts` is a pure function from tasks + dependencies → statuses, and `lib/flow.ts` from the same graph → canvas positions.
+Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON document behind an API route; `lib/graph.ts` is a pure function from tasks + dependencies → statuses and inherited urgency, and `lib/flow.ts` from those → canvas positions. Nothing about where a task sits is stored: the plan document has no coordinates in it, and the same graph draws the same board in the app, in the share view and in an export.
+
+**Moving is the only part that isn't pure.** `lib/flow-motion.ts` is a hook between the layout and the canvas: given a new set of positions it hands back the ones in between, a frame at a time for a second. It tweens in React rather than in CSS because an SVG path can't transition, and the arrows have to arrive with the nodes — so every frame is a render, and the edges are drawn from the same in-between positions. New positions are taken up during the render that brings them rather than in the effect after it; do it in the effect and the first frame paints the destination, which is a jump cut with a slide after it.
 
 The API is three pure modules and a thin layer of routes: `lib/plan-ops.ts` is every write as a function from one plan to the next (and everything it refuses), `lib/plan-doc.ts` is the derived view the API hands out — shared with the browser's JSON button, so the download and the endpoint are the same document — and `lib/plan-store.ts` is the read-modify-write, queued so concurrent calls can't overwrite each other.
 
@@ -202,7 +207,7 @@ The whole palette is one file: `app/globals.css` holds both themes as one set of
 
 **The water is in there too.** `.croc-surface` in the same file is the pool, with the depth and the blending set per theme like everything else; `components/WaterSurface.tsx` drops the occasional ripple into it. Three things about it were learned the hard way and are worth not re-learning: `feDiffuseLighting` cannot tile (a normal needs neighbours the tile hasn't got, so every seam shows), `stitchTiles` stitches over the *filter region* rather than the tile unless you pin the region to it, and a blended layer the size of the whole board costs enough to notice — the surface is sticky and sized to the scroll port. The caustics used to drift, which looked lovely for a minute and was tiring after that; a still pool with a rationed ripple costs nothing between ripples and is easier to work over. No ripples at all for `prefers-reduced-motion`.
 
-**How big the app is, is one line.** `html { font-size }` in that same file sets it: every length in the app is in rem — the four named type sizes (`note` / `label` / `body` / `title`), Tailwind's spacing, the panel widths — so one percentage scales type, padding and panels together. Nudge it if the app is too small or too large for your screen. A task node is the one thing sized in pixels (`FLOW` in `lib/types.ts`, because the canvas stores positions in them), and the crocodile is a viewBox stretched to fit whatever that says.
+**How big the app is, is one line.** `html { font-size }` in that same file sets it: every length in the app is in rem — the four named type sizes (`note` / `label` / `body` / `title`), Tailwind's spacing, the panel widths — so one percentage scales type, padding and panels together. Nudge it if the app is too small or too large for your screen. A task node is the one thing sized in pixels (`FLOW` in `lib/types.ts`, because the layout works in them), and the crocodile is a viewBox stretched to fit whatever that says.
 
 `components/CrocShape.tsx` is the animal: one outline, one leg drawn once and mirrored into four corners, and a torso that is the card. It is blocky for a reason that is entirely about density — curves need length to read, so the same crocodile drawn organically wanted 350×116 and put less than half as many tasks on screen, while a stepped tail says "tapering" in three rectangles at 240×82. It takes its fill and outline from the status by inheritance rather than by rule, which is also not a stylistic choice: html-to-image deep-clones an `<svg>` without inlining styles onto its children, so a CSS rule for a path renders on screen and exports as a black silhouette.
 

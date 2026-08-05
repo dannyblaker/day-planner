@@ -68,8 +68,6 @@ export async function PUT(req: Request, ctx: Ctx) {
         done: false,
         parallel: null,
         order: existing.order,
-        flowX: null,
-        flowY: null,
       };
       const r = updateTasks(plan, [{ ...blank, ...sent, id, createdAt: existing.createdAt }]);
       return { plan: r.plan, result: r.plan };

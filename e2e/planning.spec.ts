@@ -108,22 +108,57 @@ test.describe("marking work done", () => {
 });
 
 test.describe("the flowchart", () => {
-  test("drags a node without tripping its done button", async ({ page, planServer }) => {
+  /**
+   * Nothing on the board is placed by hand any more, so a drag over a crocodile
+   * means the same as a drag over the water: shift the view. What it must not do
+   * is move the task, select it, or mark it done on the way past.
+   */
+  test("pans the board when a node is dragged, and leaves the task alone", async ({
+    page,
+    planServer,
+  }) => {
     await quickAdd(page, "Write the report", "Write the report");
     await page.locator("body").click();
+    await page.keyboard.press("Escape"); // quick-add selects what it made
+    await planServer.settled();
+    const savesBefore = planServer.saveCount();
 
     const node = flowNode(page, "Write the report");
     const before = (await node.boundingBox())!;
+    const placedAt = await node.evaluate((el) => (el as HTMLElement).style.left);
+
     await page.mouse.move(before.x + 60, before.y + 20);
     await page.mouse.down();
-    await page.mouse.move(before.x + 260, before.y + 120, { steps: 10 });
+    await page.mouse.move(before.x - 140, before.y + 20, { steps: 10 });
     await page.mouse.up();
 
-    const after = (await node.boundingBox())!;
-    expect(Math.round(after.x - before.x)).toBe(200);
-    expect(Math.round(after.y - before.y)).toBe(100);
-    await planServer.settled();
-    expect(planServer.tasks()[0].done).toBe(false);
+    // the view moved; the crocodile is exactly where the layout left it
+    expect((await node.boundingBox())!.x).toBeLessThan(before.x);
+    expect(await node.evaluate((el) => (el as HTMLElement).style.left)).toBe(placedAt);
+    await expect(node).not.toHaveClass(/is-selected/);
+    await expect(node.getByLabel("Mark task done")).toBeVisible();
+    expect(planServer.saveCount()).toBe(savesBefore); // nothing to save: nothing changed
+  });
+
+  /**
+   * The point of the whole thing: priority is the only handle on where work sits,
+   * and using it rearranges the board under you. This is the reduced-motion path,
+   * which the whole suite runs in — it arrives, it just doesn't swim there.
+   */
+  test("re-sorts itself when a priority changes", async ({ page }) => {
+    await quickAdd(page, "Small thing", "Small thing");
+    await quickAdd(page, "The big one", "The big one");
+
+    const small = flowNode(page, "Small thing");
+    const big = flowNode(page, "The big one");
+    const above = async () =>
+      (await big.boundingBox())!.y < (await small.boundingBox())!.y;
+    expect(await above()).toBe(false);
+
+    await big.click();
+    await page.keyboard.press("1");
+
+    await expect.poll(above, { timeout: 3000 }).toBe(true);
   });
 
   test("draws and removes a dependency arrow", async ({ page, planServer }) => {
@@ -180,8 +215,14 @@ test.describe("the flowchart", () => {
     const first = planServer.tasks().find((t) => t.title === "First job")!;
     const second = planServer.tasks().find((t) => t.title === "Second job")!;
     expect(second.dependsOn).toEqual([first.id]);
-    // dropped where it was let go, not back in a column
-    expect(Number(second.flowX)).toBeGreaterThan(Number(first.flowX));
+    // and it lands in the next column, not where the mouse was let go
+    await expect
+      .poll(
+        async () =>
+          (await flowNode(page, "Second job").boundingBox())!.x >
+          (await flowNode(page, "First job").boundingBox())!.x
+      )
+      .toBe(true);
   });
 
   test("creates a dependent task from the keyboard with a", async ({ page, planServer }) => {
@@ -219,12 +260,47 @@ test.describe("the flowchart", () => {
   });
 
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {
-    await page.locator(".cursor-grab").first().dblclick({ position: { x: 400, y: 300 } });
+    // the water itself: the crocodiles on it are grabbable now too
+    await page.locator(".croc-water").dblclick({ position: { x: 400, y: 300 } });
     await page.getByPlaceholder(/New task/).fill("Made on the canvas");
     await page.getByPlaceholder(/New task/).press("Enter");
 
     await expect(flowNode(page, "Made on the canvas")).toBeVisible();
     await planServer.settled();
     expect(planServer.titles()).toContain("Made on the canvas");
+  });
+});
+
+/**
+ * The suite runs reduced-motion (see playwright.config.ts), which is exactly the
+ * path where a task teleports. This is the other one: the board moves, and it
+ * takes its time about it.
+ */
+test.describe("the board in motion", () => {
+  // through contextOptions, because that is how the config sets it and the
+  // low-level option wins over the named one
+  test.use({ contextOptions: { reducedMotion: "no-preference" } });
+
+  test("swims a task to its new row instead of cutting to it", async ({ page }) => {
+    await quickAdd(page, "Small thing", "Small thing");
+    await quickAdd(page, "The big one", "The big one");
+
+    const big = flowNode(page, "The big one");
+    await big.click();
+    await page.keyboard.press("1");
+
+    // sampled across the move, which takes about a second
+    const ys: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      ys.push((await big.boundingBox())!.y);
+      await page.waitForTimeout(40);
+    }
+    const [from, to] = [ys[0], ys[ys.length - 1]];
+    // it started where it was — no frame of it at the destination first
+    expect(to).toBeLessThan(from);
+    // and it was seen on the way, rather than only at either end
+    expect(ys.some((y) => y < from && y > to)).toBe(true);
+    // still climbing, or arrived: never doubling back
+    expect(ys).toEqual([...ys].sort((a, b) => b - a));
   });
 });

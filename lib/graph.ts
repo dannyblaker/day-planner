@@ -1,4 +1,4 @@
-import { Task, TaskStatus } from "./types";
+import { Priority, Task, TaskStatus } from "./types";
 
 /**
  * The dependency graph, as pure derived state.
@@ -54,6 +54,46 @@ export function flowDepths(tasks: Task[]): Map<string, number> {
     return d;
   };
   for (const t of tasks) depth(t, new Set());
+  return memo;
+}
+
+/**
+ * The priority a task actually answers to: its own, or that of the most urgent
+ * thing waiting on it — whichever is higher.
+ *
+ * A prerequisite of a P1 is a P1, whatever it says on its own label. Nobody sets
+ * this; it is read off the graph, like status, and it is what lifts a whole chain
+ * up the canvas together instead of stranding the urgent task above the
+ * unremarkable-looking work it is actually waiting for.
+ *
+ * A cycle contributes nothing rather than hanging: a task already on the path
+ * answers with its own priority.
+ */
+export function urgencies(tasks: Task[]): Map<string, Priority> {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const waiting = new Map<string, string[]>();
+  for (const t of tasks)
+    for (const id of t.dependsOn) {
+      const list = waiting.get(id);
+      if (list) list.push(t.id);
+      else waiting.set(id, [t.id]);
+    }
+
+  const memo = new Map<string, Priority>();
+  const walk = (t: Task, seen: Set<string>): Priority => {
+    const known = memo.get(t.id);
+    if (known) return known;
+    if (seen.has(t.id)) return t.priority;
+    seen.add(t.id);
+    let u: Priority = t.priority;
+    for (const id of waiting.get(t.id) ?? []) {
+      const dependent = byId.get(id);
+      if (dependent) u = Math.min(u, walk(dependent, seen)) as Priority;
+    }
+    memo.set(t.id, u);
+    return u;
+  };
+  for (const t of tasks) walk(t, new Set());
   return memo;
 }
 

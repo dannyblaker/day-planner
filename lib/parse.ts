@@ -14,7 +14,7 @@ export interface ParsedTask {
 /**
  * Quick-add syntax, e.g.:
  *   "Write report !1 #deepwork >design ~ ^"
- *   !1..!4    priority               #goal    goal (created if new)
+ *   !1..!3    priority               #goal    goal (created if new)
  *   >title    depends on title prefix
  *   ~         background/parallel    *reason  blocked
  *   ^         do next (front of queue)
@@ -40,7 +40,7 @@ export function parseQuickAdd(
 
   for (const raw of input.trim().split(/\s+/)) {
     if (!raw) continue;
-    const m = raw.match(/^!([1-4])$/);
+    const m = raw.match(/^!([1-3])$/);
     if (m) {
       out.priority = parseInt(m[1], 10) as Priority;
       continue;
