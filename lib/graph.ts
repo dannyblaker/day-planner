@@ -37,6 +37,58 @@ export function statuses(tasks: Task[]): Map<string, TaskStatus> {
   return new Map(tasks.map((t) => [t.id, statusOf(t, byId)]));
 }
 
+/**
+ * Work that is finished and finished *with*: every task in a run of connected
+ * work where all of it is done.
+ *
+ * A done task on its own qualifies at once. One with an arrow at either end has
+ * to wait for the rest of what it is joined to, and for a reason that is not
+ * politeness: delete a task that something still waits on and you cut the arrow,
+ * so the task left behind stops saying what it was waiting for. Waiting for the
+ * whole run also means a finished chain leaves together instead of being nibbled
+ * from one end and leaving strangers behind.
+ *
+ * Connected in either direction and all the way along: a task is joined to what
+ * it waits on, to what waits on it, and to whatever those are joined to. One
+ * unfinished task anywhere in the run holds all of it.
+ */
+export function finishedGroups(tasks: Task[]): Set<string> {
+  const byId = new Map(tasks.map((t) => [t.id, t]));
+  const joined = new Map<string, string[]>();
+  const join = (a: string, b: string) => {
+    const list = joined.get(a);
+    if (list) list.push(b);
+    else joined.set(a, [b]);
+  };
+  for (const t of tasks)
+    for (const dep of t.dependsOn)
+      if (byId.has(dep)) {
+        join(t.id, dep);
+        join(dep, t.id);
+      }
+
+  const seen = new Set<string>();
+  const out = new Set<string>();
+  for (const t of tasks) {
+    if (seen.has(t.id)) continue;
+    // the whole run this task belongs to, gathered before it is judged
+    const run: string[] = [];
+    const queue = [t.id];
+    seen.add(t.id);
+    while (queue.length) {
+      const id = queue.pop()!;
+      run.push(id);
+      for (const next of joined.get(id) ?? [])
+        if (!seen.has(next)) {
+          seen.add(next);
+          queue.push(next);
+        }
+    }
+    if (run.every((id) => byId.get(id)!.done)) for (const id of run) out.add(id);
+  }
+  return out;
+}
+
 /** dependency depth per task (0 = no prerequisites) — drives flowchart layout. */
 export function flowDepths(tasks: Task[]): Map<string, number> {
   const byId = new Map(tasks.map((t) => [t.id, t]));

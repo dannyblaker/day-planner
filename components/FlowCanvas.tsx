@@ -14,6 +14,7 @@ import {
 import { useMemo, useRef, useState } from "react";
 import CrocShape, { BACK, DONE_AT } from "./CrocShape";
 import DoneButton from "./DoneButton";
+import SweepCountdown from "./SweepCountdown";
 import WaterSurface from "./WaterSurface";
 
 const { W, H, NODE_W, NODE_H } = FLOW;
@@ -43,6 +44,9 @@ interface Props {
   onCreate?: (input: string, dependsOn?: string) => void;
   /** an outside request (the `a` key) to start a task depending on this one */
   createFrom?: { sourceId: string; nonce: number } | null;
+  /** id → when finished work will be swept away, for the countdown on the node.
+   *  Omitted by the share view, which watches rather than tidies. */
+  sweepAt?: Record<string, number>;
   /** hands the canvas element out for PNG/PDF export */
   canvasRef?: (el: HTMLDivElement | null) => void;
 }
@@ -66,6 +70,7 @@ export default function FlowCanvas({
   onToggleDone,
   onCreate,
   createFrom,
+  sweepAt,
   canvasRef: exposeCanvas,
 }: Props) {
   const canvasRef = useRef<HTMLDivElement | null>(null);
@@ -406,6 +411,9 @@ export default function FlowCanvas({
                     `empty:hidden` so a task with nothing to say drops the row
                     rather than leaving a gap under its title. */}
                 <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5 empty:hidden">
+                  {sweepAt?.[t.id] != null && (
+                    <SweepCountdown key={sweepAt[t.id]} at={sweepAt[t.id]} />
+                  )}
                   {goal && (
                     <span
                       className="px-1 rounded-full truncate min-w-0"

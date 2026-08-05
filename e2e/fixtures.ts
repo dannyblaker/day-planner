@@ -86,7 +86,31 @@ export const test = base.extend<{
   planServer: PlanServer;
   consoleErrors: string[];
   frozenClock: void;
+  /** whether finished work sweeps itself away, as this device remembers it */
+  sweepPref: "on" | "off";
+  sweepSetting: void;
 }>({
+  /*
+   * Off for the suite, on for the app. Finished work deletes itself five seconds
+   * later, and a spec that marks something done and then takes its time — the
+   * clear/undo ones do — would be racing a timer it isn't there to test. The
+   * spec that *is* about the sweep turns it back on with test.use().
+   */
+  sweepPref: ["off", { option: true }],
+  sweepSetting: [
+    async ({ context, sweepPref }, use) => {
+      // seeded, not enforced: an init script runs on every navigation, and a
+      // preference the app can change has to survive a reload to be tested
+      await context.addInitScript((pref) => {
+        try {
+          if (!localStorage.getItem("crocodiles-sweep"))
+            localStorage.setItem("crocodiles-sweep", pref as string);
+        } catch {}
+      }, sweepPref);
+      await use();
+    },
+    { auto: true },
+  ],
   // setFixedTime freezes Date without stopping timers, so the debounced
   // autosave and the reflow interval still run.
   frozenClock: [

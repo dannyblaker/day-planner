@@ -25,7 +25,8 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **A real API** — read the plan, write it a task at a time, or fetch the lot and hand it back edited. Dependencies are checked on the way in, so nothing you can send closes a loop. See [The API](#the-api).
 - **The board floats on water** (`w`, or the 🌊 button) — the canvas is a pool: a still, lit bottom with caustics on it, so a task waiting its turn is a crocodile lying submerged and the ones you can start are the ones at the surface. Still, and then every ten seconds or so a ripple crosses it and is gone. It is two fields of Perlin noise shaped by SVG filters — no images, no canvas element, and nothing animating in between. Prefer a quiet grid? The button switches to one, and the choice is remembered per device.
 - **Light / dark theme** (`m`, or the ☀️/🌙 button) — swamp water at night or a bright riverbank; follows your OS preference until you pick one, and the choice is per-device and applied before first paint, so there's no flash on reload.
-- **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
+- **Finished work sweeps itself away** (🧹, on by default) — mark a task done and a five-second countdown appears on it; let it run out and the task is deleted. Re-open it and the countdown stops, which is the whole of the undo and why it is five seconds rather than one. A task with an arrow at either end waits for the rest of the work it is joined to, so a chain leaves together rather than being nibbled from one end and stranding arrows that point at nothing. It sweeps what it watched you finish, never what it found already finished — opening the app doesn't start a countdown on work you finished last week, and putting tasks back with undo doesn't take them away again. The button turns it off, per device.
+- **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime. Still the way to deal with a backlog the sweep never saw.
 - **Keyboard-driven** — `f`/`g` walks the board the way the work runs: on from a task is whatever waits on it, so a chain is followed to its end before the next one starts. Everything else is one key. Press `?`.
 
 ## Getting started
@@ -61,7 +62,7 @@ npm run test:watch
 Two layers, split by what they can actually prove:
 
 - **`tests/`** — the derived-state core in isolation: how the graph turns dependencies into statuses, how urgency travels back down a chain, the layout those two produce, the quick-add grammar, every store action, the theme boot script, the debounced autosave, and every API route against a temp directory and a stubbed Postgres — what they refuse as much as what they accept, and that a rejected write leaves the stored plan alone.
-- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, marking work done and watching the frontier advance, clear/undo, dependency drawing, the board re-sorting itself when a priority changes (and taking a second over it), panning, keyboard-only operation, theming (including that the choice is applied *before first paint*), the JSON download, and the share link's read-only guarantee.
+- **`e2e/`** — the app in a real browser: quick-add through to a coloured node, marking work done and watching the frontier advance, clear/undo, finished work counting itself down and going, dependency drawing, the board re-sorting itself when a priority changes (and taking a second over it), panning, keyboard-only operation, theming (including that the choice is applied *before first paint*), the JSON download, and the share link's read-only guarantee.
 
 The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no run ever reads or writes your real `data/plan.json`** — the route itself is covered by unit tests instead.
 
@@ -72,7 +73,7 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before — or into empty space, and name the task that follows it there.
 4. Watch it lay itself out. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
 5. Set priorities with `1`–`3`. What matters rises to the top of the board, and whatever it is waiting on rises with it.
-6. Finish something, mark it done, and watch the next column light up.
+6. Finish something, mark it done, and watch the next column light up — then watch the finished chain count itself down and leave.
 
 ## The API
 

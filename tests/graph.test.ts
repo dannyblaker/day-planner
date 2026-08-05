@@ -1,4 +1,11 @@
-import { cycleOf, dependentsOf, flowDepths, statuses, urgencies } from "@/lib/graph";
+import {
+  cycleOf,
+  dependentsOf,
+  finishedGroups,
+  flowDepths,
+  statuses,
+  urgencies,
+} from "@/lib/graph";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeTask, resetFactory } from "./factory";
 
@@ -221,5 +228,96 @@ describe("urgencies", () => {
   it("ignores a dependent that no longer exists", () => {
     const u = urgencies([makeTask({ id: "a", priority: 3, dependsOn: ["ghost"] })]);
     expect(u.get("a")).toBe(3);
+  });
+});
+
+/**
+ * What auto-delete is allowed to take: work that is finished and finished with.
+ * Cutting an arrow to a task that is still waiting would leave it unable to say
+ * what it was waiting for, so a run of joined work goes all at once or not yet.
+ */
+describe("finishedGroups", () => {
+  const ids = (tasks: ReturnType<typeof makeTask>[]) => [...finishedGroups(tasks)].sort();
+
+  it("takes a done task that is joined to nothing", () => {
+    expect(ids([makeTask({ id: "a", done: true })])).toEqual(["a"]);
+  });
+
+  it("leaves a task that isn't done", () => {
+    expect(ids([makeTask({ id: "a" })])).toEqual([]);
+  });
+
+  it("holds a done task while something still waits on it", () => {
+    expect(
+      ids([
+        makeTask({ id: "a", done: true }),
+        makeTask({ id: "b", dependsOn: ["a"] }),
+      ])
+    ).toEqual([]);
+  });
+
+  it("holds a done task while what it waited on is unfinished", () => {
+    expect(
+      ids([
+        makeTask({ id: "a" }),
+        makeTask({ id: "b", done: true, dependsOn: ["a"] }),
+      ])
+    ).toEqual([]);
+  });
+
+  it("takes the whole chain once the last of it is done", () => {
+    expect(
+      ids([
+        makeTask({ id: "a", done: true }),
+        makeTask({ id: "b", done: true, dependsOn: ["a"] }),
+        makeTask({ id: "c", done: true, dependsOn: ["b"] }),
+      ])
+    ).toEqual(["a", "b", "c"]);
+  });
+
+  it("holds a whole chain for one unfinished task at the far end of it", () => {
+    expect(
+      ids([
+        makeTask({ id: "a", done: true }),
+        makeTask({ id: "b", done: true, dependsOn: ["a"] }),
+        makeTask({ id: "c", dependsOn: ["b"] }),
+      ])
+    ).toEqual([]);
+  });
+
+  it("judges each run of work on its own", () => {
+    expect(
+      ids([
+        makeTask({ id: "done1", done: true }),
+        makeTask({ id: "done2", done: true, dependsOn: ["done1"] }),
+        makeTask({ id: "busy1", done: true }),
+        makeTask({ id: "busy2", dependsOn: ["busy1"] }),
+      ])
+    ).toEqual(["done1", "done2"]);
+  });
+
+  it("counts a diamond as one run", () => {
+    const diamond = [
+      makeTask({ id: "top", done: true }),
+      makeTask({ id: "left", done: true, dependsOn: ["top"] }),
+      makeTask({ id: "right", dependsOn: ["top"] }),
+      makeTask({ id: "bottom", done: true, dependsOn: ["left", "right"] }),
+    ];
+    expect(ids(diamond)).toEqual([]);
+    diamond[2].done = true;
+    expect(ids(diamond)).toEqual(["bottom", "left", "right", "top"]);
+  });
+
+  it("ignores a dependency on a task that no longer exists", () => {
+    expect(ids([makeTask({ id: "a", done: true, dependsOn: ["ghost"] })])).toEqual(["a"]);
+  });
+
+  it("terminates on a cycle rather than hanging", () => {
+    expect(
+      ids([
+        makeTask({ id: "a", done: true, dependsOn: ["b"] }),
+        makeTask({ id: "b", done: true, dependsOn: ["a"] }),
+      ])
+    ).toEqual(["a", "b"]);
   });
 });

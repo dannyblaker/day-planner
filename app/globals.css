@@ -577,6 +577,16 @@ body {
   display: none;
 }
 
+.sweep-when-off {
+  display: none;
+}
+:root[data-sweep="off"] .sweep-when-off {
+  display: inline;
+}
+:root[data-sweep="off"] .sweep-when-on {
+  display: none;
+}
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;

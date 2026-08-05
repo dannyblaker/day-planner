@@ -13,6 +13,7 @@ export default function FlowView({
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
   const newTaskFrom = useApp((s) => s.newTaskFrom);
+  const sweepAt = useApp((s) => s.sweepAt);
   const { select, setEditorOpen, toggleDependency, toggleDone, quickAdd } =
     useApp();
 
@@ -44,6 +45,7 @@ export default function FlowView({
           if (dependsOn) toggleDependency(id, dependsOn);
         }}
         createFrom={newTaskFrom}
+        sweepAt={sweepAt}
         canvasRef={(el) => {
           if (exportRef) exportRef.current = el;
         }}

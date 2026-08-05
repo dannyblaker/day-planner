@@ -23,6 +23,7 @@ const SHORTCUTS: [string, string][] = [
   ["dbl-click task", "open the editor"],
   ["dbl-click canvas", "create task"],
   ["drag canvas", "pan the board — nothing on it is placed by hand"],
+  ["🧹 (top bar)", "finished work deletes itself, five seconds after the whole chain is done"],
   ["drag ○ → node", "draw a dependency arrow"],
   ["drag ○ → empty space", "new task on the end of the arrow"],
   ["click ○", "new task depending on that one"],

@@ -4,22 +4,25 @@ export type CanvasStyle = "water" | "plain";
 
 const KEY = "crocodiles-theme";
 const CANVAS_KEY = "crocodiles-canvas";
+const SWEEP_KEY = "crocodiles-sweep";
 
 /**
- * Runs synchronously in <head>, before first paint: picks the saved theme and
- * canvas (or the OS preference, for the theme) and stamps both on <html>, so the
- * server-rendered defaults never flash. See
+ * Runs synchronously in <head>, before first paint: picks this device's theme,
+ * canvas and sweep (or the OS preference, for the theme) and stamps them on
+ * <html>, so the server-rendered defaults never flash. See
  * node_modules/next/dist/docs/01-app/02-guides/preventing-flash-before-hydration.md
  *
- * Two try blocks rather than one: a storage read that throws should cost the
- * preference it was reading and nothing else. Whatever it can't set keeps the
- * value the server rendered.
+ * A try block each rather than one around the lot: a storage read that throws
+ * should cost the preference it was reading and nothing else. Whatever it can't
+ * set keeps the value the server rendered.
  */
 export const THEME_SCRIPT = `(function(){var r=document.documentElement;try{var t=localStorage.getItem(${JSON.stringify(
   KEY
 )});if(t!=="light"&&t!=="dark")t=matchMedia("(prefers-color-scheme: light)").matches?"light":"dark";r.dataset.theme=t}catch(e){}try{r.dataset.canvas=localStorage.getItem(${JSON.stringify(
   CANVAS_KEY
-)})==="plain"?"plain":"water"}catch(e){}})()`;
+)})==="plain"?"plain":"water"}catch(e){}try{r.dataset.sweep=localStorage.getItem(${JSON.stringify(
+  SWEEP_KEY
+)})==="off"?"off":"on"}catch(e){}})()`;
 
 export function currentTheme(): Theme {
   return document.documentElement.dataset.theme === "light" ? "light" : "dark";
@@ -57,4 +60,25 @@ export function setCanvas(style: CanvasStyle) {
 /** Flip water ⇄ plain, by exactly the same means as the theme. */
 export function toggleCanvas() {
   setCanvas(currentCanvas() === "water" ? "plain" : "water");
+}
+
+/**
+ * Whether finished work sweeps itself off the board. On unless this device has
+ * said otherwise — a board you have to tidy is a board that stays untidy.
+ *
+ * Read from the attribute rather than from storage so it is the same answer the
+ * boot script already gave, before first paint. The behaviour it drives lives in
+ * lib/auto-delete.ts; the store keeps a copy so React can react to it.
+ */
+export function currentSweep(): boolean {
+  return document.documentElement.dataset.sweep !== "off";
+}
+
+export function setSweep(on: boolean) {
+  document.documentElement.dataset.sweep = on ? "on" : "off";
+  try {
+    localStorage.setItem(SWEEP_KEY, on ? "on" : "off");
+  } catch {
+    // as above: it still applies, it just won't be remembered
+  }
 }

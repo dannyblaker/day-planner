@@ -74,6 +74,14 @@ interface AppState {
    *  of the same key on the same task a second request. */
   newTaskFrom: { sourceId: string; nonce: number } | null;
   requestNewTaskFrom: (sourceId: string) => void;
+  /** whether finished work sweeps itself off the board — see lib/auto-delete.ts */
+  sweep: boolean;
+  setSweep: (on: boolean) => void;
+  /** id → when it will be swept, as epoch ms. Not part of the plan, and never
+   *  saved: a countdown that survived a reload would be a countdown nobody saw
+   *  start. */
+  sweepAt: Record<string, number>;
+  setSweepAt: (at: Record<string, number>) => void;
 
   load: (plan: Plan | null) => void;
   setSaving: (v: boolean) => void;
@@ -143,11 +151,24 @@ export const useApp = create<AppState>()(
     saving: false,
     lastCleared: null,
     newTaskFrom: null,
+    // the server renders the default; the boot script has already stamped what
+    // this device actually wants, and page.tsx reads it back on mount
+    sweep: true,
+    sweepAt: {},
 
     requestNewTaskFrom: (sourceId) =>
       set((s) => {
         s.newTaskFrom = { sourceId, nonce: (s.newTaskFrom?.nonce ?? 0) + 1 };
       }),
+
+    setSweep: (on) =>
+      set((s) => {
+        s.sweep = on;
+        // turning it off cancels what was counting down, rather than pausing it
+        if (!on) s.sweepAt = {};
+      }),
+
+    setSweepAt: (at) => set((s) => void (s.sweepAt = at)),
 
     load: (plan) =>
       set((s) => {

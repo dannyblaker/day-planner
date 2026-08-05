@@ -8,6 +8,7 @@ import QuickAdd from "@/components/QuickAdd";
 import TaskList from "@/components/TaskList";
 import TopBar from "@/components/TopBar";
 import UndoBar from "@/components/UndoBar";
+import { useAutoDelete } from "@/lib/auto-delete";
 import { navOrder } from "@/lib/flow";
 import { useApp } from "@/lib/store";
 import { toggleCanvas, toggleTheme } from "@/lib/theme";
@@ -17,6 +18,7 @@ import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
   usePlanSync();
+  useAutoDelete();
   const tasks = useApp((s) => s.plan.tasks);
   const loaded = useApp((s) => s.loaded);
 

@@ -12,17 +12,21 @@ import {
   TaskStatus,
 } from "@/lib/types";
 import { useRef, useState } from "react";
+import SweepCountdown from "./SweepCountdown";
 
 function Row({
   task,
   status,
   goal,
   selected,
+  sweepAt,
 }: {
   task: Task;
   status: TaskStatus;
   goal?: Goal;
   selected: boolean;
+  /** when this finished task will be swept away, if it is on its way out */
+  sweepAt?: number;
 }) {
   const { select, setEditorOpen, toggleDone } = useApp();
   const done = status === "done";
@@ -73,6 +77,7 @@ function Row({
           {task.title}
         </div>
         <div className="text-note text-slate-500 flex gap-1.5 items-center flex-wrap empty:hidden">
+          {sweepAt != null && <SweepCountdown key={sweepAt} at={sweepAt} />}
           {task.dependsOn.length > 0 && (
             <span title="has dependencies">⛓ {task.dependsOn.length}</span>
           )}
@@ -117,6 +122,7 @@ export default function TaskList() {
   const tasks = useApp((s) => s.plan.tasks);
   const goals = useApp((s) => s.plan.goals);
   const selectedId = useApp((s) => s.selectedId);
+  const sweepAt = useApp((s) => s.sweepAt);
   const placeBefore = useApp((s) => s.placeBefore);
   const clearDone = useApp((s) => s.clearDone);
   const [showDone, setShowDone] = useState(true);
@@ -210,6 +216,7 @@ export default function TaskList() {
                         status={status}
                         goal={goalOf(t)}
                         selected={selectedId === t.id}
+                        sweepAt={sweepAt[t.id]}
                       />
                     </div>
                   ) : (
@@ -219,6 +226,7 @@ export default function TaskList() {
                       status={status}
                       goal={goalOf(t)}
                       selected={selectedId === t.id}
+                      sweepAt={sweepAt[t.id]}
                     />
                   )
                 )}

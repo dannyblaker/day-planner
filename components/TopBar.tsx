@@ -2,6 +2,7 @@
 
 import CanvasToggle from "@/components/CanvasToggle";
 import Logo from "@/components/Logo";
+import SweepToggle from "@/components/SweepToggle";
 import ThemeToggle from "@/components/ThemeToggle";
 import { exportJSON, exportPDF, exportPNG } from "@/lib/export";
 import { statuses } from "@/lib/graph";
@@ -96,6 +97,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
       >
         JSON
       </button>
+      <SweepToggle />
       <CanvasToggle />
       <ThemeToggle />
       <button onClick={() => setHelpOpen(true)} className="btn" title="shortcuts (?)">
