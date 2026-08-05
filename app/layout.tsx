@@ -14,9 +14,9 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ConcurrencyFlow",
+  title: "Concurrent Crocodiles",
   description:
-    "Plan concurrency: a dependency flowchart where task status follows the graph",
+    "A swamp full of crocodiles: a dependency flowchart where task status follows the graph",
 };
 
 export default function RootLayout({

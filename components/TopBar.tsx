@@ -1,5 +1,6 @@
 "use client";
 
+import Logo from "@/components/Logo";
 import ThemeToggle from "@/components/ThemeToggle";
 import { exportJSON, exportPDF, exportPNG } from "@/lib/export";
 import { statuses } from "@/lib/graph";
@@ -45,8 +46,9 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
 
   return (
     <header className="flex items-center gap-3 px-4 py-2 border-b border-slate-800 bg-slate-900/40 flex-wrap">
-      <h1 className="text-sm font-semibold text-indigo-300 tracking-tight">
-        ConcurrencyFlow
+      <h1 className="flex items-center gap-2 text-sm font-semibold text-slate-100 tracking-tight">
+        <Logo className="w-6 h-6 shrink-0" />
+        Concurrent Crocodiles
       </h1>
 
       {/* what the board adds up to — the one number that used to be capacity */}
@@ -87,7 +89,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
         PDF
       </button>
       <button
-        onClick={() => exportJSON(plan, "concurrencyflow")}
+        onClick={() => exportJSON(plan, "crocodiles")}
         className="btn"
         title="every task, dependency and derived status as JSON — the same document GET /api/export serves"
       >

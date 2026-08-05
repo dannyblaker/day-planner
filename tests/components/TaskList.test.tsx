@@ -75,7 +75,7 @@ describe("sections", () => {
 
   it("prompts when there is nothing at all", () => {
     renderList([]);
-    expect(screen.getByText(/Nothing planned/)).toBeInTheDocument();
+    expect(screen.getByText(/Empty swamp/)).toBeInTheDocument();
   });
 
   it("collapses and expands the done list", async () => {

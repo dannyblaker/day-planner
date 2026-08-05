@@ -26,7 +26,7 @@ const ENDPOINTS = [
 export async function GET() {
   return Response.json({
     ok: true,
-    app: "ConcurrencyFlow",
+    app: "Concurrent Crocodiles",
     note: "Status is derived from the dependency graph and is never stored: send `done`, `blocked` and `dependsOn`, and read `status` back.",
     endpoints: ENDPOINTS,
   });

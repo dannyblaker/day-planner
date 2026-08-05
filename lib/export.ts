@@ -7,7 +7,7 @@ import { Plan } from "./types";
 const bg = () =>
   getComputedStyle(document.documentElement)
     .getPropertyValue("--background")
-    .trim() || "#0a0e16";
+    .trim() || "#0b1410";
 
 function download(dataUrl: string, filename: string) {
   const a = document.createElement("a");

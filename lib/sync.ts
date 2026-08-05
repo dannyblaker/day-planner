@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useApp } from "./store";
 import { Plan } from "./types";
 
-const LS_KEY = "concurrencyflow-plan";
+const LS_KEY = "crocodiles-plan";
 
 /** Load the plan on mount; autosave (debounced) on every change. No save button, ever. */
 export function usePlanSync() {

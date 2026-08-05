@@ -34,7 +34,7 @@ export default function FlowView({
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 px-1 pb-2 text-[11px] text-slate-500 flex-wrap">
         <button onClick={autoArrangeFlow} className="btn">
-          ✨ Auto-arrange
+          🐊 Auto-arrange
         </button>
         <span>double-click canvas: new task (quick-add syntax works)</span>
         <span>· drag ○ → node: dependency</span>

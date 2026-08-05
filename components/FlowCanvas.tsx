@@ -284,14 +284,8 @@ export default function FlowCanvas({
         }}
         onPointerDown={onCanvasPointerDown}
         onDoubleClick={onCanvasDoubleClick}
-        className="relative bg-background cursor-grab"
-        style={{
-          width: W,
-          height: H,
-          backgroundImage:
-            "radial-gradient(circle, var(--flow-dot) 1px, transparent 1px)",
-          backgroundSize: "24px 24px",
-        }}
+        className="croc-water relative bg-background cursor-grab"
+        style={{ width: W, height: H }}
       >
         {/* dependency edges */}
         <svg
@@ -393,12 +387,12 @@ export default function FlowCanvas({
                   : undefined
               }
               title={`${t.title} — ${STATUS_LABEL[status]}`}
-              className={`group absolute z-10 rounded-lg border px-2.5 py-1.5 select-none status-${status} ${
+              className={`group croc-node croc-hide absolute z-10 rounded-lg border px-2.5 py-1.5 select-none status-${status} ${
                 onMove ? (dragging ? "cursor-grabbing" : "cursor-grab") : ""
               } ${done ? "opacity-60" : ""} ${
                 // dashed all round marks the concurrent lane, as it always has
                 t.parallel ? "border-dashed" : ""
-              } ${selectedId === t.id ? "ring-2 ring-indigo-400" : ""}`}
+              } ${selectedId === t.id ? "ring-2 ring-lagoon-400" : ""}`}
               style={{
                 left: p.x,
                 top: p.y,
@@ -417,7 +411,9 @@ export default function FlowCanvas({
                   done ? "line-through text-slate-500" : "text-slate-100"
                 }`}
               >
-                {status === "in-progress" && <span title="in progress">▶ </span>}
+                {status === "in-progress" && (
+                  <span title="in progress">🐊 </span>
+                )}
                 {t.title}
               </div>
               <div className="text-[9px] text-slate-400 flex gap-1.5 items-center mt-0.5 flex-wrap">
@@ -451,7 +447,7 @@ export default function FlowCanvas({
               {onToggleDependency && (
                 <div
                   onPointerDown={(e) => onPortPointerDown(e, t)}
-                  className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-slate-400 bg-background hover:border-indigo-400 hover:bg-indigo-950 cursor-crosshair"
+                  className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 rounded-full border-2 border-slate-400 bg-background hover:border-lagoon-400 hover:bg-lagoon-950 cursor-crosshair"
                   title="drag to another task, or click for a new one: it will depend on this one"
                   style={{ touchAction: "none" }}
                 />
@@ -513,7 +509,7 @@ export default function FlowCanvas({
                 ? `New task after “${pendingSource.title}”…`
                 : "New task…  45m !1 #goal"
             }
-            className="absolute z-40 w-60 bg-slate-800 border border-indigo-500 outline-none rounded-md px-2.5 py-1.5 text-[12px] text-slate-200 placeholder:text-slate-600 shadow-xl"
+            className="absolute z-40 w-60 bg-slate-800 border border-lagoon-500 outline-none rounded-md px-2.5 py-1.5 text-[12px] text-slate-200 placeholder:text-slate-600 shadow-xl"
             style={{ left: creating.pos.x, top: creating.pos.y }}
           />
         )}

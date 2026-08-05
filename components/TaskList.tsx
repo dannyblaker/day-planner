@@ -37,8 +37,8 @@ function Row({
         select(task.id);
         setEditorOpen(true);
       }}
-      className={`group flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border ${
-        selected ? "border-indigo-400/70 bg-indigo-950/40" : `status-${status}`
+      className={`group croc-hide flex items-center gap-2 px-2 py-1.5 rounded-md cursor-pointer border ${
+        selected ? "border-lagoon-400/70 bg-lagoon-950/40" : `status-${status}`
       } ${done ? "opacity-60" : ""}`}
     >
       <button
@@ -204,7 +204,7 @@ export default function TaskList() {
                       }}
                     >
                       {dropBefore === t.id && (
-                        <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+                        <div className="border-t-2 border-lagoon-400 rounded-full mx-2" />
                       )}
                       <Row
                         task={t}
@@ -224,7 +224,7 @@ export default function TaskList() {
                   )
                 )}
                 {draggable && dropBefore === null && (
-                  <div className="border-t-2 border-indigo-400 rounded-full mx-2" />
+                  <div className="border-t-2 border-lagoon-400 rounded-full mx-2" />
                 )}
               </div>
             )}
@@ -234,7 +234,8 @@ export default function TaskList() {
 
       {tasks.length === 0 && (
         <p className="text-xs text-slate-600 px-2">
-          Nothing planned — press <kbd className="kbd">n</kbd> to add a task.
+          Empty swamp — press <kbd className="kbd">n</kbd> to put a crocodile in
+          it.
         </p>
       )}
     </div>

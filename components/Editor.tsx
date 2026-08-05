@@ -10,7 +10,7 @@ import {
 } from "@/lib/types";
 
 const field =
-  "w-full bg-slate-800 border border-slate-700 focus:border-indigo-500 outline-none rounded px-2 py-1.5 text-[13px] text-slate-200";
+  "w-full bg-slate-800 border border-slate-700 focus:border-lagoon-500 outline-none rounded px-2 py-1.5 text-[13px] text-slate-200";
 const label = "text-[10px] uppercase tracking-wider text-slate-500 mb-1 block";
 
 export default function Editor() {
@@ -157,7 +157,7 @@ export default function Editor() {
             type="checkbox"
             checked={!!task.parallel}
             onChange={(e) => updateTask(task.id, { parallel: e.target.checked })}
-            className="accent-indigo-500"
+            className="accent-lagoon-500"
           />
           ∥ runs in parallel
         </label>
@@ -197,7 +197,7 @@ export default function Editor() {
                     disabled={disabled}
                     checked={task.dependsOn.includes(o.id)}
                     onChange={() => toggleDependency(task.id, o.id)}
-                    className="accent-indigo-500"
+                    className="accent-lagoon-500"
                   />
                   <span className="truncate">{o.title}</span>
                 </label>

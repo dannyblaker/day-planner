@@ -160,7 +160,7 @@ export default function Home() {
   if (!loaded) {
     return (
       <div className="h-screen flex items-center justify-center text-slate-600 text-sm">
-        Loading your plan…
+        Waking the crocodiles…
       </div>
     );
   }

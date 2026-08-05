@@ -90,7 +90,7 @@ function chain() {
 
 beforeEach(async () => {
   resetFactory();
-  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "concurrencyflow-api-"));
+  tmp = await fs.mkdtemp(path.join(os.tmpdir(), "crocodiles-api-"));
   delete process.env.DATABASE_URL;
 });
 
@@ -534,7 +534,7 @@ describe("GET /api/export", () => {
     const { exp } = await routes();
     const res = await exp.GET(req("/api/export"));
     const doc = (await res.json()) as Record<string, unknown>;
-    expect(doc.app).toBe("ConcurrencyFlow");
+    expect(doc.app).toBe("Concurrent Crocodiles");
     expect(doc.version).toBe(1);
     expect(typeof doc.exportedAt).toBe("string");
     expect((doc.tasks as { status: string }[]).map((t) => t.status)).toEqual([

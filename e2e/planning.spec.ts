@@ -2,7 +2,7 @@ import { expect, flowNode, quickAdd, row, test } from "./fixtures";
 
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
-  await expect(page.getByRole("heading", { name: "ConcurrencyFlow" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Concurrent Crocodiles" })).toBeVisible();
 });
 
 test.describe("the morning brain-dump", () => {

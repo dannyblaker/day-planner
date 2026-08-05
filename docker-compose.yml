@@ -1,3 +1,8 @@
+# The database still answers to `concurrencyflow`, and deliberately so: Postgres
+# only runs initdb on an empty volume, so renaming the role and the database
+# here would leave every existing `pgdata` volume — every plan anyone is already
+# keeping — with no user that can reach it. It is an internal name behind a
+# private network; the rebrand stops at the door.
 services:
   db:
     image: postgres:16-alpine

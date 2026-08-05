@@ -33,7 +33,7 @@ export async function GET(req: Request) {
         "Content-Type": "application/json; charset=utf-8",
         ...(flag(url, "download")
           ? {
-              "Content-Disposition": `attachment; filename="concurrencyflow-${stamp}.json"`,
+              "Content-Disposition": `attachment; filename="crocodiles-${stamp}.json"`,
             }
           : {}),
       },

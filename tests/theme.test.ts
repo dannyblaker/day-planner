@@ -45,7 +45,7 @@ describe("setting and toggling", () => {
   it("stamps the attribute and remembers the choice", () => {
     setTheme("light");
     expect(root().dataset.theme).toBe("light");
-    expect(localStorage.getItem("concurrencyflow-theme")).toBe("light");
+    expect(localStorage.getItem("crocodiles-theme")).toBe("light");
   });
 
   it("flips back and forth", () => {
@@ -67,7 +67,7 @@ describe("setting and toggling", () => {
 
 describe("the pre-paint boot script", () => {
   it("applies a saved preference", () => {
-    localStorage.setItem("concurrencyflow-theme", "light");
+    localStorage.setItem("crocodiles-theme", "light");
     runBootScript();
     expect(root().dataset.theme).toBe("light");
   });
@@ -85,14 +85,14 @@ describe("the pre-paint boot script", () => {
 
   it("prefers the saved choice over the OS setting", () => {
     prefersLight(true);
-    localStorage.setItem("concurrencyflow-theme", "dark");
+    localStorage.setItem("crocodiles-theme", "dark");
     runBootScript();
     expect(root().dataset.theme).toBe("dark");
   });
 
   it("ignores a junk value in storage", () => {
     prefersLight(false);
-    localStorage.setItem("concurrencyflow-theme", "chartreuse");
+    localStorage.setItem("crocodiles-theme", "chartreuse");
     runBootScript();
     expect(root().dataset.theme).toBe("dark");
   });

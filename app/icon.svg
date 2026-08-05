@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="3 6.5 27 18.5" width="32" height="32">
+  <!-- The favicon: the same crocodile as components/Logo.tsx, cropped to fill
+       the tab and thinned out — at 16px the fourth tooth and the snout scutes
+       are noise. -->
+  <path d="M8.5 16.2 C14 17.4 22 19.4 27.6 20.9
+           C26.6 17.6 26.8 14.4 27.9 11.5
+           C22 13.6 14 15 8.5 16.2 Z"
+        fill="#17280f" />
+  <ellipse cx="7" cy="15.6" rx="4.6" ry="5.4" fill="#3f7233" />
+  <path d="M5.4 17 C9.5 16.7 14.5 17.9 19.5 19.3
+           C23.5 20.4 26.8 21.3 28.6 21.8
+           C29.6 22.1 29.5 23.3 28.3 23.4
+           C25.5 23.3 21 22.6 16 21.6
+           C11 20.6 6.4 19.7 4.8 19.1 Z"
+        fill="#4c8438" />
+  <g fill="#f5f2e6">
+    <path d="M15.4 18.2 l2 0.5 l-0.7 -2.6 Z" />
+    <path d="M20.6 19.7 l2 0.5 l-0.7 -2.6 Z" />
+    <path d="M25 21 l2 0.5 l-0.7 -2.6 Z" />
+  </g>
+  <path d="M4.6 13.2 C5.6 10.8 8.2 10.2 10.4 11
+           C11 8.7 14 8.9 14.5 11.2
+           C19.5 11 25 9.8 29.3 8.1
+           C30 8.7 29.9 9.9 29 10.5
+           C24 12.6 17.5 14.4 11.5 15.2
+           C8 15.7 5.2 15.2 4.6 13.2 Z"
+        fill="#63a447" />
+  <g fill="#f5f2e6">
+    <path d="M15.6 14.4 l2 -0.4 l-0.7 2.6 Z" />
+    <path d="M20.8 13.25 l2 -0.45 l-0.7 2.6 Z" />
+    <path d="M25.4 11.95 l2 -0.5 l-0.7 2.6 Z" />
+  </g>
+  <circle cx="12.5" cy="11.3" r="2" fill="#f7c243" />
+  <ellipse cx="12.5" cy="11.3" rx="0.6" ry="1.35" fill="#14210f" />
+</svg>

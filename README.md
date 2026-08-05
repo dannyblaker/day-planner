@@ -1,6 +1,8 @@
-# ConcurrencyFlow
+<img src="public/logo.svg" alt="Concurrent Crocodiles" width="234" height="82">
 
 A flowchart for planning work that runs alongside other work: **tasks are nodes, dependencies are arrows, and status follows the graph.**
+
+The crocodiles are the tasks. Most of them lie there submerged, waiting on something upstream; the ones with nothing left to wait for surface all at once, and those are the ones that can bite.
 
 The core idea is that status is *derived state*. You don't set a task to "in progress" — you draw the dependencies, and everything whose prerequisites are finished is in progress, all of it at once. That set is the answer to the only question the board exists to answer: what can I run in parallel right now? Mark one thing done and its dependents move up on their own. There is no save button; every change autosaves.
 
@@ -10,7 +12,8 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 
 - **Flowchart-first** — the canvas is the app. Double-click to create a task in place (quick-add syntax works), drag from a node's ○ port to another node to draw a dependency, click an arrow to remove it. Auto-arrange lays the graph out by dependency depth.
 - **Grow the graph forwards** — an arrow that ends on nothing is a task you haven't named yet, so drag a ○ into empty space and it asks for the title, then draws the arrow to what you type. Clicking the ○ does the same beside the node, and `a` does it for whatever is selected — chains get built without leaving the keyboard.
-- **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: grey waiting, amber startable, green finished.
+- **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: murky green waiting, gold startable, green finished.
+- **Cards with teeth** — every card is printed on crocodile hide and ridged with scutes along the top in the colour of its status, and the ones you can start right now are the ones that grow a row of teeth. The gold column is the answer to the question the board exists to answer, so it is the one that bites.
 - **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark — position is yours to arrange, not a lane to fall into.
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
 - **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
@@ -19,7 +22,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **Live share** — send someone a read-only link (`Share live`) that polls the plan every 5 seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
 - **Export** — one click to PNG or PDF of the canvas, matching the theme you're in, or `JSON` for the whole graph as data: every task, every dependency, and the derived status.
 - **A real API** — read the plan, write it a task at a time, or fetch the lot and hand it back edited. Dependencies are checked on the way in, so nothing you can send closes a loop. See [The API](#the-api).
-- **Light / dark theme** (`m`, or the ☀️/🌙 button) — follows your OS preference until you pick one; the choice is per-device and applied before first paint, so there's no flash on reload.
+- **Light / dark theme** (`m`, or the ☀️/🌙 button) — swamp water at night or a bright riverbank; follows your OS preference until you pick one, and the choice is per-device and applied before first paint, so there's no flash on reload.
 - **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
 - **Keyboard-driven** — `j`/`k` walks the board in status order, and everything else is one key. Press `?`.
 
@@ -194,3 +197,5 @@ Fix login bug 1h !1 #deep-work >deploy ~ *waiting-on-bob ^
 Next.js (App Router) · TypeScript · Tailwind CSS · Zustand + Immer · html-to-image + jsPDF. Plan persistence is a single JSON document behind an API route; `lib/graph.ts` is a pure function from tasks + dependencies → statuses, and `lib/flow.ts` from the same graph → canvas positions.
 
 The API is three pure modules and a thin layer of routes: `lib/plan-ops.ts` is every write as a function from one plan to the next (and everything it refuses), `lib/plan-doc.ts` is the derived view the API hands out — shared with the browser's JSON button, so the download and the endpoint are the same document — and `lib/plan-store.ts` is the read-modify-write, queued so concurrent calls can't overwrite each other.
+
+The whole look is one file: `app/globals.css` holds both themes as one set of variables (the Tailwind ramp is re-pointed onto a single green hue, so every surface in the app is swamp water) plus the hide, the scutes and the teeth as CSS masks — no images, and nothing a component has to know about. The crocodile itself is drawn three times over: `components/Logo.tsx` for the app, `app/icon.svg` for the tab, and `public/logo.svg` for the lockup at the top of this file.

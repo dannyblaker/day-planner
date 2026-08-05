@@ -2,18 +2,36 @@
 
 /*
  * Theming works by re-pointing Tailwind's palette variables, not by adding
- * `dark:` variants everywhere: every `slate-800` / `indigo-300` / … utility
+ * `dark:` variants everywhere: every `slate-800` / `lagoon-300` / … utility
  * compiles to `var(--color-…)`, so overriding the ramp under
  * `[data-theme="light"]` flips the whole app at once. The scale is inverted
  * (50 ↔ 950) with the mid tones nudged for contrast on a light background,
  * which keeps each shade in the same *role* it already had: 800/900 are
  * surfaces, 700 is a border, 100–300 is text.
+ *
+ * The ramp still answers to the name `slate`, but it is swamp water now: the
+ * whole scale sits on one green hue (152), so every surface, border and label
+ * in the app is tinted the colour of the water a crocodile waits in.
  */
+
+@theme {
+  /*
+   * `lagoon` is the interactive accent — selection, focus, the arrow you are
+   * dragging. It is a colour no *status* uses: the board already spends grey on
+   * waiting, gold on startable and green on finished, so "the thing you are
+   * pointing at" needs a hue that cannot be mistaken for any of them.
+   */
+  --color-lagoon-200: oklch(90% 0.06 188);
+  --color-lagoon-300: oklch(82% 0.1 188);
+  --color-lagoon-400: oklch(74% 0.13 188);
+  --color-lagoon-500: oklch(66% 0.135 188);
+  --color-lagoon-950: oklch(22% 0.055 188);
+}
 
 :root {
   color-scheme: dark;
 
-  --background: #0a0e16;
+  --background: #0b1410;
   --foreground: var(--color-slate-300);
 
   /*
@@ -21,96 +39,127 @@
    * background the defaults measured 2.6:1 (slate-600) and 4.1:1 (slate-500)
    * — the muted labels that carry most of the small print. These land every
    * text shade at or above WCAG AA: 600 4.9:1, 500 6.8:1, 400 10:1, 300 14:1.
-   * 700 and up stay put: in dark they're borders and surfaces, not text.
    */
-  --color-slate-300: oklch(90% 0.02 252.894);
-  --color-slate-400: oklch(79% 0.035 256.788);
-  --color-slate-500: oklch(68.5% 0.038 257.417);
-  --color-slate-600: oklch(60% 0.04 257.281);
+  --color-slate-50: oklch(98.4% 0.004 152);
+  --color-slate-100: oklch(96.8% 0.008 152);
+  --color-slate-200: oklch(94% 0.014 152);
+  --color-slate-300: oklch(90% 0.022 152);
+  --color-slate-400: oklch(79% 0.03 152);
+  --color-slate-500: oklch(68.5% 0.035 152);
+  --color-slate-600: oklch(60% 0.038 152);
+  --color-slate-700: oklch(37.5% 0.038 152);
+  --color-slate-800: oklch(28.5% 0.035 152);
+  --color-slate-900: oklch(21% 0.033 152);
+  --color-slate-950: oklch(13.5% 0.03 152);
 
   /* chrome that isn't part of a Tailwind ramp */
-  --scrim: rgba(2, 6, 23, 0.6);
+  --scrim: rgba(4, 14, 9, 0.62);
   --drag-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
-  --flow-dot: #26334a;
+  --flow-dot: #22382c;
+  /* the water the board floats on: a scale lattice under the ripple dots */
+  --water-scale: rgba(122, 190, 150, 0.03);
 
   /* flowchart dependency arrows */
-  --edge: #94a3b8;
-  --edge-dim: #4a5a72;
-  --edge-active: #818cf8;
+  --edge: #8fb3a1;
+  --edge-dim: #44604f;
+  --edge-active: #2fd0c0;
   --edge-hover: #f87171;
 
   /* priority accents (left border of a task, dot in the list) */
   --prio-1: #f87171;
-  --prio-2: #fbbf24;
-  --prio-3: #38bdf8;
-  --prio-4: #94a3b8;
-  --prio-done: #52627a;
+  --prio-2: #f7c243;
+  --prio-3: #4dc9e8;
+  --prio-4: #93b3a2;
+  --prio-done: #4d6857;
 
   /*
-   * Status: grey waiting → amber go → green finished. Amber carries the eye
-   * because in-progress is the only column you can act on, and it is the one
-   * hue here that neither of the others can be confused with.
+   * Status: murky green waiting → gold go → green finished. The gold is the
+   * crocodile's eye, and it carries the eye here for the same reason it does
+   * there: in-progress is the only column you can act on, and it is the one
+   * hue on the board neither of the others can be confused with.
    */
-  --status-todo: #94a3b8;
-  --status-todo-border: #475569;
-  --status-todo-bg: #1e293bf2;
+  --status-todo: #93b3a2;
+  --status-todo-border: #3f5a4d;
+  --status-todo-bg: #16251ef2;
 
-  --status-progress: #fbbf24;
-  --status-progress-border: #f59e0b;
-  --status-progress-bg: #422e0699;
+  --status-progress: #f7c243;
+  --status-progress-border: #d99b1f;
+  --status-progress-bg: #3a2b0899;
 
   --status-done: #34d399;
-  --status-done-border: #065f46;
-  --status-done-bg: #022c221a;
+  --status-done-border: #0b5f45;
+  --status-done-bg: #03251c33;
+
+  /* crocodile hide: the lattice printed on every task card */
+  --hide-line: rgba(146, 214, 170, 0.04);
+  /* teeth, on the cards you can actually start */
+  --tooth: #e8e4d2;
+
+  /*
+   * The two shapes the cards are trimmed with. A crocodile's scutes are rounded
+   * keels, not spikes — drawn sharp they read as a torn ticket stub, so the
+   * ridge is domed and only the teeth are pointed.
+   */
+  --scute-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='18' height='5'><path d='M0 5 C4.5 -1 13.5 -1 18 5 Z' fill='%23fff'/></svg>");
+  --tooth-mask: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='7'><path d='M2.5 0 L11.5 0 L7 7 Z' fill='%23fff'/></svg>");
 }
 
 :root[data-theme="light"] {
   color-scheme: light;
 
-  --background: #fbfcfe;
+  --background: #f6faf4;
 
-  --scrim: rgba(15, 23, 42, 0.35);
-  --drag-shadow: 0 8px 24px rgba(15, 23, 42, 0.18);
-  --flow-dot: #d3dae5;
+  --scrim: rgba(12, 32, 21, 0.35);
+  --drag-shadow: 0 8px 24px rgba(12, 32, 21, 0.18);
+  --flow-dot: #cfdfd2;
+  --water-scale: rgba(31, 92, 58, 0.035);
 
-  --edge: #94a3b8;
-  --edge-dim: #cbd5e1;
-  --edge-active: #4f46e5;
+  --edge: #7f9d8b;
+  --edge-dim: #c6d7cb;
+  --edge-active: #0d8f85;
   --edge-hover: #dc2626;
 
   --prio-1: #dc2626;
-  --prio-2: #d97706;
-  --prio-3: #0284c7;
-  --prio-4: #64748b;
-  --prio-done: #cbd5e1;
+  --prio-2: #b07d16;
+  --prio-3: #0e7c99;
+  --prio-4: #5c7a68;
+  --prio-done: #c6d7cb;
 
-  --status-todo: #64748b;
-  --status-todo-border: #cbd5e1;
+  --status-todo: #5c7a68;
+  --status-todo-border: #c6d7cb;
   --status-todo-bg: #ffffff;
 
-  --status-progress: #b45309;
-  --status-progress-border: #f59e0b;
-  --status-progress-bg: #fffbeb;
+  --status-progress: #96650b;
+  --status-progress-border: #d99b1f;
+  --status-progress-bg: #fdf8e9;
 
   --status-done: #047857;
   --status-done-border: #a7f3d0;
-  --status-done-bg: #f0fdf9;
+  --status-done-bg: #f0fdf6;
+
+  --hide-line: rgba(31, 92, 58, 0.05);
+  --tooth: #c08d1c;
 
   /* structural ramp — inverted */
-  --color-slate-50: oklch(12.9% 0.042 264.695);
-  --color-slate-100: oklch(20.8% 0.042 265.755);
-  --color-slate-200: oklch(27.9% 0.041 260.031);
-  --color-slate-300: oklch(37.2% 0.044 257.287);
-  --color-slate-400: oklch(44.6% 0.043 257.281);
-  --color-slate-500: oklch(48.5% 0.046 257.417);
-  --color-slate-600: oklch(56% 0.042 256.788);
-  --color-slate-700: oklch(86.9% 0.022 252.894);
-  --color-slate-800: oklch(92.9% 0.013 255.508);
-  --color-slate-900: oklch(96.8% 0.007 247.896);
-  --color-slate-950: oklch(98.4% 0.003 247.858);
+  --color-slate-50: oklch(13.5% 0.03 152);
+  --color-slate-100: oklch(21% 0.033 152);
+  --color-slate-200: oklch(28% 0.035 152);
+  --color-slate-300: oklch(37.5% 0.038 152);
+  --color-slate-400: oklch(44.6% 0.04 152);
+  --color-slate-500: oklch(48.5% 0.042 152);
+  --color-slate-600: oklch(56% 0.04 152);
+  --color-slate-700: oklch(86.5% 0.02 152);
+  --color-slate-800: oklch(93% 0.013 152);
+  --color-slate-900: oklch(96.8% 0.008 152);
+  --color-slate-950: oklch(98.4% 0.004 152);
 
-  /* accents — only the shades used as text or tinted fills move; 500/600 are
-     solid buttons and read the same either way */
+  /* accents — only the shades used as text or tinted fills move; 500 is a
+     solid border and reads the same either way */
+  --color-lagoon-200: oklch(38% 0.08 188);
+  --color-lagoon-300: oklch(48% 0.12 188);
+  --color-lagoon-400: oklch(55% 0.13 188);
+  --color-lagoon-950: oklch(95% 0.03 188);
+
   --color-red-300: oklch(50.5% 0.213 27.518);
   --color-red-400: oklch(57.7% 0.245 27.325);
   --color-red-900: oklch(88.5% 0.062 18.334);
@@ -119,11 +168,6 @@
   --color-emerald-300: oklch(50.8% 0.118 165.612);
   --color-emerald-400: oklch(59.6% 0.145 163.225);
   --color-emerald-950: oklch(97.9% 0.021 166.113);
-
-  --color-indigo-200: oklch(35.9% 0.144 278.697);
-  --color-indigo-300: oklch(45.7% 0.24 277.023);
-  --color-indigo-400: oklch(51.1% 0.262 276.966);
-  --color-indigo-950: oklch(93% 0.034 272.788);
 
   --color-amber-400: oklch(55.5% 0.163 48.998);
 }
@@ -160,18 +204,108 @@ body {
 }
 
 /* Status skins, shared by the flowchart nodes and the sidebar rows so the two
-   never disagree about what colour a status is. */
+   never disagree about what colour a status is. `background-color`, not
+   `background`: the shorthand would wipe out the hide lattice underneath.
+   Each also publishes its border colour as `--node-accent`, which is what the
+   scute ridge on a flowchart node is painted with. */
 .status-todo {
   border-color: var(--status-todo-border);
-  background: var(--status-todo-bg);
+  background-color: var(--status-todo-bg);
+  --node-accent: var(--status-todo-border);
 }
 .status-in-progress {
   border-color: var(--status-progress-border);
-  background: var(--status-progress-bg);
+  background-color: var(--status-progress-bg);
+  --node-accent: var(--status-progress-border);
 }
 .status-done {
   border-color: var(--status-done-border);
-  background: var(--status-done-bg);
+  background-color: var(--status-done-bg);
+  --node-accent: var(--status-done-border);
+}
+
+/*
+ * Crocodile hide: the diamond lattice a task card is printed on. Two crossed
+ * sets of hairlines, at an alpha low enough that it is texture rather than
+ * pattern — a card is still a flat surface you can read 11px type off.
+ */
+.croc-hide {
+  background-image:
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 9px,
+      var(--hide-line) 9px 10px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 9px,
+      var(--hide-line) 9px 10px
+    );
+}
+
+/*
+ * Scutes: the ridge of bony plates along a crocodile's back, here along the top
+ * edge of every node on the canvas, in the colour of the status. Drawn as a
+ * masked strip so the zigzag follows the theme without a second asset.
+ */
+.croc-node::before {
+  content: "";
+  position: absolute;
+  left: -1px;
+  right: -1px;
+  top: -5px;
+  height: 5px;
+  background-color: var(--node-accent, var(--color-slate-600));
+  -webkit-mask-image: var(--scute-mask);
+  mask-image: var(--scute-mask);
+  -webkit-mask-size: 18px 5px;
+  mask-size: 18px 5px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  pointer-events: none;
+}
+
+/*
+ * Teeth, and only on the nodes you can start right now. The gold column is the
+ * answer to the question the board exists to answer, so it is the one that
+ * bites: nothing waiting and nothing finished grows them.
+ */
+.croc-node.status-in-progress::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -6px;
+  height: 7px;
+  background-color: var(--tooth);
+  -webkit-mask-image: var(--tooth-mask);
+  mask-image: var(--tooth-mask);
+  -webkit-mask-size: 14px 7px;
+  mask-size: 14px 7px;
+  -webkit-mask-repeat: repeat-x;
+  mask-repeat: repeat-x;
+  pointer-events: none;
+}
+
+/* The canvas: swamp water. Ripple dots over a scale lattice, both faint enough
+   that a node reads as sitting on top of it rather than in it. */
+.croc-water {
+  background-image:
+    radial-gradient(circle, var(--flow-dot) 1px, transparent 1px),
+    repeating-linear-gradient(
+      45deg,
+      transparent 0 22px,
+      var(--water-scale) 22px 24px
+    ),
+    repeating-linear-gradient(
+      -45deg,
+      transparent 0 22px,
+      var(--water-scale) 22px 24px
+    );
+  background-size:
+    24px 24px,
+    auto,
+    auto;
 }
 
 .kbd {

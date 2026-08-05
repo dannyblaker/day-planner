@@ -82,14 +82,15 @@ export const PRIORITY_COLOR: Record<number, string> = {
 };
 export const DONE_COLOR = "var(--prio-done)";
 
+/** Goal accents, drawn from the swamp: water, reeds, sun, clay, orchid. */
 export const GOAL_COLORS = [
-  "#818cf8",
-  "#f59e0b",
-  "#34d399",
-  "#f472b6",
-  "#38bdf8",
-  "#a78bfa",
-  "#fb923c",
-  "#4ade80",
+  "#3fbfae",
+  "#e0a92e",
+  "#6cbf4a",
+  "#e0765f",
+  "#4fa8d8",
+  "#b98adf",
+  "#f0a05a",
+  "#9dcf3f",
 ];
 

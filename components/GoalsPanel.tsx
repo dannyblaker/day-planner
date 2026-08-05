@@ -72,7 +72,7 @@ export default function GoalsPanel() {
             e.stopPropagation();
           }}
           placeholder="+ new goal"
-          className="w-full bg-transparent border-b border-slate-800 focus:border-indigo-500 outline-none px-0.5 py-1 text-[11px] text-slate-300 placeholder:text-slate-600"
+          className="w-full bg-transparent border-b border-slate-800 focus:border-lagoon-500 outline-none px-0.5 py-1 text-[11px] text-slate-300 placeholder:text-slate-600"
         />
       </div>
     </div>

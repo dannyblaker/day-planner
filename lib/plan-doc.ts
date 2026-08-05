@@ -55,7 +55,7 @@ export interface PlanStats {
 }
 
 export interface PlanDocument {
-  app: "ConcurrencyFlow";
+  app: "Concurrent Crocodiles";
   version: number;
   exportedAt: string;
   shareToken: string;
@@ -130,7 +130,7 @@ export function planStats(plan: Plan): PlanStats {
  */
 export function planDocument(plan: Plan, exportedAt = Date.now()): PlanDocument {
   return {
-    app: "ConcurrencyFlow",
+    app: "Concurrent Crocodiles",
     version: DOCUMENT_VERSION,
     exportedAt: new Date(exportedAt).toISOString(),
     shareToken: plan.shareToken,

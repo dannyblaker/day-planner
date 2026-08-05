@@ -12,7 +12,7 @@ const SHORTCUTS: [string, string][] = [
   ["d", "toggle done — dependents become in-progress"],
   ["b", "toggle blocked"],
   ["1 – 4", "set priority P1–P4"],
-  ["p", "toggle parallel (background task)"],
+  ["p", "toggle concurrent (a crocodile that swims on its own)"],
   ["+ / -", "duration +15m / −15m"],
   ["s", "auto-sort queue by priority"],
   ["x / Del", "delete selected task"],
@@ -34,15 +34,15 @@ const SYNTAX: [string, string][] = [
   ["!1 … !4", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
   [">design", "depends on task whose title starts with “design”"],
-  ["~", "parallel / background task"],
+  ["~", "concurrent / background task"],
   ["*waiting-on-bob", "blocked, with reason"],
   ["^", "front of the to-do queue"],
 ];
 
 const STATUSES: [string, string][] = [
-  ["In progress", "every prerequisite is done — startable right now"],
-  ["To do", "still waiting on a prerequisite, or blocked"],
-  ["Done", "you marked it finished; its dependents move up"],
+  ["In progress", "every prerequisite is done — this one can bite"],
+  ["To do", "submerged: waiting on a prerequisite, or blocked"],
+  ["Done", "fed. Whatever depended on it surfaces"],
 ];
 
 export default function HelpOverlay() {
@@ -108,7 +108,7 @@ export default function HelpOverlay() {
         </h2>
         <p className="text-[11px] text-slate-500 mb-2">
           Type a title plus any tokens, e.g.{" "}
-          <code className="text-indigo-300">
+          <code className="text-lagoon-300">
             Fix login bug 1h !1 #deep-work &gt;deploy ~
           </code>
         </p>

@@ -18,14 +18,14 @@ test.describe("exporting the plan as JSON", () => {
       page.waitForEvent("download"),
       page.getByRole("button", { name: "JSON" }).click(),
     ]);
-    expect(download.suggestedFilename()).toMatch(/^concurrencyflow-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(download.suggestedFilename()).toMatch(/^crocodiles-\d{4}-\d{2}-\d{2}\.json$/);
 
     const stream = await download.createReadStream();
     const chunks: Buffer[] = [];
     for await (const chunk of stream) chunks.push(chunk as Buffer);
     const doc = JSON.parse(Buffer.concat(chunks).toString("utf8"));
 
-    expect(doc.app).toBe("ConcurrencyFlow");
+    expect(doc.app).toBe("Concurrent Crocodiles");
     expect(doc.tasks.map((t: { title: string }) => t.title)).toEqual([
       "Draft the proposal",
       "Review it",
