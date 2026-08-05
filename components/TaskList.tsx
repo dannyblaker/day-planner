@@ -73,7 +73,6 @@ function Row({
           {task.title}
         </div>
         <div className="text-note text-slate-500 flex gap-1.5 items-center flex-wrap empty:hidden">
-          {task.parallel && <span title="runs in parallel">∥</span>}
           {task.dependsOn.length > 0 && (
             <span title="has dependencies">⛓ {task.dependsOn.length}</span>
           )}

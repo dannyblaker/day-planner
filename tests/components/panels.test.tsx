@@ -231,13 +231,6 @@ describe("Editor", () => {
     expect(planTasks()[0].goalId).toBe("g1");
   });
 
-  it("marks a task parallel", async () => {
-    const user = userEvent.setup();
-    openEditorOn([makeTask({ id: "a" })], "a");
-    await user.click(screen.getByLabelText(/runs in parallel/));
-    expect(planTasks()[0].parallel).toBe(true);
-  });
-
   it("blocks a task by typing a reason", async () => {
     const user = userEvent.setup();
     openEditorOn([makeTask({ id: "a" })], "a");
@@ -326,7 +319,7 @@ describe("HelpOverlay", () => {
     seedStore();
     app().setHelpOpen(true);
     render(<HelpOverlay />);
-    for (const key of ["d", "b", "p", "s", "m", "u / ⌘Z", "?"]) {
+    for (const key of ["d", "b", "s", "m", "u / ⌘Z", "?"]) {
       expect(screen.getByText(key, { selector: "kbd" })).toBeInTheDocument();
     }
   });

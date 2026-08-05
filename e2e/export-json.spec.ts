@@ -12,7 +12,7 @@ test.describe("exporting the plan as JSON", () => {
     await page.goto("/");
     await quickAdd(page, "Draft the proposal !1 #deep-work", "Draft the proposal");
     await quickAdd(page, "Review it >draft", "Review it");
-    await quickAdd(page, "CI run ~", "CI run");
+    await quickAdd(page, "CI run", "CI run");
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),
@@ -43,14 +43,12 @@ test.describe("exporting the plan as JSON", () => {
     expect(byTitle["Draft the proposal"].status).toBe("in-progress");
     expect(byTitle["Review it"].status).toBe("todo");
     expect(byTitle["Review it"].depth).toBe(1);
-    expect(byTitle["CI run"].parallel).toBe(true);
 
     expect(doc.goals.map((g: { name: string }) => g.name)).toContain("deep-work");
     expect(doc.stats).toMatchObject({
       tasks: 3,
       dependencies: 1,
       byStatus: { "in-progress": 2, todo: 1, done: 0 },
-      parallel: 1,
     });
   });
 

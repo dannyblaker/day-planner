@@ -45,7 +45,6 @@ export interface PlanStats {
   dependencies: number;
   byStatus: Record<TaskStatus, number>;
   blocked: number;
-  parallel: number;
   /** deepest chain in the graph, in tasks */
   longestChain: number;
 }
@@ -111,7 +110,6 @@ export function planStats(plan: Plan): PlanStats {
     dependencies: dependencyEdges(plan.tasks).length,
     byStatus,
     blocked: plan.tasks.filter((t) => !!t.blocked).length,
-    parallel: plan.tasks.filter((t) => t.parallel).length,
     longestChain: views.reduce((n, t) => Math.max(n, t.depth + 1), 0),
   };
 }

@@ -115,12 +115,6 @@ export default function Home() {
         case "b":
           if (sel) s.toggleBlocked(sel);
           break;
-        case "p":
-          if (sel) {
-            const t = s.plan.tasks.find((t) => t.id === sel);
-            if (t) s.updateTask(sel, { parallel: !t.parallel });
-          }
-          break;
         case "1":
         case "2":
         case "3":

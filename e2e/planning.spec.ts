@@ -61,12 +61,16 @@ test.describe("the morning brain-dump", () => {
     await expect(flowNode(page, "Ship it").getByText(/waiting on legal/)).toBeVisible();
   });
 
-  test("marks background work concurrent on the one canvas", async ({ page }) => {
+  /**
+   * There is no concurrency mark any more, and `~` is a word. What runs at once
+   * is whatever is startable, which is a fact of the graph and not of a label.
+   */
+  test("puts unrelated work on the one canvas, unmarked and startable", async ({ page }) => {
     await quickAdd(page, "Focus work", "Focus work");
-    await quickAdd(page, "CI pipeline ~", "CI pipeline");
+    await quickAdd(page, "CI pipeline ~", "CI pipeline ~");
 
-    await expect(flowNode(page, "CI pipeline").getByTitle("concurrent")).toBeVisible();
-    await expect(flowNode(page, "Focus work").getByTitle("concurrent")).toHaveCount(0);
+    await expect(page.getByText("In progress · 2")).toBeVisible();
+    await expect(flowNode(page, "CI pipeline ~").getByTitle("concurrent")).toHaveCount(0);
   });
 });
 

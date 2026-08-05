@@ -45,10 +45,12 @@ describe("the canvas", () => {
     expect(node("Write report")).toBeInTheDocument();
   });
 
-  it("draws a single canvas, with no band divider", () => {
+  it("draws one canvas, with no lane for anything to fall into", () => {
     renderFlow([makeTask({ title: "Anything" })]);
     expect(screen.queryByText(/focus — one at a time/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/parallel \/ background/i)).not.toBeInTheDocument();
+    // the startable column is what runs at once; no task claims it alone
+    expect(screen.queryByTitle("concurrent")).not.toBeInTheDocument();
   });
 
   it("lays every node out on first render, without storing anything", () => {
@@ -79,10 +81,6 @@ describe("the canvas", () => {
     expect(screen.getByText(/waiting on legal/)).toBeInTheDocument();
   });
 
-  it("shows a concurrency mark on parallel tasks", () => {
-    renderFlow([makeTask({ title: "CI run", parallel: true })]);
-    expect(screen.getByTitle("concurrent")).toBeInTheDocument();
-  });
 });
 
 describe("interaction", () => {

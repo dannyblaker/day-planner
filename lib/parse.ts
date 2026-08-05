@@ -5,7 +5,6 @@ export interface ParsedTask {
   priority: Priority;
   goalName?: string;
   dependsOn: string[];
-  parallel: boolean;
   blocked: string | null;
   /** insert at front of the queue (do next) */
   urgent: boolean;
@@ -16,12 +15,14 @@ export interface ParsedTask {
  *   "Write report !1 #deepwork >design ~ ^"
  *   !1..!3    priority               #goal    goal (created if new)
  *   >title    depends on title prefix
- *   ~         background/parallel    *reason  blocked
+ *   *reason   blocked
  *   ^         do next (front of queue)
  *
- * Anything that isn't a token is title. There used to be a duration token here
- * (`45m`, `1h30`); a plan with no clock in it had no use for the number, so
- * `45m` is now four characters of a title like any other.
+ * Anything that isn't a token is title, and the retired tokens are the proof:
+ * there used to be a duration here (`45m`, `1h30`) and a `~` that marked a task
+ * as the concurrent one. A plan with no clock in it had no use for the number,
+ * and a board whose whole claim is that the startable column runs at once had no
+ * use for a flag saying which task that applied to. Both are ordinary words now.
  */
 export function parseQuickAdd(
   input: string,
@@ -32,7 +33,6 @@ export function parseQuickAdd(
     title: "",
     priority: 3,
     dependsOn: [],
-    parallel: false,
     blocked: null,
     urgent: false,
   };
@@ -62,10 +62,6 @@ export function parseQuickAdd(
         out.dependsOn.push(dep.id);
         continue;
       }
-    }
-    if (raw === "~") {
-      out.parallel = true;
-      continue;
     }
     if (raw.startsWith("*")) {
       out.blocked = raw.slice(1).replace(/-/g, " ") || "Blocked";

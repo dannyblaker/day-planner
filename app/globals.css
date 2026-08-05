@@ -328,12 +328,6 @@ body {
   color: var(--croc-tail-fill, var(--node-accent));
 }
 
-/* Concurrent work is dashed, as it always has been — now it is the outline of
-   the animal rather than the border of a box. */
-.croc-node.is-parallel .croc-shape {
-  stroke-dasharray: 5 3;
-}
-
 /* Selected: the outline goes lagoon and thickens. A ring would draw the box, and
    the box is not the shape any more. */
 .croc-node.is-selected .croc-shape {

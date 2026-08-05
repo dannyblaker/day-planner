@@ -19,7 +19,6 @@ describe("defaults", () => {
       title: "Write the report",
       priority: 3,
       dependsOn: [],
-      parallel: false,
       blocked: null,
       urgent: false,
     });
@@ -61,6 +60,16 @@ describe("priority", () => {
   /** P4 went the way of the duration token: what it wrote is now just text. */
   it("keeps !4 in the title, now that there is no P4", () => {
     expect(parse("Task !4")).toMatchObject({ priority: 3, title: "Task !4" });
+  });
+});
+
+/**
+ * `~` marked the one task that ran alongside the rest, on a board whose whole
+ * claim is that the startable column already does. It is a word now.
+ */
+describe("what used to mark concurrency", () => {
+  it("keeps ~ in the title", () => {
+    expect(parse("CI run ~").title).toBe("CI run ~");
   });
 });
 
@@ -107,10 +116,6 @@ describe("dependencies", () => {
 });
 
 describe("flags", () => {
-  it("marks parallel with ~", () => {
-    expect(parse("CI run ~")).toMatchObject({ parallel: true, title: "CI run" });
-  });
-
   it("marks urgent with ^", () => {
     expect(parse("Hotfix ^")).toMatchObject({ urgent: true, title: "Hotfix" });
   });
@@ -132,15 +137,14 @@ describe("combinations", () => {
       priority: 1,
       goalName: "deep-work",
       dependsOn: ["dep"],
-      parallel: false,
       blocked: null,
       urgent: true,
     });
   });
 
   it("does not care about token order", () => {
-    const a = parse("!1 #admin ~ Laundry");
-    const b = parse("Laundry ~ #admin !1");
+    const a = parse("!1 #admin ^ Laundry");
+    const b = parse("Laundry ^ #admin !1");
     expect(a).toEqual({ ...b, title: "Laundry" });
   });
 });

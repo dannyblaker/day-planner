@@ -12,7 +12,6 @@ const SHORTCUTS: [string, string][] = [
   ["d", "toggle done — dependents become in-progress"],
   ["b", "toggle blocked"],
   ["1 – 3", "set priority P1–P3 — the board re-sorts itself"],
-  ["p", "toggle concurrent (a crocodile that swims on its own)"],
   ["s", "auto-sort queue by priority"],
   ["x / Del", "delete selected task"],
   ["u / ⌘Z", "undo the last clear"],
@@ -34,7 +33,6 @@ const SYNTAX: [string, string][] = [
   ["!1 … !3", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
   [">design", "depends on task whose title starts with “design”"],
-  ["~", "concurrent / background task"],
   ["*waiting-on-bob", "blocked, with reason"],
   ["^", "front of the to-do queue"],
 ];
@@ -45,7 +43,6 @@ const ANATOMY: [string, string][] = [
   ["tail tip", "priority: P1 red, P2 amber, P3 blue"],
   ["eyes", "open while there is work left in it; shut when it's done"],
   ["teeth", "showing on the ones you can start right now"],
-  ["dashed outline", "concurrent — it swims on its own"],
   ["the ○ at its snout", "drag from there to say what waits on it"],
 ];
 
@@ -133,7 +130,7 @@ export default function HelpOverlay() {
         <p className="text-label text-slate-500 mb-2">
           Type a title plus any tokens, e.g.{" "}
           <code className="text-lagoon-300">
-            Fix login bug 1h !1 #deep-work &gt;deploy ~
+            Fix login bug !1 #deep-work &gt;deploy *waiting-on-bob
           </code>
         </p>
         <div className="grid grid-cols-2 gap-x-8 gap-y-1.5">

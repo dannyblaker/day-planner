@@ -91,7 +91,6 @@ export function normalizePlan(raw: unknown): Plan {
       ),
       blocked: typeof t.blocked === "string" ? t.blocked : null,
       done: t.done === true,
-      parallel: t.parallel === true ? true : undefined,
       order: num(t.order) ?? i + 1,
       createdAt: num(t.createdAt) ?? 0,
     }));
@@ -121,7 +120,6 @@ const WRITABLE = new Set([
   "dependsOn",
   "blocked",
   "done",
-  "parallel",
   "order",
   "createdAt",
 ]);
@@ -139,7 +137,7 @@ const DERIVED = new Set(["status", "depth", "dependents", "goalName"]);
  * document exported before one of them went away still round-trips through PUT
  * instead of failing on a field the app itself put there.
  */
-const RETIRED = new Set(["duration", "flowX", "flowY"]);
+const RETIRED = new Set(["duration", "flowX", "flowY", "parallel"]);
 
 export function asObject(v: unknown, label: string): Bag {
   if (!v || typeof v !== "object" || Array.isArray(v))
@@ -262,13 +260,6 @@ function coerceTask(
   if ("done" in bag) {
     if (typeof bag.done !== "boolean") p.add(`${label}: done must be true or false`);
     else t.done = bag.done;
-  }
-
-  if ("parallel" in bag) {
-    if (bag.parallel == null) t.parallel = undefined;
-    else if (typeof bag.parallel !== "boolean")
-      p.add(`${label}: parallel must be true or false`);
-    else t.parallel = bag.parallel;
   }
 
   for (const key of ["order", "createdAt"] as const) {
@@ -501,7 +492,6 @@ function addQuickTasks(plan: Plan, inputs: unknown[], p: Problems): Task[] {
       dependsOn: parsed.dependsOn,
       blocked: parsed.blocked,
       done: false,
-      parallel: parsed.parallel || undefined,
       order: parsed.urgent
         ? (orders.length ? Math.min(...orders) : 0) - 1
         : (orders.length ? Math.max(...orders) : 0) + 1,

@@ -370,9 +370,6 @@ export default function FlowCanvas({
               title={`${t.title} — ${STATUS_LABEL[status]}`}
               className={`group croc-node absolute z-10 select-none cursor-grab status-${status} ${
                 done ? "opacity-60" : ""
-              } ${
-                // dashed all round marks the concurrent lane, as it always has
-                t.parallel ? "is-parallel" : ""
               } ${selectedId === t.id ? "is-selected" : ""}`}
               style={{
                 left: p.x,
@@ -409,11 +406,6 @@ export default function FlowCanvas({
                     `empty:hidden` so a task with nothing to say drops the row
                     rather than leaving a gap under its title. */}
                 <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5 empty:hidden">
-                  {t.parallel && (
-                    <span className="shrink-0" title="concurrent">
-                      ∥
-                    </span>
-                  )}
                   {goal && (
                     <span
                       className="px-1 rounded-full truncate min-w-0"

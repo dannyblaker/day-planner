@@ -78,13 +78,13 @@ async function stored(): Promise<Plan> {
   return JSON.parse(await fs.readFile(path.join(tmp, "data", "plan.json"), "utf8"));
 }
 
-/** a → b → c, plus a background task, which is enough graph to ask questions of */
+/** a → b → c, plus one unrelated task: enough graph to ask questions of */
 function chain() {
   return makePlan([
     makeTask({ id: "a", title: "Draft", priority: 1, goalId: "g1", done: true }),
     makeTask({ id: "b", title: "Review", dependsOn: ["a"] }),
     makeTask({ id: "c", title: "Ship", dependsOn: ["b"] }),
-    makeTask({ id: "ci", title: "CI run", parallel: true }),
+    makeTask({ id: "ci", title: "CI run" }),
   ]);
 }
 
@@ -127,7 +127,6 @@ describe("GET /api/tasks", () => {
     const stats = (await json(await tasks.GET(req("/api/tasks")))).stats!;
     expect(stats.byStatus).toEqual({ "in-progress": 2, todo: 1, done: 1 });
     expect(stats.longestChain).toBe(3);
-    expect(stats.parallel).toBe(1);
   });
 
   it("filters by status, and leaves the rest of the plan described in full", async () => {
@@ -146,7 +145,6 @@ describe("GET /api/tasks", () => {
 
     expect(await matching("?goal=deep-work")).toEqual(["a"]);
     expect(await matching("?goal=none")).toEqual(["b", "c", "ci"]);
-    expect(await matching("?parallel=true")).toEqual(["ci"]);
     expect(await matching("?done=false&q=ship")).toEqual(["c"]);
     expect(await matching("?dependsOn=b")).toEqual(["c"]);
     expect(await matching("?blocking=b")).toEqual(["a"]);
@@ -189,10 +187,10 @@ describe("POST /api/tasks", () => {
   it("takes quick-add lines, with the tokens the app parses", async () => {
     const { tasks } = await routes();
     const res = await tasks.POST(
-      req("/api/tasks", "POST", { quickAdd: ["Write report !1 #writing ~"] })
+      req("/api/tasks", "POST", { quickAdd: ["Write report !1 #writing"] })
     );
     const [t] = rows(await json(res));
-    expect(t).toMatchObject({ title: "Write report", priority: 1, parallel: true });
+    expect(t).toMatchObject({ title: "Write report", priority: 1 });
     // the goal was created on the way through, as `#goal` does in the app
     expect((await stored()).goals.map((g) => g.name)).toContain("writing");
   });
@@ -224,6 +222,7 @@ describe("POST /api/tasks", () => {
         duration: 45,
         flowX: 300,
         flowY: 120,
+        parallel: true,
       })
     );
     expect(res.status).toBe(201);
@@ -231,6 +230,8 @@ describe("POST /api/tasks", () => {
     expect(t).not.toHaveProperty("duration");
     // canvas positions went the same way: the board arranges itself now
     expect(t).not.toHaveProperty("flowX");
+    // and so did the concurrency flag: the startable column is the answer
+    expect(t).not.toHaveProperty("parallel");
   });
 
   /** There were four priorities once. A P4 from back then comes in as a P3. */

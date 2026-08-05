@@ -31,8 +31,6 @@ export interface Task {
    * assert: to-do and in-progress fall out of the graph. See statusOf().
    */
   done: boolean;
-  /** background lane: runs concurrently with focus work (laundry, CI, waiting) */
-  parallel?: boolean;
   order: number;
   createdAt: number;
 }

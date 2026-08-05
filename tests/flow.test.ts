@@ -28,13 +28,13 @@ describe("layoutFlow", () => {
     );
   });
 
-  it("stacks concurrent work in with the rest — one canvas, no bands", () => {
+  it("spaces a column evenly, however many are in it", () => {
     const layout = layoutFlow([
       makeTask({ id: "f1", order: 1 }),
       makeTask({ id: "f2", order: 2 }),
-      makeTask({ id: "ci", order: 3, parallel: true }),
+      makeTask({ id: "f3", order: 3 }),
     ]);
-    const ys = ["f1", "f2", "ci"].map((id) => layout.get(id)!.y);
+    const ys = ["f1", "f2", "f3"].map((id) => layout.get(id)!.y);
     expect(ys).toEqual([...ys].sort((a, b) => a - b));
     expect(ys[2] - ys[1]).toBe(ys[1] - ys[0]);
   });

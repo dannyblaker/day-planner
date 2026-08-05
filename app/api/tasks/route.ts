@@ -45,7 +45,7 @@ function body(plan: Plan, tasks: TaskView[] = taskViews(plan.tasks)) {
 /**
  * Filters, all optional and all ANDed:
  *   ?status=in-progress,todo   ?goal=<id or name>   ?q=<title/notes substring>
- *   ?done=true   ?blocked=true   ?parallel=true   ?dependsOn=<id>   ?blocking=<id>
+ *   ?done=true   ?blocked=true   ?dependsOn=<id>   ?blocking=<id>
  */
 function filtered(plan: Plan, url: URL): TaskView[] {
   let views = taskViews(plan.tasks);
@@ -85,7 +85,6 @@ function filtered(plan: Plan, url: URL): TaskView[] {
   for (const [name, pick] of [
     ["done", (t: TaskView) => t.done],
     ["blocked", (t: TaskView) => !!t.blocked],
-    ["parallel", (t: TaskView) => !!t.parallel],
   ] as const) {
     const v = param(name);
     if (v === null) continue;

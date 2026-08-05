@@ -40,10 +40,7 @@ function defaultPlan(): Plan {
         },
         2
       ),
-      mk(
-        { title: "CI pipeline run (background)", parallel: true, priority: 3 },
-        3
-      ),
+      mk({ title: "CI pipeline run", priority: 3 }, 3),
       mk(
         {
           title: "Press ? for shortcuts — try adding a task with N",
@@ -172,7 +169,6 @@ export const useApp = create<AppState>()(
           dependsOn: parsed.dependsOn,
           blocked: parsed.blocked,
           done: false,
-          parallel: parsed.parallel,
           order,
           createdAt: Date.now(),
         });

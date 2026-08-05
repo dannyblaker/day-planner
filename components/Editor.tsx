@@ -133,18 +133,6 @@ export default function Editor() {
         </select>
       </div>
 
-      <div className="flex gap-3">
-        <label className="flex items-center gap-1.5 text-label text-slate-300 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={!!task.parallel}
-            onChange={(e) => updateTask(task.id, { parallel: e.target.checked })}
-            className="accent-lagoon-500"
-          />
-          ∥ runs in parallel
-        </label>
-      </div>
-
       <div>
         <label className={label}>Blocked</label>
         <input

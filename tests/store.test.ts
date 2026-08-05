@@ -61,12 +61,11 @@ describe("quickAdd", () => {
     expect(task(id)!.goalId).toBe(goal!.id);
   });
 
-  it("carries dependencies, parallel and blocked through from the parser", () => {
+  it("carries dependencies and blockers through from the parser", () => {
     const base = app().quickAdd("Design the thing")!;
-    const id = app().quickAdd("Build it >design ~ *waiting-on-review")!;
+    const id = app().quickAdd("Build it >design *waiting-on-review")!;
     expect(task(id)).toMatchObject({
       dependsOn: [base],
-      parallel: true,
       blocked: "waiting on review",
     });
   });

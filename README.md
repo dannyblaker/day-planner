@@ -15,8 +15,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **Urgency is inherited** — a P1 five prerequisites deep drags the whole chain up with it, because a prerequisite of urgent work is urgent whatever its own label says. Raise a task's priority and you watch the work it is waiting on rise with it.
 - **Grow the graph forwards** — an arrow that ends on nothing is a task you haven't named yet, so drag a ○ into empty space and it asks for the title, then draws the arrow to what you type. Clicking the ○ does the same beside the node, and `a` does it for whatever is selected — chains get built without leaving the keyboard.
 - **Three statuses, derived** — *In progress* (every prerequisite done — startable now), *To do* (waiting on a prerequisite, or blocked), *Done* (the one part you set). Nodes and list rows are coloured by status: murky green waiting, gold startable, green finished.
-- **A task is a crocodile** — not a card with a crocodile on it: the node *is* the animal, seen from above and built out of right angles, and every part of it says something. Its colour is its status, its tail is its priority, its outline goes dashed when the work is concurrent, its eyes are open while there is anything left in it and shut when it's done, and its jaws show teeth on the ones you can start right now. Its back is the card, and it is card-sized: as many tasks on screen as the plain rectangles it replaced. Press `?` for the legend.
-- **Concurrent work** — mark a task `~` (or press `p`) and it runs alongside your focus work (CI runs, laundry, waiting on someone). It stays on the one canvas, drawn with a dashed border and a ∥ mark, and sorted in with everything else — a mark on the animal, not a lane to fall into.
+- **A task is a crocodile** — not a card with a crocodile on it: the node *is* the animal, seen from above and built out of right angles, and every part of it says something. Its colour is its status, its tail is its priority, its eyes are open while there is anything left in it and shut when it's done, and its jaws show teeth on the ones you can start right now. Its back is the card, and it is card-sized: as many tasks on screen as the plain rectangles it replaced. Press `?` for the legend.
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
 - **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
 - **Prioritisation** — P1, P2, P3, one key each, worn on the crocodile's tail. There were four levels once; P4 was where work went to be forgotten politely, and on a board that sorts itself by priority a level meaning "never" is just a longer canvas. Priority also sorts the to-do queue, on `s`.
@@ -69,7 +68,7 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 ## The planning flow
 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
-2. Add tokens as you type: `Write report !1 #deep-work`, `CI run ~`.
+2. Add tokens as you type: `Write report !1 #deep-work`, `Ship it *waiting-on-legal`.
 3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before — or into empty space, and name the task that follows it there.
 4. Watch it lay itself out. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
 5. Set priorities with `1`–`3`. What matters rises to the top of the board, and whatever it is waiting on rises with it.
@@ -105,7 +104,7 @@ The document carries each task twice over: `dependsOn`/`dependents` on the task,
 | `GET·PATCH·PUT·DELETE /api/tasks/{id}` | one task (`PUT` also clears what you leave out) |
 | `GET·POST·PUT·DELETE /api/tasks/{id}/dependencies` | the edges into and out of one task |
 
-Filters on `GET`, all optional and all ANDed: `?status=in-progress,todo` · `?goal=deep-work` (or `?goal=none`) · `?q=text` · `?done=` · `?blocked=` · `?parallel=` · `?dependsOn={id}` · `?blocking={id}`. They narrow `tasks`; the goals, edges and totals always describe the whole plan.
+Filters on `GET`, all optional and all ANDed: `?status=in-progress,todo` · `?goal=deep-work` (or `?goal=none`) · `?q=text` · `?done=` · `?blocked=` · `?dependsOn={id}` · `?blocking={id}`. They narrow `tasks`; the goals, edges and totals always describe the whole plan.
 
 ```bash
 # what can I start right now?
@@ -145,7 +144,7 @@ $EDITOR plan.json
 curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @plan.json
 ```
 
-`PUT /api/tasks` (or `POST /api/batch` with a `tasks` key) treats the list as complete: ids it knows are updated, ids it doesn't are created, and **anything missing is deleted**. Derived fields are ignored on the way in, so what `GET` handed you goes straight back — and so are fields the plan has since retired (`duration`, and the `flowX`/`flowY` from when the board had to be arranged by hand), so a document exported by an older build still round-trips. A `priority` of 4 is likewise taken and stored as a 3, since P4 was a level this app itself used to write.
+`PUT /api/tasks` (or `POST /api/batch` with a `tasks` key) treats the list as complete: ids it knows are updated, ids it doesn't are created, and **anything missing is deleted**. Derived fields are ignored on the way in, so what `GET` handed you goes straight back — and so are fields the plan has since retired (`duration`, `parallel`, and the `flowX`/`flowY` from when the board had to be arranged by hand), so a document exported by an older build still round-trips. A `priority` of 4 is likewise taken and stored as a 3, since P4 was a level this app itself used to write.
 
 ### Goals, import
 
@@ -171,7 +170,6 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `d` | toggle done — dependents become in-progress |
 | `b` | toggle blocked |
 | `1`–`3` | set priority — the board re-sorts itself |
-| `p` | toggle concurrent / background |
 | `s` | auto-sort by priority |
 | `x` / `Del` | delete |
 | `u` / `⌘Z` | undo the last clear |
@@ -191,7 +189,6 @@ Fix login bug !1 #deep-work >deploy ~ *waiting-on-bob ^
 | `!1`…`!3` | priority |
 | `#goal` | goal (created if new) |
 | `>title` | depends on task whose title starts with… |
-| `~` | concurrent / background |
 | `*reason` | blocked |
 | `^` | front of the to-do queue |
 
