@@ -10,7 +10,6 @@ export interface Plan {
 interface Task {
   id: string;
   title: string;
-  duration: number;
   priority: number;
   done: boolean;
   order: number;

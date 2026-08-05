@@ -6,9 +6,9 @@ const selected = (page: import("@playwright/test").Page) =>
 test.beforeEach(async ({ page }) => {
   await page.goto("/");
   await expect(page.getByRole("heading", { name: "Concurrent Crocodiles" })).toBeVisible();
-  await quickAdd(page, "First job 30m", "First job");
-  await quickAdd(page, "Second job 30m", "Second job");
-  await quickAdd(page, "Third job 30m", "Third job");
+  await quickAdd(page, "First job", "First job");
+  await quickAdd(page, "Second job", "Second job");
+  await quickAdd(page, "Third job", "Third job");
   // adding a task selects it — start each test from a clean slate instead
   await page.getByRole("heading", { name: "Concurrent Crocodiles" }).click();
   await page.keyboard.press("Escape");
@@ -43,15 +43,13 @@ test("reorders the queue with shift+J and shift+K", async ({ page, planServer })
   expect(order).toEqual(["Second job", "First job", "Third job"]);
 });
 
-test("changes priority and duration on the selected task", async ({ page, planServer }) => {
+test("changes priority on the selected task", async ({ page, planServer }) => {
   await page.keyboard.press("j");
   await page.keyboard.press("1");
-  await page.keyboard.press("+");
   await planServer.settled();
 
   const first = planServer.tasks().find((t) => t.title === "First job")!;
   expect(first.priority).toBe(1);
-  expect(first.duration).toBe(45);
 });
 
 test("sorts the queue by priority with s", async ({ page, planServer }) => {

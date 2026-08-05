@@ -127,14 +127,6 @@ export default function Home() {
         case "4":
           if (sel) s.setPriority(sel, parseInt(e.key) as 1 | 2 | 3 | 4);
           break;
-        case "+":
-        case "=":
-          if (sel) s.adjustDuration(sel, 15);
-          break;
-        case "-":
-        case "_":
-          if (sel) s.adjustDuration(sel, -15);
-          break;
         case "s":
           s.autoSort();
           break;

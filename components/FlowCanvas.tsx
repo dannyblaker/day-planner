@@ -2,7 +2,6 @@
 
 import { FlowPos, arrangeByDepth } from "@/lib/flow";
 import { statuses } from "@/lib/graph";
-import { fmtDur } from "@/lib/format";
 import {
   DONE_COLOR,
   FLOW,
@@ -427,9 +426,10 @@ export default function FlowCanvas({
                   {t.title}
                 </div>
                 {/* one line, goal included: a crocodile's back is only so long,
-                    and a third row of small print runs off the end of it */}
-                <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5">
-                  <span className="shrink-0">{fmtDur(t.duration)}</span>
+                    and a third row of small print runs off the end of it.
+                    `empty:hidden` so a task with nothing to say drops the row
+                    rather than leaving a gap under its title. */}
+                <div className="text-note text-slate-400 flex gap-1.5 items-center mt-0.5 empty:hidden">
                   {t.parallel && (
                     <span className="shrink-0" title="concurrent">
                       ∥
@@ -527,7 +527,7 @@ export default function FlowCanvas({
             placeholder={
               pendingSource
                 ? `New task after “${pendingSource.title}”…`
-                : "New task…  45m !1 #goal"
+                : "New task…  !1 #goal"
             }
             className="absolute z-40 w-60 bg-slate-800 border border-lagoon-500 outline-none rounded-md px-2.5 py-1.5 text-label text-slate-200 placeholder:text-slate-600 shadow-xl"
             style={{ left: creating.pos.x, top: creating.pos.y }}

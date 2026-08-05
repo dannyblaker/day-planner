@@ -5,9 +5,9 @@ const clearControl = (page: import("@playwright/test").Page) =>
   page.getByTitle(/drop the finished tasks/);
 
 async function twoDoneOneLeft(page: import("@playwright/test").Page) {
-  await quickAdd(page, "Finished one 30m", "Finished one");
-  await quickAdd(page, "Finished two 30m", "Finished two");
-  await quickAdd(page, "Still going 30m", "Still going");
+  await quickAdd(page, "Finished one", "Finished one");
+  await quickAdd(page, "Finished two", "Finished two");
+  await quickAdd(page, "Still going", "Still going");
   for (const title of ["Finished one", "Finished two"]) {
     await row(page, title).hover();
     await row(page, title).getByRole("button", { name: /done/i }).click();
@@ -67,7 +67,7 @@ test("restores dependency links that pointed at the cleared work", async ({
 }) => {
   // >finished matches the first task whose title starts with it; a second word
   // would be read as part of this task's own title
-  await quickAdd(page, "Depends on it 20m >finished", "Depends on it");
+  await quickAdd(page, "Depends on it >finished", "Depends on it");
   await planServer.settled();
   expect(planServer.tasks().find((t) => t.title === "Depends on it")!.dependsOn).toHaveLength(1);
 
@@ -82,7 +82,7 @@ test("restores dependency links that pointed at the cleared work", async ({
 
 test("keeps work added while the undo offer was up", async ({ page, planServer }) => {
   await clearControl(page).click();
-  await quickAdd(page, "Typed during the window 15m", "Typed during the window");
+  await quickAdd(page, "Typed during the window", "Typed during the window");
   await undoBar(page).getByRole("button", { name: /undo/i }).click();
 
   await planServer.settled();

@@ -22,15 +22,15 @@ beforeEach(() => {
 });
 
 describe("the canvas", () => {
-  it("draws a node per task, with its duration", () => {
+  it("draws a node per task", () => {
     renderFlow(
       [
-        makeTask({ id: "a", title: "Write report", duration: 60 }),
-        makeTask({ id: "b", title: "Review PRs", duration: 30 }),
+        makeTask({ id: "a", title: "Write report" }),
+        makeTask({ id: "b", title: "Review PRs" }),
       ]
     );
     expect(screen.getAllByText(/Write report|Review PRs/)).toHaveLength(2);
-    expect(within(node("Write report")).getByText("1h")).toBeInTheDocument();
+    expect(node("Write report")).toBeInTheDocument();
   });
 
   it("draws a single canvas, with no band divider", () => {
@@ -57,7 +57,7 @@ describe("the canvas", () => {
 
   it("marks blocked work on the node", () => {
     renderFlow(
-      [makeTask({ title: "Ship it", blocked: "waiting on legal", duration: 30 })]
+      [makeTask({ title: "Ship it", blocked: "waiting on legal" })]
     );
     expect(screen.getByText(/waiting on legal/)).toBeInTheDocument();
   });
@@ -142,10 +142,10 @@ describe("growing the graph forwards", () => {
       expect.stringContaining("First")
     );
 
-    await user.type(createInput(), "Second job 45m{Enter}");
+    await user.type(createInput(), "Second job !1{Enter}");
     const created = planTasks().find((t) => t.title === "Second job")!;
     expect(created.dependsOn).toEqual(["a"]);
-    expect(created.duration).toBe(45);
+    expect(created.priority).toBe(1);
   });
 
   it("puts the new task to the right of the one it waits on", async () => {

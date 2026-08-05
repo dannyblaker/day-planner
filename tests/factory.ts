@@ -12,7 +12,6 @@ export function makeTask(partial: Partial<Task> = {}): Task {
   return {
     id: `t${seq}`,
     title: `Task ${seq}`,
-    duration: 30,
     priority: 3,
     dependsOn: [],
     done: false,

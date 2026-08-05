@@ -82,10 +82,9 @@ describe("QuickAdd", () => {
     const user = userEvent.setup();
     render(<QuickAdd />);
     const input = screen.getByPlaceholderText(/Add task/);
-    await user.type(input, "Write report 45m !1{Enter}");
+    await user.type(input, "Write report !1{Enter}");
     expect(planTasks()[0]).toMatchObject({
       title: "Write report",
-      duration: 45,
       priority: 1,
     });
     expect(input).toHaveValue("");
@@ -142,7 +141,7 @@ describe("Editor", () => {
     expect(screen.queryByText("Edit task")).not.toBeInTheDocument();
   });
 
-  it("edits the title and duration", async () => {
+  it("edits the title", async () => {
     const user = userEvent.setup();
     openEditorOn([makeTask({ id: "a", title: "Old" })], "a");
     const title = screen.getByDisplayValue("Old");
@@ -207,16 +206,17 @@ describe("Editor", () => {
 });
 
 describe("GoalsPanel", () => {
-  it("shows work done against work planned per goal", () => {
+  it("counts tasks done against tasks mapped, per goal", () => {
     seedStore(
       [
-        makeTask({ goalId: "g1", duration: 60, done: true }),
-        makeTask({ goalId: "g1", duration: 30 }),
+        makeTask({ goalId: "g1", done: true }),
+        makeTask({ goalId: "g1" }),
+        makeTask({ goalId: "g1" }),
       ]
     );
     render(<GoalsPanel />);
     expect(screen.getByText("deep-work")).toBeInTheDocument();
-    expect(screen.getByText("1h / 1h 30m")).toBeInTheDocument();
+    expect(screen.getByText("1 / 3")).toBeInTheDocument();
   });
 
   it("counts tasks with no goal", () => {

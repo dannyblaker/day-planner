@@ -11,7 +11,7 @@ const ENDPOINTS = [
   { method: "GET", path: "/api/export", note: "the whole plan as JSON — ?download=1, ?pretty=0, ?format=plan" },
   { method: "POST", path: "/api/import", note: "take a document back in — ?mode=replace|merge" },
   { method: "GET", path: "/api/tasks", note: "list tasks with derived status — ?status= ?goal= ?q= ?done= ?blocked= ?parallel= ?dependsOn= ?blocking=" },
-  { method: "POST", path: "/api/tasks", note: "create a task, { tasks: [...] }, or { quickAdd: ['Write report 45m !1'] }" },
+  { method: "POST", path: "/api/tasks", note: "create a task, { tasks: [...] }, or { quickAdd: ['Write report !1'] }" },
   { method: "PATCH", path: "/api/tasks", note: "update many: { tasks: [{ id, ...patch }] }" },
   { method: "PUT", path: "/api/tasks", note: "replace the whole list — anything left out is deleted" },
   { method: "DELETE", path: "/api/tasks", note: "?ids=a,b or ?done=true" },

@@ -99,11 +99,9 @@ describe("sections", () => {
 });
 
 describe("row detail", () => {
-  it("shows duration and the goal chip", () => {
-    renderList([makeTask({ title: "Write report", duration: 45, goalId: "g1" })]);
-    const r = row("Write report");
-    expect(within(r).getByText("45m")).toBeInTheDocument();
-    expect(within(r).getByText("deep-work")).toBeInTheDocument();
+  it("shows the goal chip", () => {
+    renderList([makeTask({ title: "Write report", goalId: "g1" })]);
+    expect(within(row("Write report")).getByText("deep-work")).toBeInTheDocument();
   });
 
   it("flags a blocked task with its reason", () => {

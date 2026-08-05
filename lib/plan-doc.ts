@@ -37,8 +37,6 @@ export interface Edge {
 export interface GoalView extends Goal {
   taskCount: number;
   doneCount: number;
-  plannedMinutes: number;
-  doneMinutes: number;
 }
 
 export interface PlanStats {
@@ -48,8 +46,6 @@ export interface PlanStats {
   byStatus: Record<TaskStatus, number>;
   blocked: number;
   parallel: number;
-  plannedMinutes: number;
-  doneMinutes: number;
   /** deepest chain in the graph, in tasks */
   longestChain: number;
 }
@@ -97,8 +93,6 @@ export function goalViews(plan: Plan): GoalView[] {
       ...g,
       taskCount: mine.length,
       doneCount: done.length,
-      plannedMinutes: mine.reduce((n, t) => n + t.duration, 0),
-      doneMinutes: done.reduce((n, t) => n + t.duration, 0),
     };
   });
 }
@@ -118,8 +112,6 @@ export function planStats(plan: Plan): PlanStats {
     byStatus,
     blocked: plan.tasks.filter((t) => !!t.blocked).length,
     parallel: plan.tasks.filter((t) => t.parallel).length,
-    plannedMinutes: plan.tasks.reduce((n, t) => n + t.duration, 0),
-    doneMinutes: plan.tasks.filter((t) => t.done).reduce((n, t) => n + t.duration, 0),
     longestChain: views.reduce((n, t) => Math.max(n, t.depth + 1), 0),
   };
 }

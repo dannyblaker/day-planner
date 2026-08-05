@@ -7,12 +7,12 @@ test.beforeEach(async ({ page }) => {
 
 test.describe("the morning brain-dump", () => {
   test("adds tasks to the list and the canvas at once", async ({ page, planServer }) => {
-    await quickAdd(page, "Draft the proposal 1h !1 #deep-work", "Draft the proposal");
-    await quickAdd(page, "Review PRs 45m !2", "Review PRs");
+    await quickAdd(page, "Draft the proposal !1 #deep-work", "Draft the proposal");
+    await quickAdd(page, "Review PRs !2", "Review PRs");
 
     await expect(page.getByText("In progress · 2")).toBeVisible();
     await expect(flowNode(page, "Draft the proposal")).toBeVisible();
-    await expect(flowNode(page, "Draft the proposal").getByText("1h")).toBeVisible();
+    await expect(flowNode(page, "Draft the proposal").getByText("deep-work")).toBeVisible();
     await expect(row(page, "Draft the proposal").getByText("deep-work")).toBeVisible();
 
     await planServer.settled();
@@ -33,8 +33,8 @@ test.describe("the morning brain-dump", () => {
   });
 
   test("puts an urgent task at the front of the queue", async ({ page, planServer }) => {
-    await quickAdd(page, "Normal work 30m", "Normal work");
-    await quickAdd(page, "Hotfix 20m ^", "Hotfix");
+    await quickAdd(page, "Normal work", "Normal work");
+    await quickAdd(page, "Hotfix ^", "Hotfix");
     await planServer.settled();
 
     const order = planServer
@@ -45,8 +45,8 @@ test.describe("the morning brain-dump", () => {
   });
 
   test("links a dependent task to its prerequisite", async ({ page }) => {
-    await quickAdd(page, "Design it 1h", "Design it");
-    await quickAdd(page, "Build it 30m >design", "Build it");
+    await quickAdd(page, "Design it", "Design it");
+    await quickAdd(page, "Build it >design", "Build it");
 
     await expect(row(page, "Build it").getByTitle("has dependencies")).toHaveText(/1/);
     // an arrow on the canvas, drawn from the prerequisite to the dependent
@@ -55,15 +55,15 @@ test.describe("the morning brain-dump", () => {
   });
 
   test("holds a blocked task at to-do, flagged on the canvas", async ({ page }) => {
-    await quickAdd(page, "Ship it 20m *waiting-on-legal", "Ship it");
+    await quickAdd(page, "Ship it *waiting-on-legal", "Ship it");
     await expect(page.getByText("To do · 1")).toBeVisible();
     await expect(page.getByText(/waiting on legal/).first()).toBeVisible();
     await expect(flowNode(page, "Ship it").getByText(/waiting on legal/)).toBeVisible();
   });
 
   test("marks background work concurrent on the one canvas", async ({ page }) => {
-    await quickAdd(page, "Focus work 1h", "Focus work");
-    await quickAdd(page, "CI pipeline 45m ~", "CI pipeline");
+    await quickAdd(page, "Focus work", "Focus work");
+    await quickAdd(page, "CI pipeline ~", "CI pipeline");
 
     await expect(flowNode(page, "CI pipeline").getByTitle("concurrent")).toBeVisible();
     await expect(flowNode(page, "Focus work").getByTitle("concurrent")).toHaveCount(0);
@@ -72,7 +72,7 @@ test.describe("the morning brain-dump", () => {
 
 test.describe("marking work done", () => {
   test.beforeEach(async ({ page }) => {
-    await quickAdd(page, "Write the report 30m", "Write the report");
+    await quickAdd(page, "Write the report", "Write the report");
   });
 
   test("from the sidebar row", async ({ page, planServer }) => {
@@ -109,7 +109,7 @@ test.describe("marking work done", () => {
 
 test.describe("the flowchart", () => {
   test("drags a node without tripping its done button", async ({ page, planServer }) => {
-    await quickAdd(page, "Write the report 30m", "Write the report");
+    await quickAdd(page, "Write the report", "Write the report");
     await page.locator("body").click();
 
     const node = flowNode(page, "Write the report");
@@ -127,8 +127,8 @@ test.describe("the flowchart", () => {
   });
 
   test("draws and removes a dependency arrow", async ({ page, planServer }) => {
-    await quickAdd(page, "First job 30m", "First job");
-    await quickAdd(page, "Second job 30m", "Second job");
+    await quickAdd(page, "First job", "First job");
+    await quickAdd(page, "Second job", "Second job");
     await page.locator("body").click();
 
     const source = flowNode(page, "First job");
@@ -159,7 +159,7 @@ test.describe("the flowchart", () => {
     page,
     planServer,
   }) => {
-    await quickAdd(page, "First job 30m", "First job");
+    await quickAdd(page, "First job", "First job");
     await page.locator("body").click();
 
     const source = flowNode(page, "First job");
@@ -172,7 +172,7 @@ test.describe("the flowchart", () => {
     await page.mouse.up();
 
     // nothing exists yet — the arrow is waiting on a title
-    await page.getByPlaceholder(/New task/).fill("Second job 20m");
+    await page.getByPlaceholder(/New task/).fill("Second job");
     await page.getByPlaceholder(/New task/).press("Enter");
 
     await expect(flowNode(page, "Second job")).toBeVisible();
@@ -185,17 +185,17 @@ test.describe("the flowchart", () => {
   });
 
   test("creates a dependent task from the keyboard with a", async ({ page, planServer }) => {
-    await quickAdd(page, "First job 30m", "First job");
+    await quickAdd(page, "First job", "First job");
     await page.locator("body").click();
     await page.keyboard.press("j");
     await page.keyboard.press("a");
 
-    await page.getByPlaceholder(/New task/).fill("Second job 20m");
+    await page.getByPlaceholder(/New task/).fill("Second job");
     await page.getByPlaceholder(/New task/).press("Enter");
 
     // the new task is selected, so a again chains a third off the second
     await page.keyboard.press("a");
-    await page.getByPlaceholder(/New task/).fill("Third job 20m");
+    await page.getByPlaceholder(/New task/).fill("Third job");
     await page.getByPlaceholder(/New task/).press("Enter");
 
     await planServer.settled();
@@ -209,7 +209,7 @@ test.describe("the flowchart", () => {
   });
 
   test("opens the editor beside the canvas, not off-screen", async ({ page }) => {
-    await quickAdd(page, "Write the report 30m", "Write the report");
+    await quickAdd(page, "Write the report", "Write the report");
     await page.locator("body").click();
 
     await flowNode(page, "Write the report").dblclick();
@@ -220,7 +220,7 @@ test.describe("the flowchart", () => {
 
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {
     await page.locator(".cursor-grab").first().dblclick({ position: { x: 400, y: 300 } });
-    await page.getByPlaceholder(/New task/).fill("Made on the canvas 25m");
+    await page.getByPlaceholder(/New task/).fill("Made on the canvas");
     await page.getByPlaceholder(/New task/).press("Enter");
 
     await expect(flowNode(page, "Made on the canvas")).toBeVisible();

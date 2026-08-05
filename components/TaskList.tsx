@@ -2,7 +2,6 @@
 
 import { statuses } from "@/lib/graph";
 import { useApp } from "@/lib/store";
-import { fmtDur } from "@/lib/format";
 import {
   Goal,
   PRIORITY_COLOR,
@@ -73,8 +72,7 @@ function Row({
         >
           {task.title}
         </div>
-        <div className="text-note text-slate-500 flex gap-1.5 items-center flex-wrap">
-          <span>{fmtDur(task.duration)}</span>
+        <div className="text-note text-slate-500 flex gap-1.5 items-center flex-wrap empty:hidden">
           {task.parallel && <span title="runs in parallel">∥</span>}
           {task.dependsOn.length > 0 && (
             <span title="has dependencies">⛓ {task.dependsOn.length}</span>

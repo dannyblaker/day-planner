@@ -84,7 +84,6 @@ export function normalizePlan(raw: unknown): Plan {
       id: typeof t.id === "string" ? t.id : newId(),
       title: typeof t.title === "string" ? t.title : "",
       notes: typeof t.notes === "string" ? t.notes : undefined,
-      duration: num(t.duration) ?? 30,
       priority: (num(t.priority) ?? 3) as Priority,
       goalId: typeof t.goalId === "string" ? t.goalId : null,
       dependsOn: (Array.isArray(t.dependsOn) ? t.dependsOn : []).filter(
@@ -118,7 +117,6 @@ const WRITABLE = new Set([
   "id",
   "title",
   "notes",
-  "duration",
   "priority",
   "goalId",
   "goal",
@@ -140,8 +138,12 @@ const WRITABLE = new Set([
  */
 const DERIVED = new Set(["status", "depth", "dependents", "goalName"]);
 
-/** minutes; a week, which is far past anything a single task should claim */
-const MAX_DURATION = 10_080;
+/**
+ * Fields the plan used to have. Accepted and dropped rather than refused, so a
+ * document exported before one of them went away still round-trips through PUT
+ * instead of failing on a field the app itself put there.
+ */
+const RETIRED = new Set(["duration"]);
 
 export function asObject(v: unknown, label: string): Bag {
   if (!v || typeof v !== "object" || Array.isArray(v))
@@ -179,7 +181,7 @@ function coerceTask(
 ): Task {
   const bag = asObject(input, label);
   for (const key of Object.keys(bag))
-    if (!WRITABLE.has(key) && !DERIVED.has(key))
+    if (!WRITABLE.has(key) && !DERIVED.has(key) && !RETIRED.has(key))
       p.add(`${label}: unknown field "${key}"`);
 
   const t: Task = base
@@ -187,7 +189,6 @@ function coerceTask(
     : {
         id: newId(),
         title: "",
-        duration: 30,
         priority: 3,
         goalId: null,
         dependsOn: [],
@@ -210,13 +211,6 @@ function coerceTask(
     if (bag.notes == null) t.notes = undefined;
     else if (typeof bag.notes !== "string") p.add(`${label}: notes must be a string`);
     else t.notes = bag.notes;
-  }
-
-  if ("duration" in bag) {
-    const d = num(bag.duration);
-    if (d == null || d < 0 || d > MAX_DURATION)
-      p.add(`${label}: duration must be minutes between 0 and ${MAX_DURATION}`);
-    else t.duration = Math.round(d);
   }
 
   if ("priority" in bag) {
@@ -514,7 +508,6 @@ function addQuickTasks(plan: Plan, inputs: unknown[], p: Problems): Task[] {
     const task: Task = {
       id: newId(),
       title: parsed.title,
-      duration: parsed.duration,
       priority: parsed.priority,
       goalId,
       dependsOn: parsed.dependsOn,
@@ -563,7 +556,7 @@ export function editDependencies(
 
 const GOAL_FIELDS = new Set(["id", "name", "color"]);
 /** counted from the tasks, so handed out but not taken back — see DERIVED */
-const GOAL_DERIVED = new Set(["taskCount", "doneCount", "plannedMinutes", "doneMinutes"]);
+const GOAL_DERIVED = new Set(["taskCount", "doneCount"]);
 
 function coerceGoal(input: unknown, base: Goal | null, plan: Plan, p: Problems, label: string): Goal {
   const bag = asObject(input, label);

@@ -14,10 +14,9 @@ const parse = (input: string, tasks = [] as ReturnType<typeof makeTask>[]) =>
 beforeEach(resetFactory);
 
 describe("defaults", () => {
-  it("is 30 minutes at P3 with no tokens", () => {
+  it("is P3 and nothing else with no tokens", () => {
     expect(parse("Write the report")).toMatchObject({
       title: "Write the report",
-      duration: 30,
       priority: 3,
       dependsOn: [],
       parallel: false,
@@ -31,38 +30,21 @@ describe("defaults", () => {
   });
 
   it("returns an empty title when the input is only tokens", () => {
-    expect(parse("45m !1").title).toBe("");
+    expect(parse("#deep-work !1").title).toBe("");
   });
 });
 
-describe("duration", () => {
-  it.each([
-    ["45m", 45],
-    ["45min", 45],
-    ["2h", 120],
-    ["2hr", 120],
-    ["1h30", 90],
-    ["1h30m", 90],
-    ["0.5h", 30],
-    ["1.5h", 90],
-  ])("reads %s as %d minutes", (token, expected) => {
-    expect(parse(`Task ${token}`).duration).toBe(expected);
-  });
+/** There is no duration any more, so the tokens that used to mean one are words. */
+describe("what used to be a duration", () => {
+  it.each(["45m", "45min", "2h", "2hr", "1h30", "1h30m", "0.5h"])(
+    "keeps %s in the title",
+    (token) => {
+      expect(parse(`Task ${token}`).title).toBe(`Task ${token}`);
+    }
+  );
 
-  it("floors at 5 minutes", () => {
-    expect(parse("Task 1m").duration).toBe(5);
-    expect(parse("Task 0m").duration).toBe(5);
-  });
-
-  it("keeps the last duration when several are given", () => {
-    expect(parse("Task 45m 2h").duration).toBe(120);
-  });
-
-  it("leaves a bare number in the title", () => {
-    expect(parse("Review 5 PRs")).toMatchObject({
-      title: "Review 5 PRs",
-      duration: 30,
-    });
+  it("leaves a bare number in the title too", () => {
+    expect(parse("Review 5 PRs").title).toBe("Review 5 PRs");
   });
 });
 
@@ -140,9 +122,8 @@ describe("flags", () => {
 describe("combinations", () => {
   it("parses the documented example", () => {
     const deploy = makeTask({ id: "dep", title: "Deploy pipeline" });
-    expect(parse("Fix login bug 1h !1 #deep-work >deploy ^", [deploy])).toEqual({
+    expect(parse("Fix login bug !1 #deep-work >deploy ^", [deploy])).toEqual({
       title: "Fix login bug",
-      duration: 60,
       priority: 1,
       goalName: "deep-work",
       dependsOn: ["dep"],
@@ -153,8 +134,8 @@ describe("combinations", () => {
   });
 
   it("does not care about token order", () => {
-    const a = parse("!1 45m #admin ~ Laundry");
-    const b = parse("Laundry ~ #admin 45m !1");
+    const a = parse("!1 #admin ~ Laundry");
+    const b = parse("Laundry ~ #admin !1");
     expect(a).toEqual({ ...b, title: "Laundry" });
   });
 });

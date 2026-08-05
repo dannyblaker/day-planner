@@ -1,7 +1,6 @@
 "use client";
 
 import { useApp } from "@/lib/store";
-import { fmtDur } from "@/lib/format";
 import { useState } from "react";
 
 export default function GoalsPanel() {
@@ -10,22 +9,26 @@ export default function GoalsPanel() {
   const { addGoal, deleteGoal } = useApp();
   const [name, setName] = useState("");
 
+  // Counted in tasks. It used to be counted in minutes, which was the only place
+  // in the app that pretended to know how long anything takes.
   const stats = goals.map((g) => {
     const mine = tasks.filter((t) => t.goalId === g.id);
-    const planned = mine.reduce((sum, t) => sum + t.duration, 0);
-    const done = mine.filter((t) => t.done).reduce((sum, t) => sum + t.duration, 0);
-    return { goal: g, planned, done, count: mine.length };
+    return {
+      goal: g,
+      count: mine.length,
+      done: mine.filter((t) => t.done).length,
+    };
   });
   const unmapped = tasks.filter((t) => !t.goalId && !t.done).length;
-  const max = Math.max(...stats.map((s) => s.planned), 1);
+  const max = Math.max(...stats.map((s) => s.count), 1);
 
   return (
     <div>
       <h3 className="text-note uppercase tracking-wider text-slate-500 px-2 mb-1.5">
-        Goals — work mapped, done vs. planned
+        Goals — tasks mapped, done vs. planned
       </h3>
       <div className="space-y-1.5 px-2">
-        {stats.map(({ goal, planned, done, count }) => (
+        {stats.map(({ goal, done, count }) => (
           <div key={goal.id} className="group">
             <div className="flex items-center gap-1.5 text-label">
               <span
@@ -34,7 +37,7 @@ export default function GoalsPanel() {
               />
               <span className="text-slate-300 truncate flex-1">{goal.name}</span>
               <span className="text-slate-500 tabular-nums">
-                {count > 0 ? `${fmtDur(done)} / ${fmtDur(planned)}` : "—"}
+                {count > 0 ? `${done} / ${count}` : "—"}
               </span>
               <button
                 onClick={() => deleteGoal(goal.id)}
@@ -48,7 +51,7 @@ export default function GoalsPanel() {
               <div
                 className="h-full rounded-full"
                 style={{
-                  width: `${(planned / max) * 100}%`,
+                  width: `${(count / max) * 100}%`,
                   backgroundColor: goal.color,
                   opacity: 0.7,
                 }}

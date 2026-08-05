@@ -81,7 +81,7 @@ async function stored(): Promise<Plan> {
 /** a → b → c, plus a background task, which is enough graph to ask questions of */
 function chain() {
   return makePlan([
-    makeTask({ id: "a", title: "Draft", duration: 60, priority: 1, goalId: "g1", done: true }),
+    makeTask({ id: "a", title: "Draft", priority: 1, goalId: "g1", done: true }),
     makeTask({ id: "b", title: "Review", dependsOn: ["a"] }),
     makeTask({ id: "c", title: "Ship", dependsOn: ["b"] }),
     makeTask({ id: "ci", title: "CI run", parallel: true }),
@@ -127,7 +127,7 @@ describe("GET /api/tasks", () => {
     const stats = (await json(await tasks.GET(req("/api/tasks")))).stats!;
     expect(stats.byStatus).toEqual({ "in-progress": 2, todo: 1, done: 1 });
     expect(stats.longestChain).toBe(3);
-    expect(stats.plannedMinutes).toBe(150);
+    expect(stats.parallel).toBe(1);
   });
 
   it("filters by status, and leaves the rest of the plan described in full", async () => {
@@ -189,17 +189,17 @@ describe("POST /api/tasks", () => {
   it("takes quick-add lines, with the tokens the app parses", async () => {
     const { tasks } = await routes();
     const res = await tasks.POST(
-      req("/api/tasks", "POST", { quickAdd: ["Write report 45m !1 #writing ~"] })
+      req("/api/tasks", "POST", { quickAdd: ["Write report !1 #writing ~"] })
     );
     const [t] = rows(await json(res));
-    expect(t).toMatchObject({ title: "Write report", duration: 45, priority: 1, parallel: true });
+    expect(t).toMatchObject({ title: "Write report", priority: 1, parallel: true });
     // the goal was created on the way through, as `#goal` does in the app
     expect((await stored()).goals.map((g) => g.name)).toContain("writing");
   });
 
   it("refuses a task with no title", async () => {
     const { tasks } = await routes();
-    const res = await tasks.POST(req("/api/tasks", "POST", { duration: 30 }));
+    const res = await tasks.POST(req("/api/tasks", "POST", { priority: 1 }));
     expect(res.status).toBe(400);
     expect((await json(res)).details).toEqual(["tasks[0]: title is required"]);
   });
@@ -209,6 +209,21 @@ describe("POST /api/tasks", () => {
     const res = await tasks.POST(req("/api/tasks", "POST", { title: "x", when: "tomorrow" }));
     expect(res.status).toBe(400);
     expect((await json(res)).details).toEqual(['tasks[0]: unknown field "when"']);
+  });
+
+  /**
+   * `duration` was a field until it wasn't. Refusing it would mean a document
+   * exported by an older build of this app could no longer be handed back, which
+   * is the one thing the round trip promises — so it is accepted and dropped.
+   */
+  it("accepts a field the plan has since retired, and drops it", async () => {
+    const { tasks } = await routes();
+    const res = await tasks.POST(
+      req("/api/tasks", "POST", { title: "From an old export", duration: 45 })
+    );
+    expect(res.status).toBe(201);
+    const t = (await stored()).tasks.find((t) => t.title === "From an old export")!;
+    expect(t).not.toHaveProperty("duration");
   });
 
   it("refuses a dependency on a task that does not exist, and writes nothing", async () => {
@@ -365,7 +380,7 @@ describe("/api/tasks/[id]", () => {
     await task.PUT(req("/api/tasks/b", "PUT", { title: "Review" }), ctx("b"));
     const t = (await stored()).tasks.find((t) => t.id === "b")!;
     expect(t.dependsOn).toEqual([]);
-    expect(t.duration).toBe(30);
+    expect(t.priority).toBe(3);
   });
 
   it("deletes, and unhooks whatever depended on it", async () => {
@@ -417,15 +432,13 @@ describe("/api/tasks/[id]/dependencies", () => {
 describe("/api/goals", () => {
   beforeEach(() => seed(chain()));
 
-  it("counts the work planned and done against each goal", async () => {
+  it("counts the tasks mapped and done against each goal", async () => {
     const { goals } = await routes();
     const body = await json(await goals.GET());
     expect(body.goals![0]).toMatchObject({
       name: "deep-work",
       taskCount: 1,
       doneCount: 1,
-      plannedMinutes: 60,
-      doneMinutes: 60,
     });
   });
 

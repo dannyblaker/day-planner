@@ -3,8 +3,8 @@ import { SHARE_TOKEN, expect, quickAdd, test } from "./fixtures";
 test.describe("the live share link", () => {
   test("shows today's plan read-only", async ({ page, planServer }) => {
     await page.goto("/");
-    await quickAdd(page, "Draft the proposal 1h", "Draft the proposal");
-    await quickAdd(page, "Standup 15m", "Standup");
+    await quickAdd(page, "Draft the proposal", "Draft the proposal");
+    await quickAdd(page, "Standup", "Standup");
     await planServer.settled();
 
     await page.goto(`/share/${SHARE_TOKEN}`);
@@ -15,7 +15,7 @@ test.describe("the live share link", () => {
 
   test("offers no way to edit the plan", async ({ page, planServer }) => {
     await page.goto("/");
-    await quickAdd(page, "Draft the proposal 1h", "Draft the proposal");
+    await quickAdd(page, "Draft the proposal", "Draft the proposal");
     await planServer.settled();
 
     await page.goto(`/share/${SHARE_TOKEN}`);
@@ -33,8 +33,8 @@ test.describe("the live share link", () => {
 
   test("surfaces what is in progress and what is stuck", async ({ page, planServer }) => {
     await page.goto("/");
-    await quickAdd(page, "Startable now 1h", "Startable now");
-    await quickAdd(page, "Ship it 20m *waiting-on-legal", "Ship it");
+    await quickAdd(page, "Startable now", "Startable now");
+    await quickAdd(page, "Ship it *waiting-on-legal", "Ship it");
     await planServer.settled();
 
     await page.goto(`/share/${SHARE_TOKEN}`);
@@ -51,14 +51,14 @@ test.describe("the live share link", () => {
 
   test("keeps up as the plan changes", async ({ page, context, planServer }) => {
     await page.goto("/");
-    await quickAdd(page, "First task 30m", "First task");
+    await quickAdd(page, "First task", "First task");
     await planServer.settled();
 
     const viewer = await context.newPage();
     await viewer.goto(`/share/${SHARE_TOKEN}`);
     await expect(viewer.getByText("First task").first()).toBeVisible();
 
-    await quickAdd(page, "Added later 30m", "Added later");
+    await quickAdd(page, "Added later", "Added later");
     await planServer.settled();
     // the share view polls every 5 seconds
     await expect(viewer.getByText("Added later").first()).toBeVisible({ timeout: 10_000 });

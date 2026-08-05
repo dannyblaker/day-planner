@@ -13,7 +13,6 @@ const SHORTCUTS: [string, string][] = [
   ["b", "toggle blocked"],
   ["1 – 4", "set priority P1–P4"],
   ["p", "toggle concurrent (a crocodile that swims on its own)"],
-  ["+ / -", "duration +15m / −15m"],
   ["s", "auto-sort queue by priority"],
   ["x / Del", "delete selected task"],
   ["u / ⌘Z", "undo the last clear"],
@@ -30,7 +29,6 @@ const SHORTCUTS: [string, string][] = [
 ];
 
 const SYNTAX: [string, string][] = [
-  ["45m · 1h · 1h30", "duration"],
   ["!1 … !4", "priority (P1 = do or die)"],
   ["#deep-work", "goal — created if new"],
   [">design", "depends on task whose title starts with “design”"],

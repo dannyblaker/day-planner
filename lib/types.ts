@@ -5,8 +5,6 @@ export interface Task {
   id: string;
   title: string;
   notes?: string;
-  /** planned minutes */
-  duration: number;
   priority: Priority;
   goalId?: string | null;
   dependsOn: string[];

@@ -18,7 +18,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **Blockers** — mark a task blocked with a reason and it is held at *to do* however clear its prerequisites are: a blocker is a reason you can't start that the graph can't see.
 - **Cycle-safe** — the editor greys out any dependency that would close a loop, and the layout terminates on a cycle rather than hanging.
 - **Prioritisation** — P1–P4 with one-key assignment, shown as the node's left stripe, plus one-key auto-sort of the to-do queue by priority.
-- **Goals** — map tasks to goals (`#goal`); a panel shows work done against work planned per goal.
+- **Goals** — map tasks to goals (`#goal`); a panel shows how many of each goal's tasks are done against how many are mapped to it.
 - **Live share** — send someone a read-only link (`Share live`) that polls the plan every 5 seconds. Read-only means it: no done buttons, no ports, no clickable arrows.
 - **Export** — one click to PNG or PDF of the canvas, matching the theme you're in, or `JSON` for the whole graph as data: every task, every dependency, and the derived status.
 - **A real API** — read the plan, write it a task at a time, or fetch the lot and hand it back edited. Dependencies are checked on the way in, so nothing you can send closes a loop. See [The API](#the-api).
@@ -66,9 +66,9 @@ The end-to-end suite stubs `/api/plan` in the browser at context scope, so **no 
 ## The planning flow
 
 1. Press `n` and brain-dump tasks — the input stays focused, one task per Enter.
-2. Add tokens as you type: `Write report 45m !1 #deep-work`, `CI run 45m ~`.
+2. Add tokens as you type: `Write report !1 #deep-work`, `CI run ~`.
 3. Draw the arrows: drag from one node's ○ port onto whatever it has to finish before — or into empty space, and name the task that follows it there.
-4. Press `✨ Auto-arrange`. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
+4. Press `🐊 Auto-arrange`. The leftmost column goes amber — that is what you can start, and how much of it you can start at once.
 5. Finish something, mark it done, and watch the next column light up.
 
 ## The API
@@ -94,7 +94,7 @@ The document carries each task twice over: `dependsOn`/`dependents` on the task,
 | | |
 |---|---|
 | `GET /api/tasks` | every task with its derived state, plus the goals, the edge list and the totals |
-| `POST /api/tasks` | create — one task, `{"tasks": [...]}`, or `{"quickAdd": ["Write report 45m !1 #deep-work"]}` |
+| `POST /api/tasks` | create — one task, `{"tasks": [...]}`, or `{"quickAdd": ["Write report !1 #deep-work"]}` |
 | `PATCH /api/tasks` | update many: `{"tasks": [{"id": "a1b2", "done": true}]}` |
 | `PUT /api/tasks` | replace the whole list |
 | `DELETE /api/tasks` | `?ids=a,b` or `?done=true` |
@@ -109,7 +109,7 @@ curl 'localhost:3000/api/tasks?status=in-progress' | jq '.tasks[].title'
 
 # add a task that waits for another
 curl -X POST localhost:3000/api/tasks -H 'content-type: application/json' \
-  -d '{"title": "Ship it", "duration": 20, "priority": 1, "goal": "release", "dependsOn": ["a1b2"]}'
+  -d '{"title": "Ship it", "priority": 1, "goal": "release", "dependsOn": ["a1b2"]}'
 
 # finish something — its dependents become in-progress on their own
 curl -X PATCH localhost:3000/api/tasks/a1b2 -H 'content-type: application/json' -d '{"done": true}'
@@ -125,7 +125,7 @@ A task may name its goal by name (`"goal": "release"`) and it is created if new,
 {
   "goals":    { "create": [...], "update": [...], "delete": ["id"] },
   "create":   [{ "title": "Retro", "dependsOn": ["c3d4"] }],
-  "quickAdd": ["Write report 45m !1 #deep-work"],
+  "quickAdd": ["Write report !1 #deep-work"],
   "update":   [{ "id": "a1b2", "done": true }],
   "delete":   ["e5f6"]
 }
@@ -145,7 +145,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 
 ### Goals, import
 
-`GET·POST·PATCH·DELETE /api/goals` and `GET·PATCH·DELETE /api/goals/{id}`; each goal reports the work planned and done against it. Deleting a goal unassigns its tasks — it never deletes work.
+`GET·POST·PATCH·DELETE /api/goals` and `GET·PATCH·DELETE /api/goals/{id}`; each goal reports how many tasks are mapped to it and how many of those are done. Deleting a goal unassigns its tasks — it never deletes work.
 
 `POST /api/import` takes a document back — an export of this app's, or anything with the same `tasks` and `goals` shape. `?mode=merge` upserts by id instead of replacing, and a replace keeps the existing share token so links you've sent still work.
 
@@ -168,7 +168,6 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 | `b` | toggle blocked |
 | `1`–`4` | set priority |
 | `p` | toggle concurrent / background |
-| `+` / `-` | duration ±15m |
 | `s` | auto-sort by priority |
 | `x` / `Del` | delete |
 | `u` / `⌘Z` | undo the last clear |
@@ -179,12 +178,11 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 ## Quick-add syntax
 
 ```
-Fix login bug 1h !1 #deep-work >deploy ~ *waiting-on-bob ^
+Fix login bug !1 #deep-work >deploy ~ *waiting-on-bob ^
 ```
 
 | Token | Meaning |
 |---|---|
-| `45m` `1h` `1h30` | duration (a label — nothing schedules it) |
 | `!1`…`!4` | priority |
 | `#goal` | goal (created if new) |
 | `>title` | depends on task whose title starts with… |

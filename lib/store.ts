@@ -17,7 +17,6 @@ function defaultPlan(): Plan {
   const mk = (partial: Partial<Task>, order: number): Task => ({
     id: uid(),
     title: "",
-    duration: 30,
     priority: 3,
     dependsOn: [],
     done: false,
@@ -26,7 +25,7 @@ function defaultPlan(): Plan {
     ...partial,
   });
   const draft = mk(
-    { title: "Draft project proposal", duration: 60, priority: 1, goalId: goals[0].id },
+    { title: "Draft project proposal", priority: 1, goalId: goals[0].id },
     1
   );
   return {
@@ -36,7 +35,6 @@ function defaultPlan(): Plan {
       mk(
         {
           title: "Review proposal with fresh eyes",
-          duration: 20,
           priority: 2,
           goalId: goals[0].id,
           dependsOn: [draft.id],
@@ -44,13 +42,12 @@ function defaultPlan(): Plan {
         2
       ),
       mk(
-        { title: "CI pipeline run (background)", duration: 45, parallel: true, priority: 3 },
+        { title: "CI pipeline run (background)", parallel: true, priority: 3 },
         3
       ),
       mk(
         {
           title: "Press ? for shortcuts — try adding a task with N",
-          duration: 15,
           priority: 4,
           goalId: goals[1].id,
         },
@@ -103,7 +100,6 @@ interface AppState {
   toggleDone: (id: string) => void;
   toggleBlocked: (id: string, reason?: string) => void;
   setPriority: (id: string, p: Priority) => void;
-  adjustDuration: (id: string, delta: number) => void;
   autoSort: () => void;
   /** remove the finished tasks; recoverable until the undo bar goes */
   clearDone: () => void;
@@ -216,7 +212,6 @@ export const useApp = create<AppState>()(
         s.plan.tasks.push({
           id,
           title: parsed.title,
-          duration: parsed.duration,
           priority: parsed.priority,
           goalId,
           dependsOn: parsed.dependsOn,
@@ -300,12 +295,6 @@ export const useApp = create<AppState>()(
       set((s) => {
         const t = s.plan.tasks.find((t) => t.id === id);
         if (t) t.priority = p;
-      }),
-
-    adjustDuration: (id, delta) =>
-      set((s) => {
-        const t = s.plan.tasks.find((t) => t.id === id);
-        if (t) t.duration = Math.max(5, t.duration + delta);
       }),
 
     autoSort: () =>

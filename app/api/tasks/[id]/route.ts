@@ -61,7 +61,6 @@ export async function PUT(req: Request, ctx: Ctx) {
       const existing = findTask(plan, id);
       const blank: Record<string, unknown> = {
         notes: null,
-        duration: 30,
         priority: 3,
         goalId: null,
         dependsOn: [],

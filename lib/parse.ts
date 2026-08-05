@@ -2,7 +2,6 @@ import { Goal, Priority, Task } from "./types";
 
 export interface ParsedTask {
   title: string;
-  duration: number;
   priority: Priority;
   goalName?: string;
   dependsOn: string[];
@@ -14,11 +13,15 @@ export interface ParsedTask {
 
 /**
  * Quick-add syntax, e.g.:
- *   "Write report 45m !1 #deepwork >design ~ ^"
- *   45m/1h    duration                !1..!4   priority
- *   #goal     goal (created if new)   >title   depends on title prefix
- *   ~         background/parallel     *reason  blocked
+ *   "Write report !1 #deepwork >design ~ ^"
+ *   !1..!4    priority               #goal    goal (created if new)
+ *   >title    depends on title prefix
+ *   ~         background/parallel    *reason  blocked
  *   ^         do next (front of queue)
+ *
+ * Anything that isn't a token is title. There used to be a duration token here
+ * (`45m`, `1h30`); a plan with no clock in it had no use for the number, so
+ * `45m` is now four characters of a title like any other.
  */
 export function parseQuickAdd(
   input: string,
@@ -27,7 +30,6 @@ export function parseQuickAdd(
 ): ParsedTask {
   const out: ParsedTask = {
     title: "",
-    duration: 30,
     priority: 3,
     dependsOn: [],
     parallel: false,
@@ -38,21 +40,7 @@ export function parseQuickAdd(
 
   for (const raw of input.trim().split(/\s+/)) {
     if (!raw) continue;
-    let m = raw.match(/^(\d+(?:\.\d+)?)(m|min|h|hr)$/i);
-    if (m) {
-      const n = parseFloat(m[1]);
-      out.duration = Math.max(
-        5,
-        Math.round(/^h/i.test(m[2]) ? n * 60 : n)
-      );
-      continue;
-    }
-    m = raw.match(/^(\d+)h(\d+)m?$/i); // 1h30
-    if (m) {
-      out.duration = parseInt(m[1], 10) * 60 + parseInt(m[2], 10);
-      continue;
-    }
-    m = raw.match(/^!([1-4])$/);
+    const m = raw.match(/^!([1-4])$/);
     if (m) {
       out.priority = parseInt(m[1], 10) as Priority;
       continue;

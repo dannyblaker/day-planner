@@ -10,9 +10,9 @@ import { expect, quickAdd, test } from "./fixtures";
 test.describe("exporting the plan as JSON", () => {
   test("downloads every task, every dependency and the derived status", async ({ page }) => {
     await page.goto("/");
-    await quickAdd(page, "Draft the proposal 1h !1 #deep-work", "Draft the proposal");
-    await quickAdd(page, "Review it 30m >draft", "Review it");
-    await quickAdd(page, "CI run 45m ~", "CI run");
+    await quickAdd(page, "Draft the proposal !1 #deep-work", "Draft the proposal");
+    await quickAdd(page, "Review it >draft", "Review it");
+    await quickAdd(page, "CI run ~", "CI run");
 
     const [download] = await Promise.all([
       page.waitForEvent("download"),
@@ -50,13 +50,13 @@ test.describe("exporting the plan as JSON", () => {
       tasks: 3,
       dependencies: 1,
       byStatus: { "in-progress": 2, todo: 1, done: 0 },
-      plannedMinutes: 135,
+      parallel: 1,
     });
   });
 
   test("exports what is on screen, not what was last saved", async ({ page }) => {
     await page.goto("/");
-    await quickAdd(page, "Just typed 25m", "Just typed");
+    await quickAdd(page, "Just typed", "Just typed");
 
     // no wait for the 600ms autosave: the download is built from the store
     const [download] = await Promise.all([

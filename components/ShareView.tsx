@@ -1,7 +1,6 @@
 "use client";
 
 import { statuses } from "@/lib/graph";
-import { fmtDur } from "@/lib/format";
 import { Plan, STATUS_COLOR } from "@/lib/types";
 import { useEffect, useState } from "react";
 import FlowCanvas from "./FlowCanvas";
@@ -96,7 +95,6 @@ export default function ShareView({ token }: { token: string }) {
               <span key={t.id}>
                 {i > 0 && <span className="text-slate-500"> · </span>}
                 <span className="text-slate-100 font-medium">{t.title}</span>
-                <span className="text-slate-500 text-label"> {fmtDur(t.duration)}</span>
               </span>
             ))}
           </div>

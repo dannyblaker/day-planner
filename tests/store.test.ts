@@ -28,11 +28,10 @@ describe("quickAdd", () => {
   beforeEach(() => load());
 
   it("adds a parsed task to the end of the queue and selects it", () => {
-    const id = app().quickAdd("Write report 45m !1");
+    const id = app().quickAdd("Write report !1");
     expect(id).toBeTruthy();
     expect(task(id!)).toMatchObject({
       title: "Write report",
-      duration: 45,
       priority: 1,
       done: false,
     });
@@ -40,7 +39,7 @@ describe("quickAdd", () => {
   });
 
   it("refuses an input with no title", () => {
-    expect(app().quickAdd("45m !1")).toBeNull();
+    expect(app().quickAdd("#deep-work !1")).toBeNull();
     expect(tasks()).toHaveLength(0);
   });
 
@@ -84,8 +83,8 @@ describe("editing a task", () => {
   beforeEach(() => load([makeTask({ id: "a", title: "Alpha" })]));
 
   it("patches only the given fields", () => {
-    app().updateTask("a", { title: "Renamed", duration: 90 });
-    expect(task("a")).toMatchObject({ title: "Renamed", duration: 90, priority: 3 });
+    app().updateTask("a", { title: "Renamed", priority: 1 });
+    expect(task("a")).toMatchObject({ title: "Renamed", priority: 1, done: false });
   });
 
   it("ignores an unknown id", () => {
@@ -93,16 +92,9 @@ describe("editing a task", () => {
     expect(titles()).toEqual(["Alpha"]);
   });
 
-  it("sets priority and clamps duration at 5 minutes", () => {
+  it("sets priority", () => {
     app().setPriority("a", 1);
-    app().adjustDuration("a", -15);
-    app().adjustDuration("a", -15);
-    expect(task("a")).toMatchObject({ priority: 1, duration: 5 });
-  });
-
-  it("adjusts duration upward in steps", () => {
-    app().adjustDuration("a", 15);
-    expect(task("a")!.duration).toBe(45);
+    expect(task("a")).toMatchObject({ priority: 1 });
   });
 });
 

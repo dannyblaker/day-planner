@@ -95,41 +95,23 @@ export default function Editor() {
         />
       </div>
 
-      <div className="flex gap-2">
-        <div className="flex-1">
-          <label className={label}>Duration (min)</label>
-          <input
-            type="number"
-            min={5}
-            step={5}
-            className={field}
-            value={task.duration}
-            onChange={(e) =>
-              updateTask(task.id, {
-                duration: Math.max(5, parseInt(e.target.value) || 5),
-              })
-            }
-            onKeyDown={(e) => e.stopPropagation()}
-          />
-        </div>
-        <div className="flex-1">
-          <label className={label}>Priority</label>
-          <div className="flex gap-1">
-            {([1, 2, 3, 4] as Priority[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => updateTask(task.id, { priority: p })}
-                className={`flex-1 text-label py-1.5 rounded border ${
-                  task.priority === p
-                    ? "border-slate-400 bg-slate-700"
-                    : "border-slate-700 bg-slate-800 hover:bg-slate-700"
-                }`}
-                style={{ color: PRIORITY_COLOR[p] }}
-              >
-                P{p}
-              </button>
-            ))}
-          </div>
+      <div>
+        <label className={label}>Priority</label>
+        <div className="flex gap-1">
+          {([1, 2, 3, 4] as Priority[]).map((p) => (
+            <button
+              key={p}
+              onClick={() => updateTask(task.id, { priority: p })}
+              className={`flex-1 text-label py-1.5 rounded border ${
+                task.priority === p
+                  ? "border-slate-400 bg-slate-700"
+                  : "border-slate-700 bg-slate-800 hover:bg-slate-700"
+              }`}
+              style={{ color: PRIORITY_COLOR[p] }}
+            >
+              P{p}
+            </button>
+          ))}
         </div>
       </div>
 
