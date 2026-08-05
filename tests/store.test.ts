@@ -375,10 +375,10 @@ describe("loading", () => {
 
   /**
    * The tab autosaves the whole document, so anything it loads it writes back:
-   * a retired field kept here would be handed to the server for ever, and the
-   * plan could never shed it. Reading is where it goes.
+   * a field the model doesn't have would be handed to the server for ever, and
+   * the plan could never shed it. Reading is where it goes.
    */
-  it("drops fields the model has retired rather than saving them back", () => {
+  it("drops fields the model does not have rather than saving them back", () => {
     const legacy = {
       ...makeTask({ id: "old", title: "From an older build" }),
       duration: 45,
@@ -413,7 +413,7 @@ describe("loading", () => {
 
   it("keeps the seed rather than a stored plan of the wrong shape", () => {
     const seeded = app().plan;
-    // e.g. the pre-flattening document, which had a days map instead of tasks
+    // e.g. a document carrying a days map where the task list should be
     app().load({ goals: [], days: {} } as unknown as Plan);
     expect(app().plan).toBe(seeded);
     expect(app().loaded).toBe(true);

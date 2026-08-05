@@ -10,7 +10,7 @@ import { editPlan } from "@/lib/plan-store";
  *   {
  *     "goals":    { "create": [...], "update": [...], "delete": ["id"] },
  *     "create":   [{ "title": "Ship it", "dependsOn": ["a1b2"] }],
- *     "quickAdd": ["Write report 45m !1 #deep-work"],
+ *     "quickAdd": ["Write report !1 #deep-work"],
  *     "update":   [{ "id": "a1b2", "done": true }],
  *     "delete":   ["c3d4"]
  *   }

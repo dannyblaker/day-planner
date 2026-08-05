@@ -122,7 +122,7 @@ describe("interaction", () => {
     expect(planTasks().find((t) => t.id === "b")!.dependsOn).toEqual([]);
   });
 
-  it("has no arrange button left to press", () => {
+  it("offers no arrange button — the board arranges itself", () => {
     renderFlow([makeTask({ title: "Anything" })]);
     expect(
       screen.queryByRole("button", { name: /auto-arrange/i })

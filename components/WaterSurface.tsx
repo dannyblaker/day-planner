@@ -4,9 +4,9 @@ import { useEffect, useState } from "react";
 
 /**
  * How often something disturbs the water: a gap of five to seventeen seconds, then
- * one ring, then quiet again. The point is that it is *rare* — the whole reason the
- * water stopped drifting is that continuous motion under something you read all day
- * is tiring, and a ripple every couple of seconds would be the same mistake in a
+ * one ring, then quiet again. The point is that it is *rare*. Continuous motion
+ * under something you read all day is tiring, which is why the pool itself holds
+ * still, and a ripple every couple of seconds would be the same mistake in a
  * smaller font.
  */
 const GAP_MS = 5000;

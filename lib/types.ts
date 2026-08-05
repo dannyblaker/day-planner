@@ -1,15 +1,14 @@
 /**
- * Three levels, because a fourth was one nobody meant. P4 was where work went
- * to be forgotten politely — and on a board that now sorts itself top to bottom
- * by priority, a level that means "never" is just a longer canvas.
+ * Three levels, and deliberately no fourth. The board sorts itself top to bottom
+ * by priority, so a level that means "never" would only make the canvas longer.
  */
 export type Priority = 1 | 2 | 3;
 export const PRIORITIES: Priority[] = [1, 2, 3];
 
 /**
- * Anything into a priority the app still has. A plan written when there were
- * four of them opens rather than showing a level that no longer exists: the P4
- * becomes a P3. The level went away; the task didn't.
+ * Anything into one of the three: missing is P3, and out of range is clamped
+ * rather than refused. So a document naming a level this app doesn't have still
+ * opens — a `4` arrives as a P3, and the task survives its label.
  */
 export const asPriority = (v: number | null | undefined): Priority =>
   v == null || Number.isNaN(v)
@@ -80,9 +79,9 @@ export interface Goal {
 /**
  * The whole plan: one flat graph of work, with no date on it.
  *
- * There used to be a day per date and a task belonged to one of them. Nothing
- * here needs a calendar — a dependency graph is a statement about order, not
- * about when — and the days mostly served the schedule that no longer exists.
+ * Nothing here needs a calendar. A dependency graph is a statement about order —
+ * what has to happen before what — and never about when, so there is nowhere in
+ * the document for a day to go.
  */
 export interface Plan {
   goals: Goal[];

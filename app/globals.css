@@ -28,13 +28,12 @@ html {
 @theme {
   /*
    * The type scale, and all of it: four sizes, named for the job they do rather
-   * than for how many pixels they used to be. The app had five hardcoded pixel
-   * sizes between 9px and 14px, which is both too many to tell apart and too
-   * small to read — and being pixels, none of them answered to the knob above.
+   * than for a pixel count. Four is few enough that any two are told apart, and
+   * being rem they all answer to the knob above.
    *
-   * `note` is the small print (durations, group headings, hints), `label` is
-   * everything you click or a node is titled with, `body` is what you type into,
-   * and `title` is a panel heading.
+   * `note` is the small print (sweep countdowns, group headings, hints), `label`
+   * is everything you click or a node is titled with, `body` is what you type
+   * into, and `title` is a panel heading.
    */
   --text-note: 0.68rem;
   --text-note--line-height: 1.35;
@@ -329,7 +328,7 @@ body {
 }
 
 /* Selected: the outline goes lagoon and thickens. A ring would draw the box, and
-   the box is not the shape any more. */
+   the box is not the shape. */
 .croc-node.is-selected .croc-shape {
   stroke: var(--edge-active);
   stroke-width: 2.5;
@@ -376,10 +375,10 @@ body {
  * shadow down-right, a surface with a direction the light comes from. That is
  * where the three dimensions come from.
  *
- * feDiffuseLighting would do the embossing in one pass and was the first thing
- * tried. It cannot tile: computing a normal needs the neighbouring pixels, the
- * tile has none past its edge, and every seam in the board showed as a hard line.
- * Two offset copies of a `stitchTiles` noise have no such edge.
+ * feDiffuseLighting would do the embossing in one pass, and cannot be used here:
+ * computing a normal needs the neighbouring pixels, a tile has none past its
+ * edge, and every seam in the board shows as a hard line. Two offset copies of a
+ * `stitchTiles` noise have no such edge.
  */
 :root {
   /* pale filaments for deep water, dark ones for shallow: light gathers on a black
@@ -395,18 +394,16 @@ body {
  * so a node over it is untouched, `overflow` keeps the ripples inside the box, and
  * it draws nothing you can click.
  *
- * It used to drift — the caustics travelling slowly across the bottom — and it was
- * lovely for about a minute and tiring after that. Something moving under text you
- * are reading all day pulls at the eye whatever it costs. So the pool holds still
- * and the motion is rationed: one ring every ten seconds or so, from
- * components/WaterSurface.tsx.
+ * The pool does not drift. Something moving under text you are reading all day
+ * pulls at the eye whatever it costs, so the motion is rationed instead: one ring
+ * every ten seconds or so, from components/WaterSurface.tsx.
  *
- * It is *sticky*, and only as big as the window. The board is 3000×1500 and the
- * first version covered all of it — blended layers over four and a half million
- * pixels, which a browser rasterises as one group every frame. It cost enough that
- * five of these animating side by side timed the end-to-end suite out. Sticky at
- * the top-left of the scroll port is a third of the pixels, and it holds still
- * while the board pans over it, which is also what water does.
+ * It is *sticky*, and only as big as the window. The board is 3000×1500, and a
+ * pool covering all of it would be blended layers over four and a half million
+ * pixels, which a browser rasterises as one group every frame — enough that a few
+ * of them side by side will time the end-to-end suite out. Sticky at the top-left
+ * of the scroll port is a third of the pixels, and it holds still while the board
+ * pans over it, which is also what water does.
  *
  * Holding still is also the cheapest thing it could possibly do: nothing here
  * repaints between ripples, and a ripple is one small ring on the compositor.

@@ -9,8 +9,8 @@ export default function GoalsPanel() {
   const { addGoal, deleteGoal } = useApp();
   const [name, setName] = useState("");
 
-  // Counted in tasks. It used to be counted in minutes, which was the only place
-  // in the app that pretended to know how long anything takes.
+  // Counted in tasks, because nothing in the plan claims to know how long a
+  // task takes — there is no duration on a task to add up.
   const stats = goals.map((g) => {
     const mine = tasks.filter((t) => t.goalId === g.id);
     return {

@@ -200,9 +200,9 @@ export default function FlowCanvas({
 
   // ── canvas panning + double-click create ───────────────────────
   //
-  // The board pans from anywhere, crocodiles included: nothing on it is dragged
-  // into place any more, so pressing on a node and moving can only mean "shift
-  // the water". The port is the exception, and says so by stopping the event.
+  // The board pans from anywhere, crocodiles included: nothing on it is placed
+  // by hand, so pressing on a node and moving can only mean "shift the water".
+  // The port is the exception, and says so by stopping the event.
   const onCanvasPointerDown = (e: React.PointerEvent) => {
     if (e.button !== 0) return;
     const sc = scrollRef.current;

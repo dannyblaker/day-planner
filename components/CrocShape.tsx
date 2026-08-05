@@ -31,17 +31,16 @@ export const DONE_AT = { right: 76 * sx, bottom: 22 * sy };
 /**
  * A crocodile built out of right angles, drawn so the torso *is* the card.
  *
- * The organic version of this was drawn at 350×116, because curves need length
- * to read: a tapering tail and a rounded skull are only recognisable if you give
- * them room, and the cost was less than half as many tasks on screen. Blocks
- * don't need the room. A stepped tail says "tapering" in three rectangles, a
- * square skull behind a square snout says "crocodile" as clearly as a curved one,
- * and the whole animal fits a card barely bigger than the plain rectangle it
- * replaced.
+ * The steps are the design, not a simplification of one. Curves need length to
+ * read — a tapering tail and a rounded skull are only recognisable if you give
+ * them room, and that room costs more than half the tasks on screen. Blocks
+ * don't need it: a stepped tail says "tapering" in three rectangles, a square
+ * skull behind a square snout says "crocodile" as clearly as a curved one, and
+ * the whole animal fits a card barely bigger than a plain rectangle.
  *
- * So the steps are the design, not a simplification of it. Corners stay sharp
- * (see `stroke-linejoin` in globals.css) and every coordinate is a whole unit of
- * the art box, mirrored about the midline at y = 41.
+ * So corners stay sharp (see `stroke-linejoin` in globals.css) and every
+ * coordinate is a whole unit of the art box, mirrored about the midline at
+ * y = 41.
  *
  * The head is a wedge continuous with the body, and that is deliberate. Drawn the
  * obvious way — a pinch at the neck, then a squarer skull, then a narrow snout out
@@ -59,9 +58,8 @@ const OUTLINE = `M 2 36 L 12 36 L 12 32 L 22 32 L 22 27 L 30 27 L 30 12
   L 30 70 L 30 55 L 22 55 L 22 50 L 12 50 L 12 46 L 2 46 Z`;
 
 /**
- * The priority accent, where the left border stripe used to be: the tail, dipped.
- * Inset a pixel and unstroked, so it colours the steps without drawing a second
- * outline over the first.
+ * The priority accent: the tail, dipped. Inset a pixel and unstroked, so it
+ * colours the steps without drawing a second outline over the first.
  */
 const TAIL_PATCH = `M 4 37 L 13 37 L 13 33 L 23 33 L 23 28 L 30 28
   L 30 54 L 23 54 L 23 49 L 13 49 L 13 45 L 4 45 Z`;
@@ -98,8 +96,8 @@ const MOUTH_TOOTHED = "M 214 39 h4 v4 h4 v-4 h4 v4 h4 v-4 h1";
 
 /**
  * The jaw hinge: where the head stops being the body. Without it the taper reads
- * as a card with a pointy end and the eyes look like they are on the shoulders —
- * the line is doing the job the old bulge did, at none of the cost.
+ * as a card with a pointy end and the eyes look like they are on the shoulders.
+ * One line does that job at none of the cost of a bulge in the outline.
  */
 const JAW_HINGE = "M 174 12 L 174 70";
 
@@ -108,10 +106,10 @@ const JAW_HINGE = "M 174 12 L 174 70";
  *
  * Fill and outline come from the status the parent publishes as `--node-fill`
  * and `--node-accent` (see globals.css), so the shape is coloured by the graph
- * exactly as the rectangle it replaced was, and follows the theme for free.
+ * and follows the theme for free.
  *
  * It draws nothing interactive: the node div behind it stays the hit target, so
- * dragging, selecting and dropping an arrow all work across the whole box rather
+ * panning, selecting and dropping an arrow all work across the whole box rather
  * than only where the crocodile happens to be.
  */
 export default function CrocShape({

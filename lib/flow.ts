@@ -13,21 +13,6 @@ export const columnX = (depth: number) => 40 + depth * (FLOW.NODE_W + 60);
 export const rowY = (i: number) => 40 + i * (FLOW.NODE_H + 28);
 
 /**
- * Where every task sits, as a pure function of the graph.
- *
- * Nothing stores a position any more. The board reads left to right by
- * dependency depth — what has to happen first is on the left — and top to bottom
- * by urgency, which is the priority a task inherits from whatever is waiting on
- * it (see urgencies()). So the important work is along the top, and so is
- * everything it needs, in the order it needs it: a P1 five prerequisites deep
- * drags the whole chain up with it rather than sitting above unrelated work.
- *
- * Within one band of equal urgency, a task follows its prerequisites — it lands
- * level with the average row of what it waits on, which keeps a chain running
- * straight across instead of stitching between rows. Columns are laid out left
- * to right so that pull always reads positions that are already decided.
- */
-/**
  * The order the keyboard walks the board: downstream, left to right.
  *
  * Pressing on from a task goes to what waits on it, because following an arrow
@@ -77,6 +62,21 @@ export function navOrder(tasks: Task[]): string[] {
   return order;
 }
 
+/**
+ * Where every task sits, as a pure function of the graph.
+ *
+ * No position is stored anywhere. The board reads left to right by dependency
+ * depth — what has to happen first is on the left — and top to bottom by
+ * urgency, which is the priority a task inherits from whatever is waiting on it
+ * (see urgencies()). So the important work is along the top, and so is
+ * everything it needs, in the order it needs it: a P1 five prerequisites deep
+ * drags the whole chain up with it rather than sitting above unrelated work.
+ *
+ * Within one band of equal urgency, a task follows its prerequisites — it lands
+ * level with the average row of what it waits on, which keeps a chain running
+ * straight across instead of stitching between rows. Columns are laid out left
+ * to right so that pull always reads positions that are already decided.
+ */
 export function layoutFlow(tasks: Task[]): Map<string, FlowPos> {
   const depths = flowDepths(tasks);
   const urgency = urgencies(tasks);

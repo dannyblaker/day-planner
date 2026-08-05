@@ -57,7 +57,7 @@ test("walks downstream: g goes to what waits on the focused task", async ({ page
   await expect(selected(page)).toContainText("Design it");
 });
 
-test("no longer answers to j and k, which select nothing now", async ({ page }) => {
+test("leaves j and k unbound: only shift+J and shift+K do anything", async ({ page }) => {
   await page.keyboard.press("j");
   await page.keyboard.press("k");
   await expect(selected(page)).toHaveCount(0);

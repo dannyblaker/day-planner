@@ -62,8 +62,9 @@ test.describe("the morning brain-dump", () => {
   });
 
   /**
-   * There is no concurrency mark any more, and `~` is a word. What runs at once
-   * is whatever is startable, which is a fact of the graph and not of a label.
+   * Nothing marks a task as the concurrent one — `~` is just a word in a title.
+   * What runs at once is whatever is startable, which is a fact of the graph
+   * rather than of a label.
    */
   test("puts unrelated work on the one canvas, unmarked and startable", async ({ page }) => {
     await quickAdd(page, "Focus work", "Focus work");
@@ -113,9 +114,9 @@ test.describe("marking work done", () => {
 
 test.describe("the flowchart", () => {
   /**
-   * Nothing on the board is placed by hand any more, so a drag over a crocodile
-   * means the same as a drag over the water: shift the view. What it must not do
-   * is move the task, select it, or mark it done on the way past.
+   * Nothing on the board is placed by hand, so a drag over a crocodile means the
+   * same as a drag over the water: shift the view. What it must not do is move
+   * the task, select it, or mark it done on the way past.
    */
   test("pans the board when a node is dragged, and leaves the task alone", async ({
     page,
@@ -264,7 +265,7 @@ test.describe("the flowchart", () => {
   });
 
   test("creates a task by double-clicking the canvas", async ({ page, planServer }) => {
-    // the water itself: the crocodiles on it are grabbable now too
+    // the water itself, clear of any crocodile: a double-click on one edits it
     await page.locator(".croc-water").dblclick({ position: { x: 400, y: 300 } });
     await page.getByPlaceholder(/New task/).fill("Made on the canvas");
     await page.getByPlaceholder(/New task/).press("Enter");

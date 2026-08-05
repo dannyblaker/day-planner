@@ -33,8 +33,8 @@ describe("defaults", () => {
   });
 });
 
-/** There is no duration any more, so the tokens that used to mean one are words. */
-describe("what used to be a duration", () => {
+/** The grammar has no duration in it, so anything shaped like one is a word. */
+describe("tokens that only look like durations", () => {
   it.each(["45m", "45min", "2h", "2hr", "1h30", "1h30m", "0.5h"])(
     "keeps %s in the title",
     (token) => {
@@ -57,17 +57,17 @@ describe("priority", () => {
     expect(parse("Task !0")).toMatchObject({ priority: 3, title: "Task !0" });
   });
 
-  /** P4 went the way of the duration token: what it wrote is now just text. */
-  it("keeps !4 in the title, now that there is no P4", () => {
+  /** There are three levels, so `!4` names nothing and stays where it was typed. */
+  it("keeps !4 in the title", () => {
     expect(parse("Task !4")).toMatchObject({ priority: 3, title: "Task !4" });
   });
 });
 
 /**
- * `~` marked the one task that ran alongside the rest, on a board whose whole
- * claim is that the startable column already does. It is a word now.
+ * Nothing marks a task as the concurrent one: what runs at once is whatever the
+ * graph says is startable, which is not a claim a token can make. `~` is a word.
  */
-describe("what used to mark concurrency", () => {
+describe("the tilde, which marks nothing", () => {
   it("keeps ~ in the title", () => {
     expect(parse("CI run ~").title).toBe("CI run ~");
   });

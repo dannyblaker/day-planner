@@ -210,11 +210,11 @@ describe("POST /api/tasks", () => {
   });
 
   /**
-   * `duration` was a field until it wasn't. Refusing it would mean a document
-   * exported by an older build of this app could no longer be handed back, which
-   * is the one thing the round trip promises — so it is accepted and dropped.
+   * `duration` is not a field this plan has. Refusing it would mean a document
+   * this app itself exported could not be handed back, which is the one thing
+   * the round trip promises — so it is accepted and dropped.
    */
-  it("accepts a field the plan has since retired, and drops it", async () => {
+  it("accepts a field the plan does not have, and drops it", async () => {
     const { tasks } = await routes();
     const res = await tasks.POST(
       req("/api/tasks", "POST", {
@@ -228,14 +228,14 @@ describe("POST /api/tasks", () => {
     expect(res.status).toBe(201);
     const t = (await stored()).tasks.find((t) => t.title === "From an old export")!;
     expect(t).not.toHaveProperty("duration");
-    // canvas positions went the same way: the board arranges itself now
+    // likewise a canvas position: the board arranges itself
     expect(t).not.toHaveProperty("flowX");
-    // and so did the concurrency flag: the startable column is the answer
+    // and a concurrency flag: the startable column is the answer to that
     expect(t).not.toHaveProperty("parallel");
   });
 
-  /** There were four priorities once. A P4 from back then comes in as a P3. */
-  it("takes a priority the app no longer has and folds it into the lowest", async () => {
+  /** The app has three levels, and a document naming a fourth still opens. */
+  it("folds a priority outside the three into the lowest", async () => {
     const { tasks } = await routes();
     const res = await tasks.POST(
       req("/api/tasks", "POST", { title: "An old P4", priority: 4 })

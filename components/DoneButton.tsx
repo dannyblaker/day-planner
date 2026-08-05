@@ -1,9 +1,9 @@
 "use client";
 
 /**
- * Mark done / reopen, overlaid on a task wherever it's drawn (timeline slot,
- * flowchart node). Revealed on hover of the enclosing `.group`, and it swallows
- * pointer events so it never starts a drag or selects the task underneath.
+ * Mark done / reopen, overlaid on the crocodile a task is drawn as. Revealed on
+ * hover of the enclosing `.group`, and it swallows pointer events so it never
+ * pans the board or selects the task underneath.
  */
 export default function DoneButton({
   done,

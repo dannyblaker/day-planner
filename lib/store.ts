@@ -119,12 +119,10 @@ function isPlan(p: unknown): p is Plan {
  * A stored task as the model has it now, rebuilt field by field.
  *
  * Not fussiness: while a tab is open it holds the only copy of the plan and
- * autosaves the whole document, so anything it loads it writes back. Keep a
- * field the app has retired — a `duration`, a `parallel`, the `flowX` from when
- * the board was arranged by hand — and the tab hands it straight back to the
- * server for ever, and the document can never actually shed it. Reading is the
- * one moment it can, so it does. The API does the same on its side; see
- * normalizePlan().
+ * autosaves the whole document, so anything it loads it writes back. A field
+ * this list doesn't name would be handed to the server for ever, and the
+ * document could never shed it. Reading is the one moment it can, so it does.
+ * The API does the same on its side; see normalizePlan().
  */
 function fromStored(t: Task, i: number): Task {
   return {

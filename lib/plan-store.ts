@@ -8,10 +8,10 @@ import { Plan } from "./types";
  * Where the plan lives, on the server side of every route.
  *
  * One document, in Postgres when DATABASE_URL is set and in data/plan.json when
- * it isn't. The app has always saved by replacing the whole thing, which is
- * fine for a browser holding the only copy — but the API edits it a task at a
- * time, and a read-modify-write is only safe if nothing interleaves with it, so
- * writes queue behind each other here.
+ * it isn't. The app saves by replacing the whole thing, which is fine for a
+ * browser holding the only copy — but the API edits it a task at a time, and a
+ * read-modify-write is only safe if nothing interleaves with it, so writes
+ * queue behind each other here.
  *
  * That covers concurrent API calls. It does not cover an open browser tab: the
  * tab autosaves its whole plan, so a change made through the API while a tab is

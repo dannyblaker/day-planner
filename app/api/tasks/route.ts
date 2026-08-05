@@ -111,7 +111,7 @@ export async function GET(req: Request) {
 
 /**
  * Create. Accepts a single task, `{ tasks: [...] }`, or `{ quickAdd: [...] }`
- * for the `Write report 45m !1 #deep-work` grammar the app's own box parses.
+ * for the `Write report !1 #deep-work` grammar the app's own box parses.
  */
 export async function POST(req: Request) {
   try {

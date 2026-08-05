@@ -12,17 +12,15 @@ export interface ParsedTask {
 
 /**
  * Quick-add syntax, e.g.:
- *   "Write report !1 #deepwork >design ~ ^"
+ *   "Write report !1 #deepwork >design ^"
  *   !1..!3    priority               #goal    goal (created if new)
  *   >title    depends on title prefix
  *   *reason   blocked
  *   ^         do next (front of queue)
  *
- * Anything that isn't a token is title, and the retired tokens are the proof:
- * there used to be a duration here (`45m`, `1h30`) and a `~` that marked a task
- * as the concurrent one. A plan with no clock in it had no use for the number,
- * and a board whose whole claim is that the startable column runs at once had no
- * use for a flag saying which task that applied to. Both are ordinary words now.
+ * That is the whole grammar, and anything else is title however token-shaped it
+ * looks. The plan carries no clock and no concurrency flag, so `45m`, `1h30`,
+ * `!4` and `~` are ordinary words and land in the title untouched.
  */
 export function parseQuickAdd(
   input: string,

@@ -133,9 +133,9 @@ const WRITABLE = new Set([
 const DERIVED = new Set(["status", "depth", "dependents", "goalName"]);
 
 /**
- * Fields the plan used to have. Accepted and dropped rather than refused, so a
- * document exported before one of them went away still round-trips through PUT
- * instead of failing on a field the app itself put there.
+ * Names the model has no use for, accepted and dropped rather than refused. Any
+ * document this app has ever exported has to be one it will take back, so a
+ * field it can't place costs the field and not the whole request.
  */
 const RETIRED = new Set(["duration", "flowX", "flowY", "parallel"]);
 
@@ -207,8 +207,8 @@ function coerceTask(
     else t.notes = bag.notes;
   }
 
-  // 4 is taken but not kept: the board had a P4 once, and a document written
-  // then is still a document this API promises to accept. It comes in as a P3.
+  // 4 is taken but not kept: the app has three levels, and a document naming a
+  // fourth is still one this API promises to accept. It comes in as a P3.
   if ("priority" in bag) {
     const v = num(bag.priority);
     if (v == null || ![1, 2, 3, 4].includes(v))

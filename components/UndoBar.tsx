@@ -5,8 +5,8 @@ import { useEffect } from "react";
 
 const LINGER_MS = 10000;
 
-/** Transient "that happened — undo?" bar. Deleting without a prompt is the
- *  house style (see 1ceae22); this is the safety net for the one action that
+/** Transient "that happened — undo?" bar. Deleting one task asks nothing first,
+ *  which is the house style; this is the safety net for the one action that
  *  takes a batch of work off the board at once: a bulk clear. */
 export default function UndoBar() {
   const cleared = useApp((s) => s.lastCleared);

@@ -53,7 +53,7 @@ export default function TopBar({ exportRef }: { exportRef: React.RefObject<HTMLE
         Concurrent Crocodiles
       </h1>
 
-      {/* what the board adds up to — the one number that used to be capacity */}
+      {/* what the board adds up to: how much work sits in each derived status */}
       <div
         className="flex items-center gap-2.5 text-label px-2 py-1 rounded-md border border-slate-700 bg-slate-800/60"
         title="every status is derived from the dependency graph"
