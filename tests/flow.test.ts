@@ -1,4 +1,4 @@
-import { columnX, layoutFlow, rowY } from "@/lib/flow";
+import { columnX, layoutFlow, navOrder, rowY } from "@/lib/flow";
 import { FLOW } from "@/lib/types";
 import { beforeEach, describe, expect, it } from "vitest";
 import { makeTask, resetFactory } from "./factory";
@@ -90,5 +90,78 @@ describe("layoutFlow", () => {
       makeTask({ id: "b" }),
     ]);
     expect([...layout.keys()].sort()).toEqual(["a", "b"]);
+  });
+});
+
+/**
+ * The keyboard walks the plan the way the work runs: on from a task is whatever
+ * waits on it, so a chain is followed to its end rather than dropping down a
+ * column and leaving you to find where the arrow went.
+ */
+describe("navOrder", () => {
+  it("goes to what waits on a task, not to the one below it", () => {
+    const order = navOrder([
+      makeTask({ id: "a", order: 1 }),
+      makeTask({ id: "below", order: 2 }),
+      makeTask({ id: "after-a", order: 3, dependsOn: ["a"] }),
+    ]);
+    expect(order).toEqual(["a", "after-a", "below"]);
+  });
+
+  it("follows a chain the whole way before starting the next one", () => {
+    const order = navOrder([
+      makeTask({ id: "a1", order: 1 }),
+      makeTask({ id: "b1", order: 2 }),
+      makeTask({ id: "a2", order: 3, dependsOn: ["a1"] }),
+      makeTask({ id: "a3", order: 4, dependsOn: ["a2"] }),
+      makeTask({ id: "b2", order: 5, dependsOn: ["b1"] }),
+    ]);
+    expect(order).toEqual(["a1", "a2", "a3", "b1", "b2"]);
+  });
+
+  it("takes the topmost dependent first when a task has several", () => {
+    const order = navOrder([
+      makeTask({ id: "a", order: 1 }),
+      makeTask({ id: "low", order: 2, priority: 3, dependsOn: ["a"] }),
+      makeTask({ id: "high", order: 3, priority: 1, dependsOn: ["a"] }),
+    ]);
+    // `high` is the P1, so it is the one drawn at the top of that column
+    expect(order).toEqual(["a", "high", "low"]);
+  });
+
+  it("visits a task with two prerequisites once", () => {
+    const order = navOrder([
+      makeTask({ id: "a", order: 1 }),
+      makeTask({ id: "b", order: 2 }),
+      makeTask({ id: "both", order: 3, dependsOn: ["a", "b"] }),
+    ]);
+    expect(order).toHaveLength(3);
+    expect(new Set(order).size).toBe(3);
+    expect(order.indexOf("both")).toBeGreaterThan(order.indexOf("a"));
+  });
+
+  it("starts from the far left, never from the middle of a chain", () => {
+    const order = navOrder([
+      makeTask({ id: "last", order: 1, dependsOn: ["first"] }),
+      makeTask({ id: "first", order: 2 }),
+    ]);
+    expect(order).toEqual(["first", "last"]);
+  });
+
+  it("leaves nobody unreachable, cycle or no cycle", () => {
+    const tasks = [
+      makeTask({ id: "a", dependsOn: ["b"] }),
+      makeTask({ id: "b", dependsOn: ["a"] }),
+      makeTask({ id: "loner" }),
+    ];
+    expect(new Set(navOrder(tasks))).toEqual(new Set(["a", "b", "loner"]));
+  });
+
+  it("ignores a dependency on a task that no longer exists", () => {
+    const order = navOrder([
+      makeTask({ id: "a", dependsOn: ["ghost"] }),
+      makeTask({ id: "b", dependsOn: ["a"] }),
+    ]);
+    expect(order).toEqual(["a", "b"]);
   });
 });

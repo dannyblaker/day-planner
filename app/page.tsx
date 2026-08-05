@@ -8,11 +8,11 @@ import QuickAdd from "@/components/QuickAdd";
 import TaskList from "@/components/TaskList";
 import TopBar from "@/components/TopBar";
 import UndoBar from "@/components/UndoBar";
-import { statuses } from "@/lib/graph";
+import { navOrder } from "@/lib/flow";
 import { useApp } from "@/lib/store";
 import { toggleCanvas, toggleTheme } from "@/lib/theme";
 import { usePlanSync } from "@/lib/sync";
-import { Priority, STATUS_ORDER, Task } from "@/lib/types";
+import { Priority } from "@/lib/types";
 import { useEffect, useMemo, useRef } from "react";
 
 export default function Home() {
@@ -23,15 +23,9 @@ export default function Home() {
   const quickAddRef = useRef<HTMLInputElement>(null);
   const exportRef = useRef<HTMLDivElement>(null);
 
-  // keyboard-driven navigation order: by status, then queue order — the order
-  // the sidebar lists them in, so j/k walks down what you can see
-  const navIds = useMemo(() => {
-    const statusOfId = statuses(tasks);
-    const rank = (t: Task) => STATUS_ORDER.indexOf(statusOfId.get(t.id)!);
-    return [...tasks]
-      .sort((a, b) => rank(a) - rank(b) || a.order - b.order)
-      .map((t) => t.id);
-  }, [tasks]);
+  // keyboard-driven navigation order: downstream along the arrows, left to
+  // right — the board's own order, not the sidebar's. See navOrder().
+  const navIds = useMemo(() => navOrder(tasks), [tasks]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -65,12 +59,16 @@ export default function Home() {
       const cur = sel ? navIds.indexOf(sel) : -1;
       const selectAt = (i: number) => {
         const id = navIds[Math.max(0, Math.min(navIds.length - 1, i))];
-        if (id) {
-          s.select(id);
-          document
-            .querySelector(`[data-task-row="${id}"]`)
-            ?.scrollIntoView({ block: "nearest" });
-        }
+        if (!id) return;
+        s.select(id);
+        document
+          .querySelector(`[data-task-row="${id}"]`)
+          ?.scrollIntoView({ block: "nearest" });
+        // and the crocodile itself: the walk crosses a board wider than the
+        // window, so focus that can't be seen isn't focus
+        document
+          .querySelector(`[data-flow-node="${id}"]`)
+          ?.scrollIntoView({ block: "nearest", inline: "nearest" });
       };
       switch (e.key) {
         case "n":

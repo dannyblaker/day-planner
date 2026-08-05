@@ -6,7 +6,7 @@ import { STATUS_COLOR, TaskStatus } from "@/lib/types";
 const SHORTCUTS: [string, string][] = [
   ["n / c / ⌘K", "add task (quick-add)"],
   ["a", "new task depending on the selected one"],
-  ["f / g or ↑ / ↓", "focus previous / next task"],
+  ["f / g or ↑ / ↓", "focus previous / next — g follows the arrows on"],
   ["Shift+J / Shift+K", "move task down / up the to-do queue"],
   ["Enter / e", "edit selected task"],
   ["d", "toggle done — dependents become in-progress"],

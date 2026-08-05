@@ -32,6 +32,31 @@ test("moves it with the arrow keys too", async ({ page }) => {
   await expect(selected(page)).toContainText("First job");
 });
 
+/**
+ * The walk follows the arrows, so `g` from a task goes to whatever waits on it
+ * — across the board — rather than to the task under it in the sidebar.
+ */
+test("walks downstream: g goes to what waits on the focused task", async ({ page }) => {
+  await quickAdd(page, "Design it", "Design it");
+  await quickAdd(page, "Build it >design", "Build it");
+  await page.getByRole("heading", { name: "Concurrent Crocodiles" }).click();
+  await page.keyboard.press("Escape");
+
+  // First job, Second job, Third job and Design it are all chain heads; the
+  // one thing with an arrow into it is Build it, and it comes straight after
+  // the task it waits on rather than at the end of the queue
+  await page.keyboard.press("g");
+  await expect(selected(page)).toContainText("First job");
+  for (let i = 0; i < 3; i++) await page.keyboard.press("g");
+  await expect(selected(page)).toContainText("Design it");
+  await page.keyboard.press("g");
+  await expect(selected(page)).toContainText("Build it");
+
+  // and f comes back the way it went
+  await page.keyboard.press("f");
+  await expect(selected(page)).toContainText("Design it");
+});
+
 test("no longer answers to j and k, which select nothing now", async ({ page }) => {
   await page.keyboard.press("j");
   await page.keyboard.press("k");
