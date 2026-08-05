@@ -61,8 +61,15 @@ export default function Logo({
     >
       {title && <title>{title}</title>}
 
-      {/* the two arrows, curved the way the canvas curves an edge */}
-      <g stroke={EDGE} strokeWidth="2.2" fill="none" strokeLinecap="round">
+      {/* the two arrows: dotted, because a round cap on a near-zero dash is a
+          dot, and dots survive being scaled down better than a dashed line */}
+      <g
+        stroke={EDGE}
+        strokeWidth="2.4"
+        fill="none"
+        strokeLinecap="round"
+        strokeDasharray="0.1 3.4"
+      >
         <path d="M4.6 16 C7.8 16 7.2 10.8 9.4 10.5" />
         <path d="M4.6 16 C7.8 16 7.2 21.2 9.4 21.5" />
       </g>

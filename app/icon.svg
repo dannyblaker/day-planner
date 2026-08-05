@@ -2,7 +2,8 @@
   <!-- The tab icon: the mark of components/Logo.tsx with the legs and the eyes
        dropped and the strokes thickened. At 16px what has to survive is the
        fork and two tapering bodies; anything finer is noise. -->
-  <g stroke="#2f8d7d" stroke-width="2.6" fill="none" stroke-linecap="round">
+  <g stroke="#2f8d7d" stroke-width="2.8" fill="none" stroke-linecap="round"
+     stroke-dasharray="0.1 4">
     <path d="M5 16 C8.4 16 8 11.4 10.6 10.9" />
     <path d="M5 16 C8.4 16 8 20.6 10.6 21.1" />
   </g>

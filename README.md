@@ -1,4 +1,4 @@
-<img src="public/logo.svg" alt="Concurrent Crocodiles" width="300" height="104">
+<img src="public/logo.svg" alt="Concurrent Crocodiles" width="300" height="130">
 
 **A flowchart for planning work that runs alongside other work. Tasks are nodes, dependencies are arrows, and everything else is derived from those two facts.**
 
