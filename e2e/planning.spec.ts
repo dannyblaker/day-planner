@@ -103,7 +103,7 @@ test.describe("marking work done", () => {
 
   test("with the d key", async ({ page }) => {
     await page.locator("body").click();
-    await page.keyboard.press("j");
+    await page.keyboard.press("g");
     await page.keyboard.press("d");
     await expect(page.getByText("Done · 1")).toBeVisible();
     await page.keyboard.press("d");
@@ -232,7 +232,7 @@ test.describe("the flowchart", () => {
   test("creates a dependent task from the keyboard with a", async ({ page, planServer }) => {
     await quickAdd(page, "First job", "First job");
     await page.locator("body").click();
-    await page.keyboard.press("j");
+    await page.keyboard.press("g");
     await page.keyboard.press("a");
 
     await page.getByPlaceholder(/New task/).fill("Second job");

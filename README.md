@@ -26,7 +26,7 @@ There is no clock in here. A dependency graph is a claim about order, not about 
 - **The board floats on water** (`w`, or the 🌊 button) — the canvas is a pool: a still, lit bottom with caustics on it, so a task waiting its turn is a crocodile lying submerged and the ones you can start are the ones at the surface. Still, and then every ten seconds or so a ripple crosses it and is gone. It is two fields of Perlin noise shaped by SVG filters — no images, no canvas element, and nothing animating in between. Prefer a quiet grid? The button switches to one, and the choice is remembered per device.
 - **Light / dark theme** (`m`, or the ☀️/🌙 button) — swamp water at night or a bright riverbank; follows your OS preference until you pick one, and the choice is per-device and applied before first paint, so there's no flash on reload.
 - **Clear finished work** — `clear` on the Done group drops the finished tasks; an undo bar (or `u` / `⌘Z`) puts them back, dependency links included, without disturbing anything you changed in the meantime.
-- **Keyboard-driven** — `j`/`k` walks the board in status order, and everything else is one key. Press `?`.
+- **Keyboard-driven** — `f`/`g` walks the board in status order, and everything else is one key. Press `?`.
 
 ## Getting started
 
@@ -164,7 +164,7 @@ curl -X PUT localhost:3000/api/tasks -H 'content-type: application/json' -d @pla
 |---|---|
 | `n` / `c` / `⌘K` | quick-add task |
 | `a` | new task depending on the selected one |
-| `j` / `k` | select next / previous (in status order) |
+| `f` / `g` | focus previous / next task (in status order) |
 | `Shift+J` / `Shift+K` | move task down / up the to-do queue |
 | `Enter` / `e` | edit selected |
 | `d` | toggle done — dependents become in-progress |

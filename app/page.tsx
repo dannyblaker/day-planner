@@ -86,15 +86,15 @@ export default function Home() {
             s.requestNewTaskFrom(sel);
           }
           break;
-        case "j":
-        case "ArrowDown":
-          e.preventDefault();
-          selectAt(cur + 1);
-          break;
-        case "k":
+        case "f":
         case "ArrowUp":
           e.preventDefault();
           selectAt(cur <= 0 ? 0 : cur - 1);
+          break;
+        case "g":
+        case "ArrowDown":
+          e.preventDefault();
+          selectAt(cur + 1);
           break;
         case "J":
           if (sel) s.moveTask(sel, 1);
