@@ -42,10 +42,20 @@ export const DONE_AT = { right: 76 * sx, bottom: 22 * sy };
  * So the steps are the design, not a simplification of it. Corners stay sharp
  * (see `stroke-linejoin` in globals.css) and every coordinate is a whole unit of
  * the art box, mirrored about the midline at y = 41.
+ *
+ * The head is a wedge continuous with the body, and that is deliberate. Drawn the
+ * obvious way — a pinch at the neck, then a squarer skull, then a narrow snout out
+ * the front of it — the silhouette invites a reading that has nothing to do with
+ * crocodiles and cannot be unseen once anyone has seen it. Which is a fair
+ * warning about any narrow protrusion off a wider mass, and no loss here: a
+ * crocodile's head from above never looked like that anyway. It is widest at the
+ * jaw hinge, as wide there as the body, and narrows the whole way to the nose. So
+ * the front end steps down three times and never back up, and the eyes ride on
+ * the widest step.
  */
 const OUTLINE = `M 2 36 L 12 36 L 12 32 L 22 32 L 22 27 L 30 27 L 30 12
-  L 170 12 L 170 24 L 176 24 L 176 14 L 208 14 L 208 30 L 233 30
-  L 233 52 L 208 52 L 208 68 L 176 68 L 176 58 L 170 58 L 170 70
+  L 174 12 L 174 18 L 194 18 L 194 24 L 212 24 L 212 29 L 233 29
+  L 233 53 L 212 53 L 212 58 L 194 58 L 194 64 L 174 64 L 174 70
   L 30 70 L 30 55 L 22 55 L 22 50 L 12 50 L 12 46 L 2 46 Z`;
 
 /**
@@ -83,8 +93,15 @@ const HIPS = [
  * long, and anything drawn along their two edges instead of down the middle comes
  * out as fringe.
  */
-const MOUTH_SHUT = "M 210 41 h21";
-const MOUTH_TOOTHED = "M 210 39 h4 v4 h4 v-4 h4 v4 h4 v-4 h5";
+const MOUTH_SHUT = "M 214 41 h17";
+const MOUTH_TOOTHED = "M 214 39 h4 v4 h4 v-4 h4 v4 h4 v-4 h1";
+
+/**
+ * The jaw hinge: where the head stops being the body. Without it the taper reads
+ * as a card with a pointy end and the eyes look like they are on the shoulders —
+ * the line is doing the job the old bulge did, at none of the cost.
+ */
+const JAW_HINGE = "M 174 12 L 174 70";
 
 /**
  * A crocodile seen from above, at the size of one task.
@@ -120,6 +137,12 @@ export default function CrocShape({
       <path d={OUTLINE} />
       <path d={TAIL_PATCH} fill="currentColor" stroke="none" />
       <path
+        d={JAW_HINGE}
+        fill="none"
+        strokeWidth="1.2"
+        strokeDasharray="none"
+      />
+      <path
         d={status === "in-progress" ? MOUTH_TOOTHED : MOUTH_SHUT}
         fill="none"
         strokeWidth="1.2"
@@ -127,8 +150,8 @@ export default function CrocShape({
       />
       {/* nostrils, at the tip where they belong */}
       <g fill="none" strokeWidth="2.4" strokeDasharray="none">
-        <path d="M 225 37 h2" />
-        <path d="M 225 45 h2" />
+        <path d="M 226 37 h2" />
+        <path d="M 226 45 h2" />
       </g>
       {/*
        * The eyes say the other half of what the colour already says: a finished
@@ -136,24 +159,24 @@ export default function CrocShape({
        */}
       {done ? (
         <g fill="none" strokeWidth="2" strokeDasharray="none">
-          <path d="M 182 23 h8" />
-          <path d="M 182 59 h8" />
+          <path d="M 178 27 h10" />
+          <path d="M 178 55 h10" />
         </g>
       ) : (
         <g strokeWidth="1" strokeDasharray="none">
-          <rect x="182" y="19" width="8" height="8" fill="#f7c243" />
-          <rect x="182" y="55" width="8" height="8" fill="#f7c243" />
+          <rect x="178" y="23" width="9" height="8" fill="#f7c243" />
+          <rect x="178" y="51" width="9" height="8" fill="#f7c243" />
           <rect
-            x="185"
-            y="21"
+            x="181.5"
+            y="25"
             width="2"
             height="4"
             fill="#14210f"
             stroke="none"
           />
           <rect
-            x="185"
-            y="57"
+            x="181.5"
+            y="53"
             width="2"
             height="4"
             fill="#14210f"
